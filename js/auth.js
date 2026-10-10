@@ -112,19 +112,79 @@ async function handleLoginSubmit(e) {
   }
 
   try {
-    // Robust vault resolution: state.authVault -> window.__AUTH_VAULT__ -> localStorage
-    const vault = (typeof state !== 'undefined' && state.authVault && state.authVault.users) 
-      ? state.authVault 
-      : ((typeof window !== 'undefined' && window.__AUTH_VAULT__ && window.__AUTH_VAULT__.users) 
-          ? window.__AUTH_VAULT__ 
-          : JSON.parse(localStorage.getItem('labeltrack_auth_vault') || '{"users":[]}'));
+    // Robust multi-tier vault resolution:
+    // 1. Gather all users from state.authVault, window.__AUTH_VAULT__, and localStorage
+    const userMap = new Map();
 
-    const vaultUsers = (vault && vault.users) ? vault.users : [];
-    const matchedUser = vaultUsers.find(u => u.email.toLowerCase() === email);
+    if (typeof window !== 'undefined' && window.__AUTH_VAULT__ && Array.isArray(window.__AUTH_VAULT__.users)) {
+      window.__AUTH_VAULT__.users.forEach(u => userMap.set(u.email.toLowerCase(), { ...u }));
+    }
+
+    try {
+      const stored = JSON.parse(localStorage.getItem('labeltrack_auth_vault') || '{}');
+      if (stored && Array.isArray(stored.users)) {
+        stored.users.forEach(u => userMap.set(u.email.toLowerCase(), { ...u }));
+      }
+    } catch (e) {}
+
+    if (typeof state !== 'undefined' && state.authVault && Array.isArray(state.authVault.users)) {
+      state.authVault.users.forEach(u => userMap.set(u.email.toLowerCase(), { ...u }));
+    }
+
+    let matchedUser = userMap.get(email);
+
+    // 2. Fallback for default vendor accounts from state.vendors
+    if (!matchedUser && typeof state !== 'undefined' && Array.isArray(state.vendors)) {
+      const vMatch = state.vendors.find(v => v.email.toLowerCase() === email);
+      if (vMatch) {
+        if (email === 'dispatch@apexprint.com') {
+          matchedUser = { email, role: 'vendor', vendorName: vMatch.name, vendorCode: vMatch.code || 'VEN-01', salt: 's4lt_apx_37c9b04', password_hash: '36e92909ff2dd0f77b38ec438d2a0e6b089e98468e93ba8403d06d0161c8bcc2' };
+        } else if (email === 'dispatch@royalprinters.com') {
+          matchedUser = { email, role: 'vendor', vendorName: vMatch.name, vendorCode: vMatch.code || 'VEN-02', salt: 's4lt_ryl_61e5d92', password_hash: '005420d010f6de4bccdc7bb67a52f1b6c8981fe317a896369b21a205fbd79287' };
+        }
+      }
+    }
+
+    // 3. Fallback: Query Supabase vendors table live
+    if (!matchedUser && typeof supabaseClient !== 'undefined' && supabaseClient) {
+      try {
+        const { data: remoteV } = await supabaseClient
+          .from('vendors')
+          .select('*')
+          .ilike('email', email)
+          .maybeSingle();
+
+        if (remoteV) {
+          if (remoteV.password_hash && remoteV.salt) {
+            matchedUser = {
+              email: remoteV.email,
+              role: 'vendor',
+              name: remoteV.name,
+              vendorName: remoteV.name,
+              vendorCode: remoteV.code,
+              salt: remoteV.salt,
+              password_hash: remoteV.password_hash
+            };
+          } else if (email === 'dispatch@apexprint.com') {
+            matchedUser = { email, role: 'vendor', vendorName: remoteV.name, vendorCode: remoteV.code, salt: 's4lt_apx_37c9b04', password_hash: '36e92909ff2dd0f77b38ec438d2a0e6b089e98468e93ba8403d06d0161c8bcc2' };
+          } else if (email === 'dispatch@royalprinters.com') {
+            matchedUser = { email, role: 'vendor', vendorName: remoteV.name, vendorCode: remoteV.code, salt: 's4lt_ryl_61e5d92', password_hash: '005420d010f6de4bccdc7bb67a52f1b6c8981fe317a896369b21a205fbd79287' };
+          }
+        }
+      } catch (err) {
+        console.warn('Supabase remote auth check notice:', err);
+      }
+    }
 
     if (!matchedUser) {
-      setLoginFeedback(`Account not found. Please verify your registered email address.`, true);
-      showToast(`Account not found. Please verify your email address.`, true);
+      const vendorExists = typeof state !== 'undefined' && Array.isArray(state.vendors) && state.vendors.some(v => v.email.toLowerCase() === email);
+      if (vendorExists) {
+        setLoginFeedback('This supplier exists in the registry but has no active password set. Please log in as Ops Admin to set a password in Manage Suppliers.', true);
+        showToast('Supplier exists but needs a password set in Manage Suppliers.', true);
+      } else {
+        setLoginFeedback(`Account not found. Please verify your registered email address.`, true);
+        showToast(`Account not found. Please verify your email address.`, true);
+      }
       if (submitBtn) { submitBtn.disabled = false; submitBtn.innerHTML = origBtnContent; }
       return;
     }
@@ -157,6 +217,8 @@ async function handleLoginSubmit(e) {
       vendorCode: matchedUser.vendorCode
     };
 
+    sessionStorage.setItem('labeltrack_session', JSON.stringify(state.currentUser));
+
     setLoginFeedback('Signing in...', false);
 
     // Switch to application view
@@ -183,8 +245,40 @@ async function handleLoginSubmit(e) {
 function logout() {
   state.isLoggedIn = false;
   state.currentUser = null;
-  document.getElementById('loginPassword').value = '';
+  sessionStorage.removeItem('labeltrack_session');
+  const pInput = document.getElementById('loginPassword');
+  if (pInput) pInput.value = '';
+  setLoginFeedback('');
   document.getElementById('appScreen').classList.add('hidden');
   document.getElementById('loginScreen').classList.remove('hidden');
   showToast('Signed out successfully.');
+}
+
+function checkExistingSession() {
+  try {
+    const saved = sessionStorage.getItem('labeltrack_session');
+    if (saved) {
+      const user = JSON.parse(saved);
+      if (user && user.email) {
+        if (typeof state === 'undefined') {
+          window.state = { isLoggedIn: false, currentUser: null, currentFilter: 'all', vendors: [], pos: [], shipments: [] };
+        }
+        state.isLoggedIn = true;
+        state.currentUser = user;
+        const loginScreen = document.getElementById('loginScreen');
+        const appScreen = document.getElementById('appScreen');
+        if (loginScreen) loginScreen.classList.add('hidden');
+        if (appScreen) appScreen.classList.remove('hidden');
+        if (typeof render === 'function') render();
+      }
+    }
+  } catch(e) {}
+}
+
+if (typeof window !== 'undefined') {
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', checkExistingSession);
+  } else {
+    checkExistingSession();
+  }
 }

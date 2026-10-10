@@ -44,12 +44,35 @@ const initialVault = (typeof window.__AUTH_VAULT__ !== 'undefined') ? window.__A
 const storedPos = JSON.parse(localStorage.getItem('labeltrack_pos')) || DEFAULT_POS;
 const storedShipments = JSON.parse(localStorage.getItem('labeltrack_shipments')) || DEFAULT_SHIPMENTS;
 
+function loadAuthVault() {
+  const baseUsers = (typeof window !== 'undefined' && window.__AUTH_VAULT__ && Array.isArray(window.__AUTH_VAULT__.users))
+    ? window.__AUTH_VAULT__.users
+    : (initialVault && initialVault.users ? initialVault.users : []);
+
+  let localUsers = [];
+  try {
+    const stored = JSON.parse(localStorage.getItem('labeltrack_auth_vault') || '{}');
+    if (stored && Array.isArray(stored.users)) localUsers = stored.users;
+  } catch (e) {}
+
+  const mergedMap = new Map();
+  baseUsers.forEach(u => mergedMap.set(u.email.toLowerCase(), { ...u }));
+  localUsers.forEach(u => mergedMap.set(u.email.toLowerCase(), { ...u }));
+
+  return {
+    vault_version: "1.0-encrypted",
+    encryption_standard: "SHA-256-SALTED-VAULT",
+    updated_at: new Date().toISOString(),
+    users: Array.from(mergedMap.values())
+  };
+}
+
 // Global State
 window.state = {
   isLoggedIn: false,
   currentUser: null,
   currentFilter: 'all', // 'all', 'active', 'completed'
-  authVault: (typeof window !== 'undefined' && window.__AUTH_VAULT__) ? window.__AUTH_VAULT__ : (JSON.parse(localStorage.getItem('labeltrack_auth_vault') || '{}') || initialVault),
+  authVault: loadAuthVault(),
   vendors: JSON.parse(localStorage.getItem('labeltrack_vendors')) || DEFAULT_VENDORS,
   pos: storedPos,
   shipments: storedShipments
@@ -63,6 +86,219 @@ function saveState() {
   localStorage.setItem('labeltrack_auth_vault', JSON.stringify(state.authVault));
   render();
 }
+
+// ==========================================
+// Supabase Cloud Configuration & Sync
+// ==========================================
+const SUPABASE_CONFIG = {
+  url: 'https://svrjdipjfplwquljhmrx.supabase.co',
+  anonKey: 'sb_publishable_L8_s5V_gGhCIklk5SQasSw_D-_GSrnw'
+};
+
+let supabaseClient = null;
+
+function initSupabase() {
+  if (typeof window !== 'undefined' && window.supabase && window.supabase.createClient) {
+    try {
+      supabaseClient = window.supabase.createClient(SUPABASE_CONFIG.url, SUPABASE_CONFIG.anonKey);
+      fetchCloudState();
+      setupRealtimeSubscription();
+    } catch (err) {
+      console.warn('Supabase initialization fallback:', err);
+      updateCloudSyncIndicator(false);
+    }
+  } else {
+    updateCloudSyncIndicator(false);
+  }
+}
+
+function setupRealtimeSubscription() {
+  if (!supabaseClient) return;
+  let debounceTimer = null;
+  const debouncedFetch = () => {
+    clearTimeout(debounceTimer);
+    debounceTimer = setTimeout(() => {
+      fetchCloudState();
+    }, 600);
+  };
+
+  try {
+    supabaseClient
+      .channel('labeltrack-cloud-sync')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'purchase_orders' }, debouncedFetch)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'shipments' }, debouncedFetch)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'vendors' }, debouncedFetch)
+      .subscribe((status) => {
+        if (status === 'SUBSCRIBED') {
+          console.log('⚡ Real-time cloud sync active');
+        }
+      });
+  } catch (err) {
+    console.warn('Real-time subscription notice:', err);
+  }
+}
+
+function dataUrlToBlob(dataUrl) {
+  try {
+    const parts = dataUrl.split(',');
+    const mime = parts[0].match(/:(.*?);/)[1];
+    const bstr = atob(parts[1]);
+    let n = bstr.length;
+    const u8arr = new Uint8Array(n);
+    while (n--) {
+      u8arr[n] = bstr.charCodeAt(n);
+    }
+    return new Blob([u8arr], { type: mime });
+  } catch (e) {
+    return null;
+  }
+}
+
+async function uploadInvoiceToSupabase(invoiceObj) {
+  if (!supabaseClient || !invoiceObj || !invoiceObj.dataUrl) return null;
+  try {
+    const blob = dataUrlToBlob(invoiceObj.dataUrl);
+    if (!blob) return null;
+    const isPdf = invoiceObj.type && invoiceObj.type.toLowerCase().includes('pdf');
+    const ext = isPdf ? 'pdf' : 'jpg';
+    const cleanFileName = `inv_${Date.now()}_${Math.random().toString(36).substring(2, 7)}.${ext}`;
+
+    const { data, error } = await supabaseClient.storage
+      .from('invoices')
+      .upload(cleanFileName, blob, {
+        contentType: invoiceObj.type || (isPdf ? 'application/pdf' : 'image/jpeg'),
+        upsert: false
+      });
+
+    if (error) {
+      console.warn('Supabase bucket notice:', error.message);
+      return null;
+    }
+
+    const { data: publicData } = supabaseClient.storage.from('invoices').getPublicUrl(cleanFileName);
+    return publicData ? publicData.publicUrl : null;
+  } catch (err) {
+    console.warn('Invoice upload notice:', err);
+    return null;
+  }
+}
+
+async function fetchCloudState() {
+  if (!supabaseClient) return;
+  try {
+    // 1. Fetch Purchase Orders
+    const { data: poData, error: poErr } = await supabaseClient
+      .from('purchase_orders')
+      .select('*')
+      .order('created_at', { ascending: false });
+
+    if (!poErr && poData && poData.length > 0) {
+      state.pos = poData.map(p => ({
+        id: p.id,
+        poNumber: p.po_number,
+        vendor: p.vendor_name,
+        items: p.items || []
+      }));
+    } else if (!poErr && poData && poData.length === 0 && state.pos.length > 0) {
+      supabaseClient.from('purchase_orders').upsert(
+        state.pos.map(p => ({ po_number: p.poNumber, vendor_name: p.vendor, items: p.items })),
+        { onConflict: 'po_number' }
+      ).then(() => {});
+    }
+
+    // 2. Fetch Shipments
+    const { data: shpData, error: shpErr } = await supabaseClient
+      .from('shipments')
+      .select('*')
+      .order('created_at', { ascending: false });
+
+    if (!shpErr && shpData && shpData.length > 0) {
+      state.shipments = shpData.map(s => ({
+        id: s.id,
+        poNumber: s.po_number,
+        sku: s.sku,
+        description: s.description,
+        qtySent: s.qty_sent,
+        receivedQty: s.received_qty,
+        truckLR: s.truck_lr,
+        date: s.date,
+        invoice: s.invoice_url ? {
+          name: 'invoice_' + s.id,
+          type: s.invoice_url.toLowerCase().endsWith('.pdf') ? 'application/pdf' : 'image/jpeg',
+          dataUrl: s.invoice_url,
+          size: 'Cloud Stored',
+          isCompressed: false
+        } : null
+      }));
+    }
+
+    // 3. Fetch Vendors
+    const { data: vData, error: vErr } = await supabaseClient
+      .from('vendors')
+      .select('*');
+
+    if (!vErr && vData && vData.length > 0) {
+      state.vendors = vData.map(v => ({
+        id: v.id,
+        name: v.name,
+        code: v.code,
+        email: v.email
+      }));
+
+      // Merge remote vendor credentials into authVault
+      let vaultUpdated = false;
+      vData.forEach(v => {
+        if (v.password_hash && v.salt) {
+          const existing = state.authVault.users.find(u => u.email.toLowerCase() === v.email.toLowerCase());
+          if (existing) {
+            existing.password_hash = v.password_hash;
+            existing.salt = v.salt;
+          } else {
+            state.authVault.users.push({
+              email: v.email,
+              role: 'vendor',
+              vendorName: v.name,
+              vendorCode: v.code,
+              salt: v.salt,
+              password_hash: v.password_hash
+            });
+          }
+          vaultUpdated = true;
+        }
+      });
+      if (vaultUpdated) {
+        localStorage.setItem('labeltrack_auth_vault', JSON.stringify(state.authVault));
+      }
+    } else if (!vErr && vData && vData.length === 0 && state.vendors.length > 0) {
+      supabaseClient.from('vendors').upsert(
+        state.vendors.map(v => ({ name: v.name, code: v.code, email: v.email })),
+        { onConflict: 'code' }
+      ).then(() => {});
+    }
+
+    localStorage.setItem('labeltrack_vendors', JSON.stringify(state.vendors));
+    localStorage.setItem('labeltrack_pos', JSON.stringify(state.pos));
+    localStorage.setItem('labeltrack_shipments', JSON.stringify(state.shipments));
+    render();
+    updateCloudSyncIndicator(true);
+  } catch (e) {
+    console.warn('Cloud sync fallback:', e);
+    updateCloudSyncIndicator(false);
+  }
+}
+
+function updateCloudSyncIndicator(synced) {
+  const badge = document.getElementById('cloudSyncBadge');
+  if (!badge) return;
+  if (synced) {
+    badge.className = "hidden sm:inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200";
+    badge.innerHTML = '<span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span> Cloud Synced';
+  } else {
+    badge.className = "hidden sm:inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-slate-50 text-slate-600 border border-slate-200";
+    badge.innerHTML = '<span class="w-1.5 h-1.5 rounded-full bg-slate-400"></span> Offline Cache';
+  }
+}
+
 
 function formatNumber(num) {
   if (num === null || num === undefined) return '0';
@@ -125,7 +361,7 @@ function getPoMetrics(poNumber) {
   const itemsMetrics = po.items.map(item => {
     totalOrdered += item.orderedQty;
 
-    const itemShipments = poShipments.filter(s => s.sku === item.sku || s.description === item.description);
+    const itemShipments = poShipments.filter(s => (s.sku && s.sku === item.sku) || (!s.sku && s.description === item.description));
     const shipped = itemShipments.reduce((sum, s) => sum + Number(s.qtySent), 0);
     const received = itemShipments.reduce((sum, s) => sum + (s.receivedQty !== null ? Number(s.receivedQty) : 0), 0);
     const remaining = Math.max(0, item.orderedQty - shipped);
@@ -214,6 +450,7 @@ function openNewPoModal() {
   itemRowCount = 0;
   
   addNewItemRow("", "");
+  calcNewPoTotal();
 
   openModal('newPoModal');
 }
@@ -266,6 +503,17 @@ function handleNewPoSubmit(e) {
   saveState();
   closeModal('newPoModal');
   showToast(`Created PO ${num} with ${items.length} items for ${vendor}!`);
+
+  // Cloud sync to Supabase
+  if (supabaseClient) {
+    supabaseClient.from('purchase_orders').insert([{
+      po_number: num,
+      vendor_name: vendor,
+      items: items
+    }]).then(({ error }) => {
+      if (error) console.warn('Supabase PO insert notice:', error.message);
+    });
+  }
 }
 
 function deletePo(poNumber) {
@@ -274,6 +522,14 @@ function deletePo(poNumber) {
   state.shipments = state.shipments.filter(s => s.poNumber !== poNumber);
   saveState();
   showToast('Purchase Order removed.');
+
+  // Cloud delete from Supabase
+  if (supabaseClient) {
+    supabaseClient.from('purchase_orders').delete().eq('po_number', poNumber)
+      .then(({ error }) => {
+        if (error) console.warn('Supabase PO delete notice:', error.message);
+      });
+  }
 }
 
 // ==========================================
@@ -344,8 +600,8 @@ function compressDocumentImage(file) {
         // Draw image
         ctx.drawImage(img, 0, 0, width, height);
 
-        // 88% JPEG quality preserves high-frequency text contrast
-        const compressedDataUrl = canvas.toDataURL('image/jpeg', 0.88);
+        // High-efficiency document compression (0.78 quality preserves sharp barcodes & small text while cutting file size to ~120KB)
+        const compressedDataUrl = canvas.toDataURL('image/jpeg', 0.78);
         const base64Len = compressedDataUrl.split(',')[1].length;
         const compressedBytes = Math.round((base64Len * 3) / 4);
 
@@ -376,8 +632,14 @@ async function handleInvoiceFileSelected(e) {
   const file = e.target.files[0];
   if (!file) return;
 
-  if (file.size > 8 * 1024 * 1024) {
-    showToast('File exceeds 8MB limit. Please upload a smaller document.', true);
+  const isPdf = file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf');
+  if (isPdf && file.size > 3.5 * 1024 * 1024) {
+    showToast('PDF exceeds 3.5MB limit. Please upload a standard invoice document.', true);
+    e.target.value = '';
+    return;
+  }
+  if (!isPdf && file.size > 12 * 1024 * 1024) {
+    showToast('Image exceeds 12MB limit. Please select a document photo.', true);
     e.target.value = '';
     return;
   }
@@ -506,7 +768,7 @@ function openDispatchModal(poNumber) {
   openModal('dispatchModal');
 }
 
-function handleDispatchSubmit(e) {
+async function handleDispatchSubmit(e) {
   e.preventDefault();
   const poNumber = document.getElementById('modalPoId').value;
   const selectedSku = document.getElementById('modalItemSelect').value;
@@ -540,8 +802,20 @@ function handleDispatchSubmit(e) {
     return;
   }
 
-  state.shipments.push({
-    id: `SHP-${100 + state.shipments.length + 1}`,
+  const shipmentId = `SHP-${100 + state.shipments.length + 1}`;
+
+  // Upload invoice to Supabase Cloud Storage if available
+  let invoiceCloudUrl = null;
+  if (supabaseClient && currentDispatchInvoice && currentDispatchInvoice.dataUrl) {
+    try {
+      invoiceCloudUrl = await uploadInvoiceToSupabase(currentDispatchInvoice);
+    } catch (err) {
+      console.warn('Supabase invoice storage notice:', err);
+    }
+  }
+
+  const newShipment = {
+    id: shipmentId,
     poNumber: poNumber,
     sku: currentItem.sku,
     description: currentItem.description,
@@ -549,12 +823,42 @@ function handleDispatchSubmit(e) {
     truckLR: truck,
     date: date,
     receivedQty: null,
-    invoice: currentDispatchInvoice ? { ...currentDispatchInvoice } : null
-  });
+    invoice: currentDispatchInvoice ? {
+      ...currentDispatchInvoice,
+      dataUrl: invoiceCloudUrl || currentDispatchInvoice.dataUrl
+    } : null
+  };
 
+  state.shipments.push(newShipment);
   saveState();
   closeModal('dispatchModal');
   showToast(`Dispatched ${formatNumber(qty)} units of "${currentItem.description}" on truck ${truck}!`);
+
+  // Cloud sync to Supabase
+  if (supabaseClient) {
+    const targetPo = state.pos.find(p => p.poNumber === poNumber);
+    if (targetPo) {
+      supabaseClient.from('purchase_orders').upsert([{
+        po_number: targetPo.poNumber,
+        vendor_name: targetPo.vendor,
+        items: targetPo.items
+      }], { onConflict: 'po_number' }).then(() => {
+        supabaseClient.from('shipments').insert([{
+          id: shipmentId,
+          po_number: poNumber,
+          sku: currentItem.sku,
+          description: currentItem.description,
+          qty_sent: qty,
+          truck_lr: truck,
+          date: date,
+          received_qty: null,
+          invoice_url: invoiceCloudUrl
+        }]).then(({ error }) => {
+          if (error) console.warn('Supabase shipment insert notice:', error.message);
+        });
+      });
+    }
+  }
 }
 
 // ==========================================
@@ -605,6 +909,14 @@ function handleReceiveSubmit(e) {
   saveState();
   closeModal('receiveModal');
   showToast(`Logged verified count of ${formatNumber(received)} units!`);
+
+  // Cloud sync to Supabase
+  if (supabaseClient) {
+    supabaseClient.from('shipments').update({ received_qty: received }).eq('id', sId)
+      .then(({ error }) => {
+        if (error) console.warn('Supabase receive update notice:', error.message);
+      });
+  }
 }
 
 // ==========================================
@@ -618,6 +930,7 @@ function viewInvoice(shipmentId) {
   }
 
   const invoice = s.invoice;
+  window.currentActiveInvoiceUrl = invoice.dataUrl;
   document.getElementById('invoicePreviewTitle').textContent = `Attached Invoice for ${s.id} (Truck ${s.truckLR})`;
   document.getElementById('invoicePreviewName').textContent = invoice.name;
   document.getElementById('invoicePreviewSize').textContent = invoice.size;
@@ -650,7 +963,7 @@ function viewInvoice(shipmentId) {
             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
             <span>Download PDF</span>
           </a>
-          <button type="button" onclick="openPdfInNewTab('${invoice.dataUrl}')" class="px-4 py-2.5 bg-white hover:bg-slate-100 text-slate-700 font-bold text-xs rounded-xl border border-slate-300 transition flex items-center justify-center gap-1.5">
+          <button type="button" onclick="openPdfInNewTab()" class="px-4 py-2.5 bg-white hover:bg-slate-100 text-slate-700 font-bold text-xs rounded-xl border border-slate-300 transition flex items-center justify-center gap-1.5">
             <span>Open in Tab ↗</span>
           </button>
         </div>
@@ -672,19 +985,27 @@ function viewInvoice(shipmentId) {
 }
 
 function openPdfInNewTab(dataUrl) {
+  const targetUrl = dataUrl || window.currentActiveInvoiceUrl;
+  if (!targetUrl) return;
+
+  if (targetUrl.startsWith('http://') || targetUrl.startsWith('https://')) {
+    window.open(targetUrl, '_blank', 'noopener,noreferrer');
+    return;
+  }
+
   try {
     const win = window.open();
     if (win && !win.closed) {
-      win.document.write('<iframe src="' + dataUrl + '" frameborder="0" style="border:0; top:0px; left:0px; bottom:0px; right:0px; width:100%; height:100%;" allowfullscreen></iframe>');
+      win.document.write('<iframe src="' + targetUrl + '" frameborder="0" style="border:0; top:0px; left:0px; bottom:0px; right:0px; width:100%; height:100%;" allowfullscreen></iframe>');
     } else {
       const a = document.createElement('a');
-      a.href = dataUrl;
+      a.href = targetUrl;
       a.target = '_blank';
       a.click();
     }
   } catch (err) {
     const a = document.createElement('a');
-    a.href = dataUrl;
+    a.href = targetUrl;
     a.target = '_blank';
     a.click();
   }
@@ -751,6 +1072,22 @@ async function handleNewVendorSubmit(e) {
 
   saveState();
   showToast(`Vendor ${name} created and authorized successfully!`);
+
+  // Cloud sync to Supabase
+  if (supabaseClient) {
+    supabaseClient.from('vendors').insert([{
+      name: name,
+      code: code,
+      email: email,
+      salt: randomSalt,
+      password_hash: passHash
+    }]).then(({ error }) => {
+      if (error) {
+        // If credentials columns do not exist in remote schema yet, fallback to base fields
+        supabaseClient.from('vendors').insert([{ name: name, code: code, email: email }]);
+      }
+    });
+  }
 }
 
 function deleteVendor(vendorId) {
@@ -772,6 +1109,14 @@ function deleteVendor(vendorId) {
   }
   saveState();
   showToast(`Vendor ${v.name} removed from registry.`);
+
+  // Cloud sync to Supabase
+  if (supabaseClient) {
+    supabaseClient.from('vendors').delete().eq('email', v.email)
+      .then(({ error }) => {
+        if (error) console.warn('Supabase vendor delete notice:', error.message);
+      });
+  }
 }
 
 // ==========================================
@@ -1221,3 +1566,15 @@ document.addEventListener('keydown', (e) => {
     });
   }
 });
+
+// Initialize Cloud Sync on startup
+if (typeof window !== 'undefined') {
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', () => {
+      initSupabase();
+    });
+  } else {
+    initSupabase();
+  }
+}
+
