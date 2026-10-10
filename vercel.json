@@ -2,6 +2,12 @@
   "version": 2,
   "name": "labeltrack-app",
   "cleanUrls": true,
+  "rewrites": [
+    {
+      "source": "/supabase-proxy/(.*)",
+      "destination": "https://svrjdipjfplwquljhmrx.supabase.co/$1"
+    }
+  ],
   "headers": [
     {
       "source": "/(.*)",
