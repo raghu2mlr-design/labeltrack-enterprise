@@ -177,18 +177,17 @@ async function fetchCloudState() {
       .select('*')
       .order('created_at', { ascending: false });
 
-    if (!poErr && poData && poData.length > 0) {
-      state.pos = poData.map(p => ({
-        id: p.id,
-        poNumber: p.po_number,
-        vendor: p.vendor_name,
-        items: p.items || []
-      }));
-    } else if (!poErr && poData && poData.length === 0 && state.pos.length > 0) {
-      supabaseClient.from('purchase_orders').upsert(
-        state.pos.map(p => ({ po_number: p.poNumber, vendor_name: p.vendor, items: p.items })),
-        { onConflict: 'po_number' }
-      ).then(() => {});
+    if (!poErr) {
+      if (poData && poData.length > 0) {
+        state.pos = poData.map(p => ({
+          id: p.id,
+          poNumber: p.po_number,
+          vendor: p.vendor_name,
+          items: p.items || []
+        }));
+      } else {
+        state.pos = [];
+      }
     }
 
     // 2. Fetch Shipments
@@ -197,25 +196,33 @@ async function fetchCloudState() {
       .select('*')
       .order('created_at', { ascending: false });
 
-    if (!shpErr && shpData && shpData.length > 0) {
-      state.shipments = shpData.map(s => ({
-        id: s.id,
-        poNumber: s.po_number,
-        sku: s.sku,
-        description: s.description,
-        qtySent: s.qty_sent,
-        receivedQty: s.received_qty,
-        truckLR: s.truck_lr,
-        date: s.date,
-        invoice: s.invoice_url ? {
-          name: 'invoice_' + s.id,
-          type: s.invoice_url.toLowerCase().endsWith('.pdf') ? 'application/pdf' : 'image/jpeg',
-          dataUrl: s.invoice_url,
-          size: 'Cloud Stored',
-          isCompressed: false
-        } : null
-      }));
+    if (!shpErr) {
+      if (shpData && shpData.length > 0) {
+        state.shipments = shpData.map(s => ({
+          id: s.id,
+          poNumber: s.po_number,
+          sku: s.sku,
+          description: s.description,
+          qtySent: s.qty_sent,
+          receivedQty: s.received_qty,
+          truckLR: s.truck_lr,
+          date: s.date,
+          invoice: s.invoice_url ? {
+            name: 'invoice_' + s.id,
+            type: s.invoice_url.toLowerCase().endsWith('.pdf') ? 'application/pdf' : 'image/jpeg',
+            dataUrl: s.invoice_url,
+            size: 'Cloud Stored',
+            isCompressed: false
+          } : null
+        }));
+      } else {
+        state.shipments = [];
+      }
     }
+
+    // Filter out any local orphan shipments whose PO was deleted
+    const validPoNumbers = new Set(state.pos.map(p => p.poNumber));
+    state.shipments = state.shipments.filter(s => validPoNumbers.has(s.poNumber));
 
     // 3. Fetch Vendors
     const { data: vData, error: vErr } = await supabaseClient
@@ -510,17 +517,67 @@ function handleNewPoSubmit(e) {
 }
 
 function deletePo(poNumber) {
-  if (!confirm('Are you sure you want to delete PO ' + poNumber + '?')) return;
+  if (!confirm('Are you sure you want to delete PO ' + poNumber + '? All related dispatches, receiving logs, and invoice entries will also be permanently deleted.')) return;
+  
+  // 1. Remove PO and all its associated shipments from state
   state.pos = state.pos.filter(p => p.poNumber !== poNumber);
   state.shipments = state.shipments.filter(s => s.poNumber !== poNumber);
+  
   saveState();
-  showToast('Purchase Order removed.');
+  showToast(`Purchase Order ${poNumber} and all its dispatches removed.`);
+
+  // 2. Cascade delete from Supabase Cloud
+  if (supabaseClient) {
+    // Delete shipments for this PO first
+    supabaseClient.from('shipments').delete().eq('po_number', poNumber)
+      .then(({ error: sErr }) => {
+        if (sErr) console.warn('Supabase shipment cascade delete notice:', sErr.message);
+        // Then delete the parent PO
+        supabaseClient.from('purchase_orders').delete().eq('po_number', poNumber)
+          .then(({ error: pErr }) => {
+            if (pErr) console.warn('Supabase PO delete notice:', pErr.message);
+          });
+      });
+  }
+}
+
+function deleteShipment(shipmentId) {
+  const s = state.shipments.find(item => item.id === shipmentId);
+  if (!s) return;
+  if (!confirm(`Are you sure you want to delete dispatch record ${s.id} (Truck ${s.truckLR})?`)) return;
+
+  state.shipments = state.shipments.filter(item => item.id !== shipmentId);
+  saveState();
+  showToast(`Dispatch record ${s.id} removed.`);
 
   // Cloud delete from Supabase
   if (supabaseClient) {
-    supabaseClient.from('purchase_orders').delete().eq('po_number', poNumber)
+    supabaseClient.from('shipments').delete().eq('id', shipmentId)
       .then(({ error }) => {
-        if (error) console.warn('Supabase PO delete notice:', error.message);
+        if (error) console.warn('Supabase shipment delete notice:', error.message);
+      });
+  }
+}
+
+function clearAllShipments() {
+  if (state.shipments.length === 0) {
+    showToast('There are no dispatch records to clear.', true);
+    return;
+  }
+  if (!confirm(`Are you sure you want to clear ALL ${state.shipments.length} warehouse dispatch and receiving logs? This action cannot be undone.`)) {
+    return;
+  }
+
+  const idsToDelete = state.shipments.map(s => s.id);
+  state.shipments = [];
+  saveState();
+  showToast('All warehouse dispatch and receiving logs cleared.');
+
+  // Cloud delete from Supabase
+  if (supabaseClient) {
+    supabaseClient.from('shipments').delete().neq('id', 'placeholder-none')
+      .then(({ error }) => {
+        if (error) console.warn('Supabase clear shipments notice:', error.message);
       });
   }
 }
@@ -1351,6 +1408,9 @@ function render() {
                   <span class="text-[11px] font-semibold px-2 py-0.5 rounded-full border ${s.receivedQty !== null ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-amber-50 text-amber-700 border-amber-200'}">
                     ${s.receivedQty !== null ? `✓ Verified: ${formatNumber(s.receivedQty)}` : 'In Transit'}
                   </span>
+                  <button onclick="deleteShipment('${s.id}')" title="Delete dispatch log" class="p-1 text-slate-400 hover:text-rose-600 transition text-xs">
+                    <span>🗑️</span>
+                  </button>
                 </div>
               </div>
             `).join('')}
@@ -1500,9 +1560,14 @@ function render() {
           </td>
           <td class="p-3 text-center">${auditBadge}</td>
           <td class="p-3 text-center">
-            <button onclick="openReceiveModal('${s.id}')" class="px-3 py-1 text-xs font-bold bg-emerald-50 text-emerald-700 hover:bg-emerald-100 border border-emerald-200 rounded-xl transition shadow-2xs inline-flex items-center gap-1">
-              <span>${hasCount ? '✏️ Edit Count' : '📥 Receive & Verify'}</span>
-            </button>
+            <div class="inline-flex items-center gap-1.5">
+              <button onclick="openReceiveModal('${s.id}')" class="px-2.5 py-1 text-xs font-bold bg-emerald-50 text-emerald-700 hover:bg-emerald-100 border border-emerald-200 rounded-xl transition shadow-2xs inline-flex items-center gap-1">
+                <span>${hasCount ? '✏️ Edit Count' : '📥 Receive'}</span>
+              </button>
+              <button onclick="deleteShipment('${s.id}')" title="Delete dispatch entry" class="px-2 py-1 text-xs font-semibold text-rose-600 hover:bg-rose-50 border border-rose-200/70 rounded-xl transition shadow-2xs inline-flex items-center">
+                <span>🗑️</span>
+              </button>
+            </div>
           </td>
         </tr>
       `;
