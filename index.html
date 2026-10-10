@@ -11,6 +11,9 @@
   <!-- Modular Custom Stylesheet -->
   <link rel="stylesheet" href="css/styles.css">
 
+  <!-- Supabase JS Client SDK -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
   <!-- Modular Scripts: Encrypted Credential Vault, Auth & Core Business Logic -->
   <script src="js/vault.js"></script>
   <script src="js/app.js"></script>
@@ -102,7 +105,12 @@
             LT
           </div>
           <div>
-            <span class="text-xs uppercase tracking-wider font-semibold text-slate-400 block" id="navSubtitle">Supplier Portal</span>
+            <div class="flex items-center gap-2">
+              <span class="text-xs uppercase tracking-wider font-semibold text-slate-400 block" id="navSubtitle">Supplier Portal</span>
+              <span id="cloudSyncBadge" class="hidden sm:inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span> Cloud Synced
+              </span>
+            </div>
             <span class="text-base font-bold text-slate-900 tracking-tight">LabelTrack Network</span>
           </div>
         </div>
