@@ -92,7 +92,7 @@ function saveState() {
 // ==========================================
 const SUPABASE_CONFIG = {
   url: 'https://svrjdipjfplwquljhmrx.supabase.co',
-  anonKey: 'sb_publishable_L8_s5V_gGhCIklk5SQasSw_D-_GSrnw'
+  anonKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InN2cmpkaXBqZnBsd3F1bGpobXJ4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTE1NDQ1MzUsImV4cCI6MjEwNzEyMDUzNX0.j_o5mv2ZeRh3zDgKsmbefPlQLtA-57-0z1s-4ZQCLRs'
 };
 
 let supabaseClient = null;
@@ -511,8 +511,16 @@ function handleNewPoSubmit(e) {
       vendor_name: vendor,
       items: items
     }]).then(({ error }) => {
-      if (error) console.warn('Supabase PO insert notice:', error.message);
+      if (error) {
+        console.error('Supabase PO insert failed:', error.message);
+        showToast('Cloud database notice: ' + error.message, true);
+      } else {
+        console.log('✓ PO synced to Supabase purchase_orders table');
+      }
     });
+  } else {
+    console.warn('Supabase client is not connected');
+    showToast('Notice: Saved locally (Cloud database not connected)', true);
   }
 }
 
@@ -854,7 +862,12 @@ async function handleDispatchSubmit(e) {
           received_qty: null,
           invoice_url: invoiceCloudUrl
         }]).then(({ error }) => {
-          if (error) console.warn('Supabase shipment insert notice:', error.message);
+          if (error) {
+            console.error('Supabase shipment insert failed:', error.message);
+            showToast('Cloud database notice: ' + error.message, true);
+          } else {
+            console.log('✓ Dispatch synced to Supabase shipments table');
+          }
         });
       });
     }
@@ -1083,10 +1096,24 @@ async function handleNewVendorSubmit(e) {
       password_hash: passHash
     }]).then(({ error }) => {
       if (error) {
-        // If credentials columns do not exist in remote schema yet, fallback to base fields
-        supabaseClient.from('vendors').insert([{ name: name, code: code, email: email }]);
+        console.warn('Initial vendor insert notice:', error.message);
+        // Fallback without credentials columns
+        supabaseClient.from('vendors').insert([{ name: name, code: code, email: email }])
+          .then(({ error: err2 }) => {
+            if (err2) {
+              console.error('Supabase vendor insert failed:', err2.message);
+              showToast('Cloud database notice: ' + err2.message, true);
+            } else {
+              console.log('✓ Vendor synced to Supabase successfully');
+            }
+          });
+      } else {
+        console.log('✓ Vendor synced to Supabase successfully');
       }
     });
+  } else {
+    console.warn('Supabase client is not connected');
+    showToast('Notice: Saved locally (Cloud database not connected)', true);
   }
 }
 
