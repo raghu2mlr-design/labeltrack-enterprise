@@ -90,8 +90,17 @@ function saveState() {
 // ==========================================
 // Supabase Cloud Configuration & Sync
 // ==========================================
+// Determine best connection endpoint: Use local/Vercel proxy to bypass ISP DNS sinkhole
+const isLocalOrProxied = (typeof window !== 'undefined') && (
+  window.location.hostname === 'localhost' || 
+  window.location.hostname === '127.0.0.1' || 
+  window.location.pathname.startsWith('/')
+);
+
 const SUPABASE_CONFIG = {
-  url: 'https://svrjdipjfplwquljhmrx.supabase.co',
+  url: (typeof window !== 'undefined' && window.location.origin) 
+    ? (window.location.origin + '/supabase-proxy') 
+    : 'https://svrjdipjfplwquljhmrx.supabase.co',
   anonKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InN2cmpkaXBqZnBsd3F1bGpobXJ4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTE1NDQ1MzUsImV4cCI6MjEwNzEyMDUzNX0.j_o5mv2ZeRh3zDgKsmbefPlQLtA-57-0z1s-4ZQCLRs'
 };
 
@@ -100,41 +109,17 @@ let supabaseClient = null;
 function initSupabase() {
   if (typeof window !== 'undefined' && window.supabase && window.supabase.createClient) {
     try {
-      supabaseClient = window.supabase.createClient(SUPABASE_CONFIG.url, SUPABASE_CONFIG.anonKey);
+      supabaseClient = window.supabase.createClient(SUPABASE_CONFIG.url, SUPABASE_CONFIG.anonKey, {
+        auth: { persistSession: false },
+        realtime: { enabled: false }
+      });
       fetchCloudState();
-      setupRealtimeSubscription();
     } catch (err) {
       console.warn('Supabase initialization fallback:', err);
       updateCloudSyncIndicator(false);
     }
   } else {
     updateCloudSyncIndicator(false);
-  }
-}
-
-function setupRealtimeSubscription() {
-  if (!supabaseClient) return;
-  let debounceTimer = null;
-  const debouncedFetch = () => {
-    clearTimeout(debounceTimer);
-    debounceTimer = setTimeout(() => {
-      fetchCloudState();
-    }, 600);
-  };
-
-  try {
-    supabaseClient
-      .channel('labeltrack-cloud-sync')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'purchase_orders' }, debouncedFetch)
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'shipments' }, debouncedFetch)
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'vendors' }, debouncedFetch)
-      .subscribe((status) => {
-        if (status === 'SUBSCRIBED') {
-          console.log('⚡ Real-time cloud sync active');
-        }
-      });
-  } catch (err) {
-    console.warn('Real-time subscription notice:', err);
   }
 }
 
