@@ -313,6 +313,9 @@
             </div>
             <div class="flex items-center gap-2">
               <span class="badge-pill badge-amber">Gatekeeper Active</span>
+              <button onclick="clearAllShipments()" class="px-3 py-1.5 bg-rose-50 hover:bg-rose-100 text-rose-700 text-xs font-bold rounded-xl border border-rose-200 transition flex items-center gap-1 shadow-2xs">
+                <span>🗑️ Clear Logs</span>
+              </button>
               <button onclick="exportShipmentsCsv()" class="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold rounded-xl border border-slate-200 transition flex items-center gap-1.5 shadow-2xs">
                 <svg class="w-3.5 h-3.5 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
                 <span>Export CSV</span>
