@@ -824,6 +824,7 @@ function openDispatchModal(poNumber) {
   }
 
   document.getElementById('inputQtySent').value = '';
+  document.getElementById('inputBoxCount').value = '';
   document.getElementById('inputTruckLR').value = '';
   document.getElementById('inputDispatchDate').value = new Date().toISOString().slice(0, 10);
   document.getElementById('modalQtyError').classList.add('hidden');
@@ -840,6 +841,7 @@ async function handleDispatchSubmit(e) {
   const poNumber = document.getElementById('modalPoId').value;
   const selectedSku = document.getElementById('modalItemSelect').value;
   const qty = Number(document.getElementById('inputQtySent').value);
+  const boxCount = Number(document.getElementById('inputBoxCount').value);
   const truck = document.getElementById('inputTruckLR').value.trim();
   const date = document.getElementById('inputDispatchDate').value;
   const { itemsMetrics } = getPoMetrics(poNumber);
@@ -854,6 +856,11 @@ async function handleDispatchSubmit(e) {
   if (isNaN(qty) || qty <= 0) {
     errorMsg.textContent = 'Please enter a valid quantity greater than 0.';
     errorMsg.classList.remove('hidden');
+    return;
+  }
+
+  if (isNaN(boxCount) || boxCount <= 0) {
+    showToast('Please specify the number of boxes / cartons dispatched!', true);
     return;
   }
 
@@ -906,9 +913,11 @@ async function handleDispatchSubmit(e) {
     sku: currentItem.sku,
     description: currentItem.description,
     qtySent: qty,
+    boxCount: boxCount || 1,
     truckLR: truck,
     date: date,
     receivedQty: null,
+    receivedBoxes: null,
     invoice: currentDispatchInvoice ? {
       ...currentDispatchInvoice,
       dataUrl: invoiceCloudUrl || currentDispatchInvoice.dataUrl
@@ -918,7 +927,7 @@ async function handleDispatchSubmit(e) {
   state.shipments.push(newShipment);
   saveState();
   closeModal('dispatchModal');
-  showToast(`Dispatched ${formatNumber(qty)} units of "${currentItem.description}" under Invoice #${truck}!`);
+  showToast(`Dispatched ${formatNumber(qty)} units across ${boxCount} box(es) under Invoice #${truck}!`);
 
   // Cloud sync to Supabase
   if (supabaseClient) {
@@ -968,8 +977,12 @@ function openReceiveModal(shipmentId) {
   document.getElementById('receiveModalPo').textContent = s.poNumber;
   document.getElementById('receiveModalVendor').textContent = po ? po.vendor : '-';
   document.getElementById('receiveModalItem').textContent = s.description;
-  document.getElementById('receiveModalClaimed').textContent = `${formatNumber(s.qtySent)} units (Invoice #${s.truckLR})`;
+  document.getElementById('receiveModalClaimed').textContent = `${formatNumber(s.qtySent)} units in ${s.boxCount || 1} box(es) (Invoice #${s.truckLR})`;
   document.getElementById('inputReceivedQty').value = s.receivedQty !== null ? s.receivedQty : s.qtySent;
+  const boxInput = document.getElementById('inputReceivedBoxes');
+  if (boxInput) {
+    boxInput.value = s.receivedBoxes !== null && s.receivedBoxes !== undefined ? s.receivedBoxes : (s.boxCount || 1);
+  }
 
   // Invoice display in receiving modal
   const invoiceBox = document.getElementById('receiveModalInvoiceSection');
@@ -988,6 +1001,7 @@ function handleReceiveSubmit(e) {
   e.preventDefault();
   const sId = document.getElementById('receiveShipmentId').value;
   const received = Number(document.getElementById('inputReceivedQty').value);
+  const receivedBoxes = Number(document.getElementById('inputReceivedBoxes')?.value || 0);
   const s = state.shipments.find(item => item.id === sId);
   if (!s) return;
 
@@ -997,13 +1011,18 @@ function handleReceiveSubmit(e) {
   }
 
   s.receivedQty = received;
+  if (!isNaN(receivedBoxes) && receivedBoxes > 0) {
+    s.receivedBoxes = receivedBoxes;
+  }
   saveState();
   closeModal('receiveModal');
-  showToast(`Logged verified count of ${formatNumber(received)} units!`);
+  showToast(`Logged verified count of ${formatNumber(received)} units (${s.receivedBoxes || s.boxCount || 1} boxes)!`);
 
   // Cloud sync to Supabase
   if (supabaseClient) {
-    supabaseClient.from('shipments').update({ received_qty: received }).eq('id', sId)
+    supabaseClient.from('shipments').update({ 
+      received_qty: received
+    }).eq('id', sId)
       .then(({ error }) => {
         if (error) console.warn('Supabase receive update notice:', error.message);
       });
@@ -1440,7 +1459,10 @@ function render() {
                 </div>
                 <div class="flex items-center gap-3 text-xs">
                   <span class="text-slate-600 truncate max-w-[160px] font-medium">${escapeHtml(s.description)}:</span>
-                  <span class="font-mono font-bold text-slate-900">${formatNumber(s.qtySent)} units</span>
+                  <div class="text-right">
+                    <span class="font-mono font-bold text-slate-900">${formatNumber(s.qtySent)} units</span>
+                    <span class="text-[10px] text-slate-500 font-semibold block">(${s.boxCount || 1} boxes)</span>
+                  </div>
                   <span class="text-[11px] font-semibold px-2 py-0.5 rounded-full border ${s.receivedQty !== null ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-amber-50 text-amber-700 border-amber-200'}">
                     ${s.receivedQty !== null ? `✓ Verified: ${formatNumber(s.receivedQty)}` : 'In Transit'}
                   </span>
@@ -1582,8 +1604,16 @@ function render() {
           <td class="p-3 text-slate-700 font-mono text-[11px] font-medium">${escapeHtml(s.truckLR)}</td>
           <td class="p-3 text-slate-500 font-mono text-[11px]">${escapeHtml(s.date)}</td>
           <td class="p-3 font-medium text-slate-900">${escapeHtml(s.description)}</td>
-          <td class="p-3 text-right font-mono font-bold text-blue-600">${formatNumber(s.qtySent)}</td>
-          <td class="p-3 text-right font-mono font-bold text-slate-900">${hasCount ? formatNumber(s.receivedQty) : '<span class="text-slate-300">-</span>'}</td>
+          <td class="p-3 text-right">
+            <span class="font-mono font-bold text-blue-600 block">${formatNumber(s.qtySent)}</span>
+            <span class="text-[10px] text-slate-500 font-semibold inline-block px-1.5 py-0.2 bg-slate-100 rounded border border-slate-200 mt-0.5">${s.boxCount || 1} box(es)</span>
+          </td>
+          <td class="p-3 text-right">
+            ${hasCount ? `
+              <span class="font-mono font-bold text-slate-900 block">${formatNumber(s.receivedQty)}</span>
+              <span class="text-[10px] text-emerald-700 font-semibold inline-block px-1.5 py-0.2 bg-emerald-50 rounded border border-emerald-200 mt-0.5">${s.receivedBoxes || s.boxCount || 1} box(es)</span>
+            ` : '<span class="text-slate-300 font-mono text-xs">-</span>'}
+          </td>
           <td class="p-3 text-right font-mono font-bold ${variance < 0 ? 'text-rose-600' : (variance > 0 ? 'text-purple-600' : 'text-emerald-600')}">
             ${hasCount ? (variance > 0 ? '+' : '') + formatNumber(variance) : '-'}
           </td>
@@ -1628,7 +1658,7 @@ function exportShipmentsCsv() {
     return;
   }
 
-  const headers = ["Shipment ID", "PO Number", "Vendor", "Invoice Number", "Dispatch Date", "Item Description", "Qty Dispatched", "Qty Received", "Variance", "Audit Status", "Invoice Filename"];
+  const headers = ["Shipment ID", "PO Number", "Vendor", "Invoice Number", "Dispatch Date", "Item Description", "Qty Dispatched (Units)", "Boxes Dispatched", "Qty Received (Units)", "Boxes Received", "Variance", "Audit Status", "Invoice Filename"];
   const rows = state.shipments.map(s => {
     const po = state.pos.find(p => p.poNumber === s.poNumber);
     const vendorName = po ? po.vendor : '';
@@ -1650,7 +1680,9 @@ function exportShipmentsCsv() {
       `"${s.date}"`,
       `"${(s.description || '').replace(/"/g, '""')}"`,
       s.qtySent,
+      s.boxCount || 1,
       hasCount ? s.receivedQty : '""',
+      hasCount ? (s.receivedBoxes || s.boxCount || 1) : '""',
       variance,
       `"${status}"`,
       `"${invoiceName}"`
