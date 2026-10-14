@@ -722,6 +722,16 @@ async function handleInvoiceFileSelected(e) {
   }
 
   document.getElementById('fileTypeIcon').textContent = optimized.type.includes('pdf') ? '📄' : '🖼️';
+  
+  // Clear any mandatory error styling
+  const invoiceError = document.getElementById('modalInvoiceError');
+  if (invoiceError) invoiceError.classList.add('hidden');
+  const dropzone = document.getElementById('invoiceUploadDropzone');
+  if (dropzone) {
+    dropzone.classList.remove('border-rose-500', 'bg-rose-50/50');
+    dropzone.classList.add('border-slate-300');
+  }
+
   showToast('Invoice attached with high document clarity!');
 }
 
@@ -765,6 +775,13 @@ function removeSelectedFile(e) {
   document.getElementById('fileUploadSelected').classList.add('hidden');
   const badge = document.getElementById('fileCompressBadge');
   if (badge) badge.classList.add('hidden');
+  const invoiceError = document.getElementById('modalInvoiceError');
+  if (invoiceError) invoiceError.classList.add('hidden');
+  const dropzone = document.getElementById('invoiceUploadDropzone');
+  if (dropzone) {
+    dropzone.classList.remove('border-rose-500', 'bg-rose-50/50');
+    dropzone.classList.add('border-slate-300');
+  }
 }
 
 function updateModalItemBalance() {
@@ -852,6 +869,25 @@ async function handleDispatchSubmit(e) {
     return;
   }
 
+  // MANDATORY INVOICE / CHALLAN PHOTO VALIDATION
+  const invoiceError = document.getElementById('modalInvoiceError');
+  const dropzone = document.getElementById('invoiceUploadDropzone');
+  if (!currentDispatchInvoice || !currentDispatchInvoice.dataUrl) {
+    if (invoiceError) invoiceError.classList.remove('hidden');
+    if (dropzone) {
+      dropzone.classList.remove('border-slate-300');
+      dropzone.classList.add('border-rose-500', 'bg-rose-50/50');
+    }
+    showToast('⚠️ Mandatory: Please attach the delivery challan or invoice photo before dispatching!', true);
+    return;
+  } else {
+    if (invoiceError) invoiceError.classList.add('hidden');
+    if (dropzone) {
+      dropzone.classList.remove('border-rose-500', 'bg-rose-50/50');
+      dropzone.classList.add('border-slate-300');
+    }
+  }
+
   const shipmentId = `SHP-${100 + state.shipments.length + 1}`;
 
   // Upload invoice to Supabase Cloud Storage if available
@@ -882,7 +918,7 @@ async function handleDispatchSubmit(e) {
   state.shipments.push(newShipment);
   saveState();
   closeModal('dispatchModal');
-  showToast(`Dispatched ${formatNumber(qty)} units of "${currentItem.description}" on truck ${truck}!`);
+  showToast(`Dispatched ${formatNumber(qty)} units of "${currentItem.description}" under Invoice #${truck}!`);
 
   // Cloud sync to Supabase
   if (supabaseClient) {
@@ -932,7 +968,7 @@ function openReceiveModal(shipmentId) {
   document.getElementById('receiveModalPo').textContent = s.poNumber;
   document.getElementById('receiveModalVendor').textContent = po ? po.vendor : '-';
   document.getElementById('receiveModalItem').textContent = s.description;
-  document.getElementById('receiveModalClaimed').textContent = `${formatNumber(s.qtySent)} units (Truck ${s.truckLR})`;
+  document.getElementById('receiveModalClaimed').textContent = `${formatNumber(s.qtySent)} units (Invoice #${s.truckLR})`;
   document.getElementById('inputReceivedQty').value = s.receivedQty !== null ? s.receivedQty : s.qtySent;
 
   // Invoice display in receiving modal
@@ -986,7 +1022,7 @@ function viewInvoice(shipmentId) {
 
   const invoice = s.invoice;
   window.currentActiveInvoiceUrl = invoice.dataUrl;
-  document.getElementById('invoicePreviewTitle').textContent = `Attached Invoice for ${s.id} (Truck ${s.truckLR})`;
+  document.getElementById('invoicePreviewTitle').textContent = `Attached Invoice for ${s.id} (Invoice #${s.truckLR})`;
   document.getElementById('invoicePreviewName').textContent = invoice.name;
   document.getElementById('invoicePreviewSize').textContent = invoice.size;
 
@@ -1394,7 +1430,7 @@ function render() {
               <div class="flex items-center justify-between text-xs bg-slate-50/80 px-3 py-2 rounded-xl border border-slate-200/60 hover:bg-slate-50 transition">
                 <div class="flex items-center gap-2">
                   <span class="font-mono font-bold text-slate-800 text-[11px] bg-white px-2 py-0.5 rounded border border-slate-200">${escapeHtml(s.id)}</span>
-                  <span class="text-slate-500 text-[11px]">Truck: <strong class="text-slate-800">${escapeHtml(s.truckLR)}</strong></span>
+                  <span class="text-slate-500 text-[11px]">Invoice: <strong class="text-slate-800">${escapeHtml(s.truckLR)}</strong></span>
                   <span class="text-slate-400 text-[10px]">(${escapeHtml(s.date)})</span>
                   ${s.invoice ? `
                     <button onclick="viewInvoice('${s.id}')" class="px-2 py-0.5 rounded text-[11px] font-bold bg-blue-50 text-blue-700 hover:bg-blue-100 border border-blue-200 transition flex items-center gap-1 shadow-2xs">
@@ -1592,7 +1628,7 @@ function exportShipmentsCsv() {
     return;
   }
 
-  const headers = ["Shipment ID", "PO Number", "Vendor", "Truck / LR", "Dispatch Date", "Item Description", "Qty Dispatched", "Qty Received", "Variance", "Audit Status", "Invoice Filename"];
+  const headers = ["Shipment ID", "PO Number", "Vendor", "Invoice Number", "Dispatch Date", "Item Description", "Qty Dispatched", "Qty Received", "Variance", "Audit Status", "Invoice Filename"];
   const rows = state.shipments.map(s => {
     const po = state.pos.find(p => p.poNumber === s.poNumber);
     const vendorName = po ? po.vendor : '';
