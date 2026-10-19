@@ -114,6 +114,26 @@ function getItemCategoryInfo(itemOrDescription) {
   return PRODUCT_CATEGORIES.labels;
 }
 
+function formatProductDisplay(description) {
+  if (!description) return { title: 'Item', specs: '', shortTitle: 'Item' };
+  
+  let title = String(description).trim();
+  let specs = '';
+
+  const parenMatch = title.match(/^(.*?)\s*\((.*?)\)$/);
+  const colonMatch = title.match(/^(.*?)\s*:\s*(.*)$/);
+
+  if (parenMatch) {
+    title = parenMatch[1].trim();
+    specs = parenMatch[2].trim();
+  } else if (colonMatch) {
+    title = colonMatch[1].trim();
+    specs = colonMatch[2].trim();
+  }
+
+  return { title, specs, shortTitle: title };
+}
+
 const DEFAULT_POS = [];
 
 const DEFAULT_SHIPMENTS = [];
@@ -663,9 +683,8 @@ function addNewItemRow(cat = 'labels', model = '', spec = '', qty = '') {
       <button type="button" onclick="removeItemRow('${rowId}')" class="text-rose-500 hover:text-rose-700 text-xs font-semibold px-2 py-0.5 rounded hover:bg-rose-50 transition flex items-center gap-1 cursor-pointer">
         <span>✕ Remove Item</span>
       </button>
-    </div>
-    <div class="grid grid-cols-1 sm:grid-cols-12 gap-2.5 items-end">
-      <div class="sm:col-span-3">
+    <div class="grid grid-cols-2 sm:grid-cols-12 gap-2 sm:gap-2.5 items-end">
+      <div class="col-span-1 sm:col-span-3">
         <label class="block text-[10px] font-bold uppercase tracking-wider text-slate-500 mb-1">1. Category *</label>
         <select onchange="handleCategoryChange('${rowId}')" class="po-item-cat w-full text-xs px-2.5 py-2 border border-slate-300 rounded-xl outline-none focus:ring-2 focus:ring-blue-500 bg-white font-semibold text-slate-800">
           <option value="labels" ${selectedCat === 'labels' ? 'selected' : ''}>🏷️ Labels</option>
@@ -674,15 +693,15 @@ function addNewItemRow(cat = 'labels', model = '', spec = '', qty = '') {
           <option value="cards" ${selectedCat === 'cards' ? 'selected' : ''}>💳 Cards</option>
         </select>
       </div>
-      <div class="sm:col-span-6 po-model-col">
+      <div class="col-span-1 sm:col-span-3 sm:order-last">
+        <label class="block text-[10px] font-bold uppercase tracking-wider text-slate-500 mb-1">3. Qty (Units) *</label>
+        <input type="number" placeholder="e.g. 50000" min="1" value="${qty}" oninput="calcNewPoTotal()" required class="po-item-qty w-full text-xs px-2.5 py-2 border border-slate-300 rounded-xl outline-none focus:ring-2 focus:ring-blue-500 bg-white text-right font-mono font-bold text-slate-900">
+      </div>
+      <div class="col-span-2 sm:col-span-6 po-model-col">
         <label class="block text-[10px] font-bold uppercase tracking-wider text-slate-500 mb-1">2. Product Model *</label>
         <select onchange="handleModelChange('${rowId}')" class="po-item-model w-full text-xs px-2.5 py-2 border border-slate-300 rounded-xl outline-none focus:ring-2 focus:ring-blue-500 bg-white font-medium text-slate-800">
           <!-- Dynamically populated via populateModelDropdown -->
         </select>
-      </div>
-      <div class="sm:col-span-3">
-        <label class="block text-[10px] font-bold uppercase tracking-wider text-slate-500 mb-1">3. Qty (Units) *</label>
-        <input type="number" placeholder="Units" min="1" value="${qty}" oninput="calcNewPoTotal()" required class="po-item-qty w-full text-xs px-2.5 py-2 border border-slate-300 rounded-xl outline-none focus:ring-2 focus:ring-blue-500 bg-white text-right font-mono font-bold text-slate-900">
       </div>
     </div>
     <!-- Custom Specifications (Only revealed when a Custom Model is selected) -->
@@ -1140,9 +1159,10 @@ function openDispatchModal(poNumber) {
   const select = document.getElementById('modalItemSelect');
   select.innerHTML = itemsMetrics.map(item => {
     const catInfo = getItemCategoryInfo(item);
+    const parsed = formatProductDisplay(item.description);
     return `
       <option value="${item.sku}" ${item.remaining === 0 ? 'disabled' : ''}>
-        [${catInfo.icon} ${catInfo.name}] ${item.sku} — ${item.description} (Remaining: ${formatNumber(item.remaining)} units)${item.remaining === 0 ? ' [FULFILLED]' : ''}
+        ${catInfo.icon} ${item.sku}: ${parsed.title} (Rem: ${formatNumber(item.remaining)} units)${item.remaining === 0 ? ' [FULFILLED]' : ''}
       </option>
     `;
   }).join('');
@@ -1552,7 +1572,8 @@ function openReceiveModal(shipmentId) {
   document.getElementById('receiveModalTitle').textContent = `Verify Shipment #${s.id}`;
   document.getElementById('receiveModalPo').textContent = s.poNumber;
   document.getElementById('receiveModalVendor').textContent = po ? po.vendor : '-';
-  document.getElementById('receiveModalItem').textContent = s.description;
+  const parsedItem = formatProductDisplay(s.description);
+  document.getElementById('receiveModalItem').innerHTML = `<span class="font-bold text-blue-700 block">${escapeHtml(parsedItem.title)}</span>${parsedItem.specs ? `<span class="text-[10px] text-slate-500 font-mono block mt-0.5">${escapeHtml(parsedItem.specs)}</span>` : ''}`;
   document.getElementById('receiveModalClaimed').textContent = `${formatNumber(s.qtySent)} units in ${s.boxCount || 1} box(es) (Invoice #${s.truckLR})`;
 
   // Gatekeeper verification fields: prefill with claimed or previously verified
@@ -2517,19 +2538,22 @@ function render() {
         const itemPct = Math.min(100, Math.round((item.shipped / item.orderedQty) * 100));
         const isFulfilled = item.remaining === 0;
         const catInfo = getItemCategoryInfo(item);
+        const parsed = formatProductDisplay(item.description);
         return `
-          <div class="p-3.5 bg-slate-50/80 rounded-xl border border-slate-200/70 space-y-2 transition-colors hover:bg-slate-50">
-            <div class="flex items-center justify-between text-xs">
-              <div class="flex items-center gap-2 flex-wrap">
+          <div class="p-3 bg-slate-50/80 rounded-xl border border-slate-200/70 space-y-1.5 transition-colors hover:bg-slate-50">
+            <div class="flex items-start justify-between text-xs gap-2">
+              <div class="flex items-center gap-1.5 flex-wrap">
                 <span class="inline-flex items-center gap-1 font-bold text-[10px] px-2 py-0.5 rounded-md border ${catInfo.badgeClass}">
                   <span>${catInfo.icon}</span>
                   <span>${catInfo.name}</span>
                 </span>
                 <span class="font-mono text-[10px] font-bold px-1.5 py-0.5 rounded bg-slate-200 text-slate-700">${escapeHtml(item.sku)}</span>
-                <span class="font-bold text-slate-900">${escapeHtml(item.description)}</span>
+                <span class="font-bold text-slate-900">${escapeHtml(parsed.title)}</span>
+                ${parsed.specs ? `<span class="text-[10px] text-slate-500 font-mono hidden sm:inline">(${escapeHtml(parsed.specs)})</span>` : ''}
               </div>
-              <span class="font-mono text-slate-500 text-[11px] whitespace-nowrap">Target: <strong class="text-slate-800">${formatNumber(item.orderedQty)}</strong></span>
+              <span class="font-mono text-slate-500 text-[11px] whitespace-nowrap shrink-0">Target: <strong class="text-slate-800">${formatNumber(item.orderedQty)}</strong></span>
             </div>
+            ${parsed.specs ? `<p class="text-[10px] text-slate-500 font-mono sm:hidden pl-0.5 leading-snug">${escapeHtml(parsed.specs)}</p>` : ''}
             <div class="grid grid-cols-3 text-[11px] text-slate-500 pt-0.5">
               <span>Dispatched: <strong class="text-blue-600 font-mono">${formatNumber(item.shipped)}</strong></span>
               <span class="text-center">Remaining: <strong class="${isFulfilled ? 'text-emerald-600' : 'text-amber-600'} font-mono">${formatNumber(item.remaining)}</strong></span>
@@ -2550,6 +2574,7 @@ function render() {
             ${shipments.map(s => {
               const sCat = getItemCategoryInfo(s);
               const damaged = Number(s.damagedQty || 0);
+              const sParsed = formatProductDisplay(s.description);
               return `
               <div class="flex items-center justify-between text-xs bg-slate-50/80 px-3 py-2 rounded-xl border border-slate-200/60 hover:bg-slate-50 transition">
                 <div class="flex items-center gap-2 flex-wrap">
@@ -2576,7 +2601,7 @@ function render() {
                   ` : '')}
                 </div>
                 <div class="flex items-center gap-3 text-xs">
-                  <span class="text-slate-600 truncate max-w-[160px] font-medium">${escapeHtml(s.description)}:</span>
+                  <span class="text-slate-700 truncate max-w-[140px] font-semibold" title="${escapeHtml(s.description)}">${escapeHtml(sParsed.title)}:</span>
                   <div class="text-right">
                     <span class="font-mono font-bold text-slate-900">${formatNumber(s.qtySent)} units</span>
                     <span class="text-[10px] text-slate-500 font-semibold block">(${s.boxCount || 1} boxes)</span>
@@ -2701,7 +2726,10 @@ function render() {
       statusTag = `<span class="badge-pill badge-blue">⚡ In Progress</span>`;
     }
 
-    const itemsSummary = (po.items || []).map(i => `<span class="inline-block py-0.5"><span class="font-mono font-semibold text-slate-700">${escapeHtml(i.sku)}</span>: ${escapeHtml(i.description)} (<strong class="font-mono text-slate-900">${formatNumber(i.orderedQty)}</strong>)</span>`).join('<br>');
+    const itemsSummary = (po.items || []).map(i => {
+      const parsed = formatProductDisplay(i.description);
+      return `<span class="inline-block py-0.5"><span class="font-mono font-bold text-slate-700">${escapeHtml(i.sku)}</span>: <strong class="text-slate-800">${escapeHtml(parsed.title)}</strong> (<span class="font-mono text-blue-600 font-bold">${formatNumber(i.orderedQty)}</span>)</span>`;
+    }).join('<br>');
 
     return `
       <tr class="hover:bg-slate-50/80 transition">
@@ -2832,6 +2860,7 @@ function render() {
         const variance = hasCount ? (Number(s.receivedQty) - Number(s.qtySent)) : 0;
         const damaged = Number(s.damagedQty || 0);
         const catInfo = getItemCategoryInfo(s);
+        const sParsed = formatProductDisplay(s.description);
 
         let auditBadge = `<span class="badge-pill badge-amber">⏳ In Transit</span>`;
         if (hasCount) {
@@ -2861,7 +2890,8 @@ function render() {
                 </span>
                 ${s.sku ? `<span class="font-mono text-[10px] font-bold text-slate-500 bg-slate-100 px-1 py-0.2 rounded border border-slate-200">${escapeHtml(s.sku)}</span>` : ''}
               </div>
-              <span class="font-medium text-slate-900 block leading-tight">${escapeHtml(s.description)}</span>
+              <span class="font-bold text-slate-900 block leading-snug">${escapeHtml(sParsed.title)}</span>
+              ${sParsed.specs ? `<span class="text-[10px] text-slate-500 font-mono block mt-0.5 leading-tight">${escapeHtml(sParsed.specs)}</span>` : ''}
             </td>
             <td class="p-3 text-right">
               <span class="font-mono font-bold text-blue-600 block">${formatNumber(s.qtySent)}</span>
@@ -2976,6 +3006,7 @@ function render() {
         const variance = hasCount ? (Number(s.receivedQty) - Number(s.qtySent)) : 0;
         const damaged = Number(s.damagedQty || 0);
         const catInfo = getItemCategoryInfo(s);
+        const sParsed = formatProductDisplay(s.description);
 
         let auditBadge = `<span class="badge-pill badge-amber">⏳ Awaiting Count</span>`;
         if (hasCount) {
@@ -3005,7 +3036,8 @@ function render() {
                 </span>
                 ${s.sku ? `<span class="font-mono text-[10px] font-bold text-slate-500 bg-slate-100 px-1 py-0.2 rounded border border-slate-200">${escapeHtml(s.sku)}</span>` : ''}
               </div>
-              <span class="font-medium text-slate-900 block leading-tight">${escapeHtml(s.description)}</span>
+              <span class="font-bold text-slate-900 block leading-snug">${escapeHtml(sParsed.title)}</span>
+              ${sParsed.specs ? `<span class="text-[10px] text-slate-500 font-mono block mt-0.5 leading-tight">${escapeHtml(sParsed.specs)}</span>` : ''}
             </td>
             <td class="p-3 text-right">
               <span class="font-mono font-bold text-blue-600 block">${formatNumber(s.qtySent)}</span>
