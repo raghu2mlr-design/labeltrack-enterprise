@@ -1,55 +1,155 @@
-/* LabelTrack Enterprise CSS - Premium Theme */
+/* LabelTrack Enterprise CSS - Modern Executive Theme */
 @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;600;700&display=swap');
 
 :root {
   --font-sans: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
   --font-mono: 'JetBrains Mono', monospace;
+  
+  --primary-50: #eff6ff;
+  --primary-100: #dbeafe;
+  --primary-500: #3b82f6;
+  --primary-600: #2563eb;
+  --primary-700: #1d4ed8;
+  
+  --indigo-500: #6366f1;
+  --indigo-600: #4f46e5;
 }
 
 body {
   font-family: var(--font-sans);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  background-color: #f8fafc;
+  color: #1e293b;
 }
 
 .font-mono {
   font-family: var(--font-mono);
 }
 
+/* Glassmorphism Header */
+.glass-nav {
+  background: rgba(255, 255, 255, 0.88);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border-bottom: 1px solid rgba(226, 232, 240, 0.8);
+}
+
 /* Modal Backdrop with Glassmorphism */
 .modal-backdrop {
-  background-color: rgba(15, 23, 42, 0.65);
-  backdrop-filter: blur(6px);
-  -webkit-backdrop-filter: blur(6px);
+  background-color: rgba(15, 23, 42, 0.68);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
   padding: 1.5rem 1rem;
   overflow-y: auto;
 }
 
-/* Card Transitions & Elevations */
+/* Modern Card Elevations & Micro-interactions */
 .card-hover {
-  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  transition: all 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+  box-shadow: 0 1px 3px 0 rgba(15, 23, 42, 0.04), 0 1px 2px -1px rgba(15, 23, 42, 0.04);
 }
 .card-hover:hover {
   transform: translateY(-2px);
-  box-shadow: 0 12px 30px -10px rgba(15, 23, 42, 0.08), 0 4px 12px -4px rgba(15, 23, 42, 0.04);
+  box-shadow: 0 12px 28px -6px rgba(15, 23, 42, 0.08), 0 4px 12px -2px rgba(15, 23, 42, 0.04);
 }
 
-/* Segmented Control Pill Tabs */
-.tab-pill {
-  transition: all 0.15s ease-in-out;
-}
-.tab-pill.active {
-  background-color: #0f172a;
+/* Premium Gradient Action Buttons */
+.btn-gradient-primary {
+  background: linear-gradient(135deg, #2563eb 0%, #4f46e5 100%);
   color: #ffffff;
-  box-shadow: 0 2px 8px -2px rgba(15, 23, 42, 0.25);
+  box-shadow: 0 4px 12px -2px rgba(37, 99, 235, 0.28);
+  transition: all 0.18s ease-in-out;
 }
-.tab-pill:not(.active) {
-  color: #64748b;
-  background-color: transparent;
+.btn-gradient-primary:hover {
+  background: linear-gradient(135deg, #1d4ed8 0%, #4338ca 100%);
+  box-shadow: 0 6px 16px -2px rgba(37, 99, 235, 0.38);
+  transform: translateY(-1px);
 }
-.tab-pill:not(.active):hover {
-  color: #0f172a;
-  background-color: #f1f5f9;
+.btn-gradient-primary:active {
+  transform: translateY(0);
+}
+
+.btn-gradient-emerald {
+  background: linear-gradient(135deg, #059669 0%, #0d9488 100%);
+  color: #ffffff;
+  box-shadow: 0 4px 12px -2px rgba(5, 150, 105, 0.28);
+  transition: all 0.18s ease-in-out;
+}
+.btn-gradient-emerald:hover {
+  background: linear-gradient(135deg, #047857 0%, #0f766e 100%);
+  box-shadow: 0 6px 16px -2px rgba(5, 150, 105, 0.38);
+  transform: translateY(-1px);
+}
+
+/* Dynamic Filter & Category Pills */
+.pill-tab {
+  transition: all 0.18s cubic-bezier(0.16, 1, 0.3, 1);
+  font-weight: 600;
+  cursor: pointer;
+  user-select: none;
+}
+.pill-tab:active {
+  transform: scale(0.97);
+}
+
+/* Category Specific Active Styles */
+.cat-pill-labels-active {
+  background: linear-gradient(135deg, #2563eb 0%, #3b82f6 100%) !important;
+  color: #ffffff !important;
+  border-color: transparent !important;
+  box-shadow: 0 4px 12px -2px rgba(37, 99, 235, 0.35) !important;
+}
+.cat-pill-tags-active {
+  background: linear-gradient(135deg, #059669 0%, #10b981 100%) !important;
+  color: #ffffff !important;
+  border-color: transparent !important;
+  box-shadow: 0 4px 12px -2px rgba(5, 150, 105, 0.35) !important;
+}
+.cat-pill-ribbons-active {
+  background: linear-gradient(135deg, #7c3aed 0%, #8b5cf6 100%) !important;
+  color: #ffffff !important;
+  border-color: transparent !important;
+  box-shadow: 0 4px 12px -2px rgba(124, 58, 237, 0.35) !important;
+}
+.cat-pill-cards-active {
+  background: linear-gradient(135deg, #d97706 0%, #f59e0b 100%) !important;
+  color: #ffffff !important;
+  border-color: transparent !important;
+  box-shadow: 0 4px 12px -2px rgba(217, 119, 6, 0.35) !important;
+}
+.cat-pill-all-active {
+  background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%) !important;
+  color: #ffffff !important;
+  border-color: transparent !important;
+  box-shadow: 0 4px 12px -2px rgba(15, 23, 42, 0.28) !important;
+}
+
+/* Quick Audit Status Filter Active Styles */
+.ship-filter-all-active {
+  background: #0f172a !important;
+  color: #ffffff !important;
+  box-shadow: 0 2px 8px -2px rgba(15, 23, 42, 0.3) !important;
+}
+.ship-filter-shortages-active {
+  background: #e11d48 !important;
+  color: #ffffff !important;
+  box-shadow: 0 4px 12px -2px rgba(225, 29, 72, 0.35) !important;
+}
+.ship-filter-damaged-active {
+  background: #ea580c !important;
+  color: #ffffff !important;
+  box-shadow: 0 4px 12px -2px rgba(234, 88, 12, 0.35) !important;
+}
+.ship-filter-today-active {
+  background: #0d9488 !important;
+  color: #ffffff !important;
+  box-shadow: 0 4px 12px -2px rgba(13, 148, 136, 0.35) !important;
+}
+.ship-filter-transit-active {
+  background: #4f46e5 !important;
+  color: #ffffff !important;
+  box-shadow: 0 4px 12px -2px rgba(79, 70, 229, 0.35) !important;
 }
 
 /* Consistent Enterprise Pill Badges */
@@ -57,12 +157,13 @@ body {
   display: inline-flex;
   align-items: center;
   gap: 0.375rem;
-  padding: 0.25rem 0.65rem;
+  padding: 0.28rem 0.65rem;
   border-radius: 9999px;
   font-size: 0.7rem;
-  font-weight: 600;
+  font-weight: 700;
   line-height: 1;
   border-width: 1px;
+  transition: all 0.15s ease;
 }
 .badge-emerald {
   background-color: #ecfdf5;
@@ -73,6 +174,11 @@ body {
   background-color: #eff6ff;
   color: #1d4ed8;
   border-color: #bfdbfe;
+}
+.badge-indigo {
+  background-color: #eef2ff;
+  color: #4338ca;
+  border-color: #c7d2fe;
 }
 .badge-amber {
   background-color: #fffbeb;
@@ -91,8 +197,8 @@ body {
 }
 .badge-slate {
   background-color: #f8fafc;
-  color: #475569;
-  border-color: #e2e8f0;
+  color: #334155;
+  border-color: #cbd5e1;
 }
 
 /* Smooth Scrollbars */
@@ -101,7 +207,7 @@ body {
   height: 6px;
 }
 ::-webkit-scrollbar-track {
-  background: #f8fafc;
+  background: #f1f5f9;
   border-radius: 9999px;
 }
 ::-webkit-scrollbar-thumb {
@@ -121,5 +227,92 @@ body {
 input:focus, select:focus, textarea:focus {
   outline: none;
   border-color: #3b82f6 !important;
-  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15) !important;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.18) !important;
 }
+
+/* Subtle Shimmer for High-Priority Alerts */
+@keyframes soft-pulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.9; transform: scale(1.015); }
+}
+.pulse-subtle {
+  animation: soft-pulse 2.5s infinite ease-in-out;
+}
+
+/* ========================================================= */
+/* Comprehensive Mobile & Touch Device Usability Enhancements */
+/* ========================================================= */
+
+/* 1. Prevent iOS WebKit/Safari auto-zoom on input tap (forces >= 16px) */
+@media (max-width: 640px) {
+  input[type="text"],
+  input[type="number"],
+  input[type="email"],
+  input[type="password"],
+  input[type="date"],
+  select,
+  textarea {
+    font-size: 16px !important;
+  }
+}
+
+/* 2. Fast responsive touch feedback & no tap-delay */
+button, input, select, a, [role="button"] {
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* 3. Smooth momentum scrolling on mobile touch screens */
+.overflow-x-auto, .overflow-y-auto {
+  -webkit-overflow-scrolling: touch;
+}
+
+/* 4. Mobile Modal Bottom-Sheet Ergonomics */
+@media (max-width: 640px) {
+  .modal-backdrop {
+    padding: 0.5rem !important;
+  }
+  .modal-backdrop > div {
+    max-height: 94vh !important;
+  }
+}
+
+/* 5. Sticky Action column for wide tables on mobile screens */
+@media (max-width: 768px) {
+  .table-sticky-actions th:last-child {
+    position: sticky;
+    right: 0;
+    background: #f8fafc;
+    box-shadow: -4px 0 8px -2px rgba(15, 23, 42, 0.08);
+    z-index: 10;
+  }
+  .table-sticky-actions td:last-child {
+    position: sticky;
+    right: 0;
+    background: #ffffff;
+    box-shadow: -4px 0 8px -2px rgba(15, 23, 42, 0.08);
+    z-index: 9;
+  }
+  .table-sticky-actions tr:hover td:last-child {
+    background: #f8fafc;
+  }
+}
+
+/* 6. Mobile scroll affordance indicator */
+.mobile-scroll-hint {
+  display: none;
+}
+@media (max-width: 768px) {
+  .mobile-scroll-hint {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0.45rem 0.85rem;
+    background: #f8fafc;
+    font-size: 0.68rem;
+    font-weight: 600;
+    color: #64748b;
+    border-bottom: 1px solid #e2e8f0;
+  }
+}
+
