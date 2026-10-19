@@ -16,6 +16,13 @@ window.__AUTH_VAULT__ = {
       "password_hash": "49b8fe6a957eaac901b2d3a3e62485a1fd836f38aaffc1506b577527ad9dbda9"
     },
     {
+      "email": "gate@labeltrack.com",
+      "role": "gatekeeper",
+      "name": "Gate Security Controller",
+      "salt": "s4lt_gat_92d1b88",
+      "password_hash": "e33d3cf043df11f2517443afc8b2a9cf5b48a2773d0bc4191c19e563acd0f37d"
+    },
+    {
       "email": "dispatch@apexprint.com",
       "role": "vendor",
       "vendorName": "Apex Print Ltd",
@@ -30,6 +37,22 @@ window.__AUTH_VAULT__ = {
       "vendorCode": "VEN-02",
       "salt": "s4lt_ryl_61e5d92",
       "password_hash": "005420d010f6de4bccdc7bb67a52f1b6c8981fe317a896369b21a205fbd79287"
+    },
+    {
+      "email": "ch.saipavan@rsbrothers.net",
+      "role": "vendor",
+      "vendorName": "pavan",
+      "vendorCode": "VEN-03",
+      "salt": "s4lt_v_tzgrwzoxdq",
+      "password_hash": "31f71739667380e7215792dd5c9b5c99ef94d2bf2ec1ff9306208ac52ce36969"
+    },
+    {
+      "email": "svl@gmail.com",
+      "role": "vendor",
+      "vendorName": "Sri Vigeneswara Labels",
+      "vendorCode": "SVL",
+      "salt": "s4lt_v_j65lk9rfta",
+      "password_hash": "c5f950b9edeb66f9c935e78a258c39b917e63d8328afaf12228bba3f14195fd0"
     }
   ]
 };

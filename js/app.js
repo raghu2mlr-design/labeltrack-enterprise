@@ -4,10 +4,118 @@
 
 const DEFAULT_VENDORS = [
   { id: "v-1", name: "Apex Print Ltd", email: "dispatch@apexprint.com", code: "VEN-01" },
-  { id: "v-2", name: "Royal Roll Printers", email: "dispatch@royalprinters.com", code: "VEN-02" }
+  { id: "v-2", name: "Royal Roll Printers", email: "dispatch@royalprinters.com", code: "VEN-02" },
+  { id: "v-3", name: "pavan", email: "ch.saipavan@rsbrothers.net", code: "VEN-03" },
+  { id: "v-4", name: "Sri Vigeneswara Labels", email: "svl@gmail.com", code: "SVL" }
 ];
 
+// ==========================================
+// Product Categories & Subdivided Models
+// 1. Labels | 2. Tags | 3. Ribbons | 4. Cards
+// ==========================================
+const PRODUCT_CATEGORIES = {
+  labels: {
+    id: "labels",
+    name: "Labels",
+    icon: "🏷️",
+    prefix: "LBL",
+    badgeClass: "bg-blue-50 text-blue-700 border-blue-200",
+    models: [
+      "Regular Label — 50x32 mm (Chromo | 3\" Core | 2 UPS | 5,000/roll)",
+      "Regular Label — 50x32 mm (Chromo | 1\" Core | 2 UPS | 2,500/roll)",
+      "D-Royal Label — 38x50 mm (Chromo | 3\" Core | 2 UPS | 2,500/roll)",
+      "Value Zone Label — 50x50 mm (Chromo | 3\" Core | 2 UPS | 2,500/roll)",
+      "Yellow Label (Gate Entry) — 100x150 mm (Chromo | 3\" Core | 1 UPS | 500/roll)",
+      "Orange Label (DC Label) — 100x150 mm (Chromo | 1\" Core | 1 UPS | 250/roll)",
+      "Grocery Label — 50x30 mm (DT Direct Thermal | 1\" Core | 1 UPS | 1,000/roll)",
+      "PI Label — 40x25 mm (Chromo | 1\" Core | 1 UPS | 1,000/roll)",
+      "Custom Label Specification"
+    ]
+  },
+  tags: {
+    id: "tags",
+    name: "Tags",
+    icon: "🔖",
+    prefix: "TAG",
+    badgeClass: "bg-emerald-50 text-emerald-700 border-emerald-200",
+    models: [
+      "Regular Tag — 50x101 mm (Synthetic | 3\" Core | 1 UPS | 1,000/roll)",
+      "Value Zone Tag — 50x101 mm (Synthetic | 3\" Core | 1 UPS | 1,000/roll)",
+      "Custom Tag Specification"
+    ]
+  },
+  cards: {
+    id: "cards",
+    name: "Cards",
+    icon: "💳",
+    prefix: "CRD",
+    badgeClass: "bg-amber-50 text-amber-700 border-amber-200",
+    models: [
+      "Regular Card — 50x76 mm (Synthetic | 3\" Core | 2 UPS | 2,500/roll)",
+      "Value Zone Card — 75x130 mm (Board | 3\" Core | 1 UPS | 1,000/roll)",
+      "Custom Card Specification"
+    ]
+  },
+  ribbons: {
+    id: "ribbons",
+    name: "Ribbons",
+    icon: "🎗️",
+    prefix: "RIB",
+    badgeClass: "bg-purple-50 text-purple-700 border-purple-200",
+    models: [
+      "Wax Ribbon (110mm x 300m | 1\" Core — for Chromo Paper Labels)",
+      "Wax-Resin Ribbon (110mm x 300m | 1\" Core — Smudge-Proof for Semi-Gloss & Board)",
+      "Full Resin Ribbon (110mm x 300m | 1\" Core — Scratch & Wash Proof for Synthetic)",
+      "Custom Ribbon Specification"
+    ]
+  }
+};
+
+const MODEL_SPECS_MAP = {
+  "Regular Label — 50x32 mm (Chromo | 3\" Core | 2 UPS | 5,000/roll)": "50x32mm | CHROMO | 3\" Core | 2 UPS | 5,000/roll",
+  "Regular Label — 50x32 mm (Chromo | 1\" Core | 2 UPS | 2,500/roll)": "50x32mm | CHROMO | 1\" Core | 2 UPS | 2,500/roll",
+  "D-Royal Label — 38x50 mm (Chromo | 3\" Core | 2 UPS | 2,500/roll)": "38x50mm | CHROMO | 3\" Core | 2 UPS | 2,500/roll",
+  "Value Zone Label — 50x50 mm (Chromo | 3\" Core | 2 UPS | 2,500/roll)": "50x50mm | CHROMO | 3\" Core | 2 UPS | 2,500/roll",
+  "Yellow Label (Gate Entry) — 100x150 mm (Chromo | 3\" Core | 1 UPS | 500/roll)": "100x150mm | CHROMO | 3\" Core | 1 UPS | 500/roll",
+  "Orange Label (DC Label) — 100x150 mm (Chromo | 1\" Core | 1 UPS | 250/roll)": "100x150mm | CHROMO | 1\" Core | 1 UPS | 250/roll",
+  "Grocery Label — 50x30 mm (DT Direct Thermal | 1\" Core | 1 UPS | 1,000/roll)": "50x30mm | DT LABELS | 1\" Core | 1 UPS | 1,000/roll",
+  "PI Label — 40x25 mm (Chromo | 1\" Core | 1 UPS | 1,000/roll)": "40x25mm | CHROMO | 1\" Core | 1 UPS | 1,000/roll",
+  "Regular Tag — 50x101 mm (Synthetic | 3\" Core | 1 UPS | 1,000/roll)": "50x101mm | SYNTHETIC | 3\" Core | 1 UPS | 1,000/roll",
+  "Value Zone Tag — 50x101 mm (Synthetic | 3\" Core | 1 UPS | 1,000/roll)": "50x101mm | SYNTHETIC | 3\" Core | 1 UPS | 1,000/roll",
+  "Regular Card — 50x76 mm (Synthetic | 3\" Core | 2 UPS | 2,500/roll)": "50x76mm | SYNTHETIC | 3\" Core | 2 UPS | 2,500/roll",
+  "Value Zone Card — 75x130 mm (Board | 3\" Core | 1 UPS | 1,000/roll)": "75x130mm | BOARD | 3\" Core | 1 UPS | 1,000/roll",
+  "Wax Ribbon (110mm x 300m | 1\" Core — for Chromo Paper Labels)": "110mm x 300m | WAX | 1\" Core (Chromo Labels)",
+  "Wax-Resin Ribbon (110mm x 300m | 1\" Core — Smudge-Proof for Semi-Gloss & Board)": "110mm x 300m | WAX-RESIN | 1\" Core (Board & Gloss)",
+  "Full Resin Ribbon (110mm x 300m | 1\" Core — Scratch & Wash Proof for Synthetic)": "110mm x 300m | FULL RESIN | 1\" Core (Synthetic Tags & Cards)"
+};
+
+function getItemCategoryInfo(itemOrDescription) {
+  if (!itemOrDescription) return PRODUCT_CATEGORIES.labels;
+  
+  if (typeof itemOrDescription === 'object') {
+    if (itemOrDescription.category && PRODUCT_CATEGORIES[itemOrDescription.category.toLowerCase()]) {
+      return PRODUCT_CATEGORIES[itemOrDescription.category.toLowerCase()];
+    }
+  }
+
+  const str = (typeof itemOrDescription === 'string'
+    ? itemOrDescription
+    : `${itemOrDescription.category || ''} ${itemOrDescription.model || ''} ${itemOrDescription.sku || ''} ${itemOrDescription.description || ''}`).toLowerCase();
+
+  if (str.includes('ribbon') || str.includes('wax') || str.includes('resin') || str.startsWith('rib')) {
+    return PRODUCT_CATEGORIES.ribbons;
+  }
+  if (str.includes('tag') || str.includes('hang') || str.includes('inlay') || str.startsWith('tag')) {
+    return PRODUCT_CATEGORIES.tags;
+  }
+  if (str.includes('card') || str.includes('pvc') || str.includes('cr80') || str.startsWith('crd')) {
+    return PRODUCT_CATEGORIES.cards;
+  }
+  return PRODUCT_CATEGORIES.labels;
+}
+
 const DEFAULT_POS = [];
+
 const DEFAULT_SHIPMENTS = [];
 
 const initialVault = (typeof window.__AUTH_VAULT__ !== 'undefined') ? window.__AUTH_VAULT__ : {
@@ -21,6 +129,13 @@ const initialVault = (typeof window.__AUTH_VAULT__ !== 'undefined') ? window.__A
       name: "Internal Operations Admin",
       salt: "s4lt_adm_89f2a10",
       password_hash: "49b8fe6a957eaac901b2d3a3e62485a1fd836f38aaffc1506b577527ad9dbda9"
+    },
+    {
+      email: "gate@labeltrack.com",
+      role: "gatekeeper",
+      name: "Gate Security Controller",
+      salt: "s4lt_gat_92d1b88",
+      password_hash: "e33d3cf043df11f2517443afc8b2a9cf5b48a2773d0bc4191c19e563acd0f37d"
     },
     {
       email: "dispatch@apexprint.com",
@@ -37,12 +152,69 @@ const initialVault = (typeof window.__AUTH_VAULT__ !== 'undefined') ? window.__A
       vendorCode: "VEN-02",
       salt: "s4lt_ryl_61e5d92",
       password_hash: "005420d010f6de4bccdc7bb67a52f1b6c8981fe317a896369b21a205fbd79287"
+    },
+    {
+      email: "ch.saipavan@rsbrothers.net",
+      role: "vendor",
+      vendorName: "pavan",
+      vendorCode: "VEN-03",
+      salt: "s4lt_v_tzgrwzoxdq",
+      password_hash: "31f71739667380e7215792dd5c9b5c99ef94d2bf2ec1ff9306208ac52ce36969"
+    },
+    {
+      email: "svl@gmail.com",
+      role: "vendor",
+      vendorName: "Sri Vigeneswara Labels",
+      vendorCode: "SVL",
+      salt: "s4lt_v_j65lk9rfta",
+      password_hash: "c5f950b9edeb66f9c935e78a258c39b917e63d8328afaf12228bba3f14195fd0"
     }
   ]
 };
 
-const storedPos = JSON.parse(localStorage.getItem('labeltrack_pos')) || DEFAULT_POS;
-const storedShipments = JSON.parse(localStorage.getItem('labeltrack_shipments')) || DEFAULT_SHIPMENTS;
+const CURRENT_CATALOG_VERSION = '2026.10.19-live-v1';
+if (typeof localStorage !== 'undefined') {
+  if (localStorage.getItem('labeltrack_catalog_version') !== CURRENT_CATALOG_VERSION) {
+    localStorage.removeItem('labeltrack_pos');
+    localStorage.removeItem('labeltrack_shipments');
+    localStorage.setItem('labeltrack_catalog_version', CURRENT_CATALOG_VERSION);
+  }
+}
+
+const rawStoredPos = JSON.parse(localStorage.getItem('labeltrack_pos'));
+const storedPos = (Array.isArray(rawStoredPos) && rawStoredPos.length > 0) ? rawStoredPos : DEFAULT_POS;
+const rawStoredShipments = JSON.parse(localStorage.getItem('labeltrack_shipments'));
+const storedShipments = (Array.isArray(rawStoredShipments) && rawStoredShipments.length > 0) ? rawStoredShipments : DEFAULT_SHIPMENTS;
+
+// Seamlessly normalize any existing legacy 'PO-' prefixes to 'ORD-' and enrich categories/models
+if (Array.isArray(storedPos)) {
+  storedPos.forEach(p => {
+    if (p.poNumber && p.poNumber.startsWith('PO-')) {
+      const oldNum = p.poNumber;
+      const newNum = oldNum.replace(/^PO-/, 'ORD-');
+      p.poNumber = newNum;
+      if (Array.isArray(storedShipments)) {
+        storedShipments.forEach(s => {
+          if (s.poNumber === oldNum) s.poNumber = newNum;
+        });
+      }
+    }
+    if (Array.isArray(p.items)) {
+      p.items.forEach(item => {
+        const catInfo = getItemCategoryInfo(item);
+        if (!item.category) item.category = catInfo.id;
+        if (!item.model) item.model = item.description || catInfo.models[0];
+      });
+    }
+  });
+}
+if (Array.isArray(storedShipments)) {
+  storedShipments.forEach(s => {
+    const catInfo = getItemCategoryInfo(s);
+    if (!s.category) s.category = catInfo.id;
+    if (!s.model) s.model = s.description || catInfo.models[0];
+  });
+}
 
 function loadAuthVault() {
   const baseUsers = (typeof window !== 'undefined' && window.__AUTH_VAULT__ && Array.isArray(window.__AUTH_VAULT__.users))
@@ -56,8 +228,8 @@ function loadAuthVault() {
   } catch (e) {}
 
   const mergedMap = new Map();
-  baseUsers.forEach(u => mergedMap.set(u.email.toLowerCase(), { ...u }));
   localUsers.forEach(u => mergedMap.set(u.email.toLowerCase(), { ...u }));
+  baseUsers.forEach(u => mergedMap.set(u.email.toLowerCase(), { ...u }));
 
   return {
     vault_version: "1.0-encrypted",
@@ -72,6 +244,9 @@ window.state = {
   isLoggedIn: false,
   currentUser: null,
   currentFilter: 'all', // 'all', 'active', 'completed'
+  categoryFilter: 'all', // 'all', 'labels', 'tags', 'ribbons', 'cards'
+  shipmentFilter: 'all', // 'all', 'shortages', 'damaged', 'today', 'transit'
+  gateFilter: 'all', // 'all', 'transit', 'today', 'damaged'
   authVault: loadAuthVault(),
   vendors: JSON.parse(localStorage.getItem('labeltrack_vendors')) || DEFAULT_VENDORS,
   pos: storedPos,
@@ -139,14 +314,14 @@ function dataUrlToBlob(dataUrl) {
   }
 }
 
-async function uploadInvoiceToSupabase(invoiceObj) {
+async function uploadInvoiceToSupabase(invoiceObj, prefix = 'inv') {
   if (!supabaseClient || !invoiceObj || !invoiceObj.dataUrl) return null;
   try {
     const blob = dataUrlToBlob(invoiceObj.dataUrl);
     if (!blob) return null;
     const isPdf = invoiceObj.type && invoiceObj.type.toLowerCase().includes('pdf');
     const ext = isPdf ? 'pdf' : 'jpg';
-    const cleanFileName = `inv_${Date.now()}_${Math.random().toString(36).substring(2, 7)}.${ext}`;
+    const cleanFileName = `${prefix}_${Date.now()}_${Math.random().toString(36).substring(2, 7)}.${ext}`;
 
     const { data, error } = await supabaseClient.storage
       .from('invoices')
@@ -171,7 +346,7 @@ async function uploadInvoiceToSupabase(invoiceObj) {
 async function fetchCloudState() {
   if (!supabaseClient) return;
   try {
-    // 1. Fetch Purchase Orders
+    // 1. Fetch Orders
     const { data: poData, error: poErr } = await supabaseClient
       .from('purchase_orders')
       .select('*')
@@ -181,7 +356,7 @@ async function fetchCloudState() {
       if (poData && poData.length > 0) {
         state.pos = poData.map(p => ({
           id: p.id,
-          poNumber: p.po_number,
+          poNumber: (p.po_number || '').replace(/^PO-/, 'ORD-'),
           vendor: p.vendor_name,
           items: p.items || []
         }));
@@ -198,23 +373,36 @@ async function fetchCloudState() {
 
     if (!shpErr) {
       if (shpData && shpData.length > 0) {
-        state.shipments = shpData.map(s => ({
-          id: s.id,
-          poNumber: s.po_number,
-          sku: s.sku,
-          description: s.description,
-          qtySent: s.qty_sent,
-          receivedQty: s.received_qty,
-          truckLR: s.truck_lr,
-          date: s.date,
-          invoice: s.invoice_url ? {
-            name: 'invoice_' + s.id,
-            type: s.invoice_url.toLowerCase().endsWith('.pdf') ? 'application/pdf' : 'image/jpeg',
-            dataUrl: s.invoice_url,
-            size: 'Cloud Stored',
-            isCompressed: false
-          } : null
-        }));
+        state.shipments = shpData.map(s => {
+          const localExisting = (state.shipments || []).find(ls => ls.id === s.id);
+          return {
+            id: s.id,
+            poNumber: (s.po_number || '').replace(/^PO-/, 'ORD-'),
+            sku: s.sku,
+            description: s.description,
+            qtySent: s.qty_sent,
+            receivedQty: s.received_qty,
+            damagedQty: s.damaged_qty !== undefined ? s.damaged_qty : (localExisting?.damagedQty || 0),
+            defectReason: s.defect_reason || localExisting?.defectReason || null,
+            boxCount: s.box_count || s.boxes || localExisting?.boxCount || 1,
+            receivedBoxes: s.received_boxes !== undefined ? s.received_boxes : (localExisting?.receivedBoxes || null),
+            truckLR: s.truck_lr,
+            date: s.date,
+            damagePhoto: s.damage_photo_url ? {
+              name: 'damage_' + s.id,
+              type: 'image/jpeg',
+              dataUrl: s.damage_photo_url,
+              size: 'Cloud Stored'
+            } : (localExisting?.damagePhoto || null),
+            invoice: s.invoice_url ? {
+              name: 'invoice_' + s.id,
+              type: s.invoice_url.toLowerCase().endsWith('.pdf') ? 'application/pdf' : 'image/jpeg',
+              dataUrl: s.invoice_url,
+              size: 'Cloud Stored',
+              isCompressed: false
+            } : (localExisting?.invoice || null)
+          };
+        });
       } else {
         state.shipments = [];
       }
@@ -334,11 +522,25 @@ function showToast(msg, isError = false) {
   }, 3500);
 }
 
-function openModal(id) { document.getElementById(id).classList.remove('hidden'); }
-function closeModal(id) { document.getElementById(id).classList.add('hidden'); }
+function openModal(id) { 
+  const el = document.getElementById(id);
+  if (el) {
+    el.classList.remove('hidden'); 
+    el.scrollTop = 0;
+    const scrollables = el.querySelectorAll('.overflow-y-auto, .overflow-auto');
+    scrollables.forEach(s => { s.scrollTop = 0; });
+  }
+  if (id === 'vendorScorecardModal') {
+    renderVendorScorecards();
+  }
+}
+function closeModal(id) { 
+  const el = document.getElementById(id);
+  if (el) el.classList.add('hidden'); 
+}
 
 // ==========================================
-// PO & SKU Balance Calculations
+// Order & SKU Balance Calculations
 // ==========================================
 function getPoMetrics(poNumber) {
   const po = state.pos.find(p => p.poNumber === poNumber);
@@ -356,66 +558,146 @@ function getPoMetrics(poNumber) {
     const itemShipments = poShipments.filter(s => (s.sku && s.sku === item.sku) || (!s.sku && s.description === item.description));
     const shipped = itemShipments.reduce((sum, s) => sum + Number(s.qtySent), 0);
     const received = itemShipments.reduce((sum, s) => sum + (s.receivedQty !== null ? Number(s.receivedQty) : 0), 0);
-    const remaining = Math.max(0, item.orderedQty - shipped);
+    
+    // Effective accepted towards order fulfillment:
+    // When verified at gate, use accepted receivedQty. When in transit, use claimed qtySent.
+    const effectiveFulfilled = itemShipments.reduce((sum, s) => {
+      return sum + (s.receivedQty !== null ? Number(s.receivedQty) : Number(s.qtySent));
+    }, 0);
+
+    const remaining = Math.max(0, item.orderedQty - effectiveFulfilled);
 
     totalShipped += shipped;
     totalReceived += received;
 
     return {
       sku: item.sku,
+      category: item.category,
+      model: item.model,
+      spec: item.spec,
       description: item.description,
       orderedQty: item.orderedQty,
       shipped,
       received,
-      remaining
+      remaining,
+      effectiveFulfilled
     };
   });
 
-  const totalRemaining = Math.max(0, totalOrdered - totalShipped);
+  const totalEffectiveFulfilled = itemsMetrics.reduce((sum, i) => sum + i.effectiveFulfilled, 0);
+  const totalRemaining = Math.max(0, totalOrdered - totalEffectiveFulfilled);
   return { totalOrdered, totalShipped, totalReceived, totalRemaining, itemsMetrics, shipments: poShipments };
 }
 
 // ==========================================
-// Dynamic Multi-Item Rows in PO Modal
+// Dynamic Multi-Item Rows in Order Modal
+// Categories & Subdivided Models
 // ==========================================
 let itemRowCount = 0;
 
-function addNewItemRow(desc = '', qty = '') {
+function populateModelDropdown(rowEl, category, selectedModel = '') {
+  const modelSelect = rowEl.querySelector('.po-item-model');
+  if (!modelSelect) return;
+  const catData = PRODUCT_CATEGORIES[category] || PRODUCT_CATEGORIES.labels;
+  modelSelect.innerHTML = catData.models.map(m => `
+    <option value="${escapeHtml(m)}" ${m === selectedModel ? 'selected' : ''}>${escapeHtml(m)}</option>
+  `).join('');
+}
+
+function handleModelChange(rowId) {
+  const rowEl = document.getElementById(rowId);
+  if (!rowEl) return;
+  const modelSelect = rowEl.querySelector('.po-item-model');
+  const specInput = rowEl.querySelector('.po-item-spec');
+  if (modelSelect && specInput) {
+    const selectedModel = modelSelect.value;
+    if (MODEL_SPECS_MAP && MODEL_SPECS_MAP[selectedModel]) {
+      specInput.value = MODEL_SPECS_MAP[selectedModel];
+    }
+  }
+}
+
+function handleCategoryChange(rowId) {
+  const rowEl = document.getElementById(rowId);
+  if (!rowEl) return;
+  const catSelect = rowEl.querySelector('.po-item-cat');
+  const cat = catSelect ? catSelect.value : 'labels';
+  populateModelDropdown(rowEl, cat);
+  handleModelChange(rowId);
+}
+
+function addNewItemRow(cat = 'labels', model = '', spec = '', qty = '') {
   itemRowCount++;
   const container = document.getElementById('poItemsContainer');
+  if (!container) return;
   const rowId = `item-row-${itemRowCount}`;
   const div = document.createElement('div');
   div.id = rowId;
-  div.className = "grid grid-cols-12 gap-2 bg-slate-50 p-2.5 rounded-xl border border-slate-200 items-center";
+  div.className = "p-3 bg-slate-50 rounded-2xl border border-slate-200 space-y-2.5 transition hover:border-slate-300";
+
+  const currentCount = container.children.length + 1;
+  const selectedCat = PRODUCT_CATEGORIES[cat] ? cat : 'labels';
+
   div.innerHTML = `
-    <div class="col-span-1 text-center font-mono text-xs font-bold text-slate-400 po-row-badge">#${container.children.length + 1}</div>
-    <div class="col-span-7">
-      <input type="text" placeholder="Item description / SKU name" value="${desc}" required class="po-item-desc w-full text-xs px-3 py-1.5 border border-slate-300 rounded-lg outline-none focus:ring-1 focus:ring-blue-500 bg-white">
+    <div class="flex items-center justify-between text-xs pb-1.5 border-b border-slate-200/70">
+      <div class="flex items-center gap-2">
+        <span class="font-mono text-xs font-bold px-2 py-0.5 rounded-md bg-slate-200 text-slate-700 po-row-badge">#${currentCount}</span>
+        <span class="font-bold text-slate-700 po-row-title">Item #${currentCount} Configuration</span>
+      </div>
+      <button type="button" onclick="removeItemRow('${rowId}')" class="text-rose-500 hover:text-rose-700 text-xs font-semibold px-2 py-0.5 rounded hover:bg-rose-50 transition flex items-center gap-1">
+        <span>✕ Remove Item</span>
+      </button>
     </div>
-    <div class="col-span-3">
-      <input type="number" placeholder="Qty Units" min="1" value="${qty}" oninput="calcNewPoTotal()" required class="po-item-qty w-full text-xs px-3 py-1.5 border border-slate-300 rounded-lg outline-none focus:ring-1 focus:ring-blue-500 bg-white text-right">
-    </div>
-    <div class="col-span-1 text-center">
-      <button type="button" onclick="removeItemRow('${rowId}')" class="text-rose-500 hover:text-rose-700 text-sm font-bold">&times;</button>
+    <div class="grid grid-cols-1 sm:grid-cols-12 gap-2.5 items-end">
+      <div class="sm:col-span-3">
+        <label class="block text-[10px] font-bold uppercase tracking-wider text-slate-500 mb-1">1. Category *</label>
+        <select onchange="handleCategoryChange('${rowId}')" class="po-item-cat w-full text-xs px-2.5 py-2 border border-slate-300 rounded-xl outline-none focus:ring-2 focus:ring-blue-500 bg-white font-semibold text-slate-800">
+          <option value="labels" ${selectedCat === 'labels' ? 'selected' : ''}>🏷️ Labels</option>
+          <option value="tags" ${selectedCat === 'tags' ? 'selected' : ''}>🔖 Tags</option>
+          <option value="ribbons" ${selectedCat === 'ribbons' ? 'selected' : ''}>🎗️ Ribbons</option>
+          <option value="cards" ${selectedCat === 'cards' ? 'selected' : ''}>💳 Cards</option>
+        </select>
+      </div>
+      <div class="sm:col-span-4">
+        <label class="block text-[10px] font-bold uppercase tracking-wider text-slate-500 mb-1">2. Product Model *</label>
+        <select onchange="handleModelChange('${rowId}')" class="po-item-model w-full text-xs px-2.5 py-2 border border-slate-300 rounded-xl outline-none focus:ring-2 focus:ring-blue-500 bg-white font-medium text-slate-800">
+          <!-- Dynamically populated via populateModelDropdown -->
+        </select>
+      </div>
+      <div class="sm:col-span-3">
+        <label class="block text-[10px] font-bold uppercase tracking-wider text-slate-500 mb-1">3. Size / Specs / Notes</label>
+        <input type="text" placeholder="e.g. 50x25mm / 1000 roll" value="${escapeHtml(spec)}" class="po-item-spec w-full text-xs px-2.5 py-2 border border-slate-300 rounded-xl outline-none focus:ring-2 focus:ring-blue-500 bg-white text-slate-800">
+      </div>
+      <div class="sm:col-span-2">
+        <label class="block text-[10px] font-bold uppercase tracking-wider text-slate-500 mb-1">4. Qty (Units) *</label>
+        <input type="number" placeholder="Units" min="1" value="${qty}" oninput="calcNewPoTotal()" required class="po-item-qty w-full text-xs px-2.5 py-2 border border-slate-300 rounded-xl outline-none focus:ring-2 focus:ring-blue-500 bg-white text-right font-mono font-bold text-slate-900">
+      </div>
     </div>
   `;
   container.appendChild(div);
+  populateModelDropdown(div, selectedCat, model);
+  if (!spec) {
+    handleModelChange(rowId);
+  }
   calcNewPoTotal();
 }
 
 function reindexItemRows() {
   const container = document.getElementById('poItemsContainer');
   if (!container) return;
-  const badges = container.querySelectorAll('.po-row-badge');
-  badges.forEach((b, idx) => {
-    b.textContent = `#${idx + 1}`;
+  const rows = container.querySelectorAll('[id^="item-row-"]');
+  rows.forEach((row, idx) => {
+    const badge = row.querySelector('.po-row-badge');
+    const title = row.querySelector('.po-row-title');
+    if (badge) badge.textContent = `#${idx + 1}`;
+    if (title) title.textContent = `Item #${idx + 1} Configuration`;
   });
 }
 
 function removeItemRow(id) {
   const container = document.getElementById('poItemsContainer');
   if (container.children.length <= 1) {
-    showToast('A PO must have at least 1 item!', true);
+    showToast('An order must have at least 1 item!', true);
     return;
   }
   const el = document.getElementById(id);
@@ -436,12 +718,12 @@ function calcNewPoTotal() {
 }
 
 function openNewPoModal() {
-  document.getElementById('newPoNumber').value = 'PO-2026-' + Math.floor(1000 + Math.random() * 900);
+  document.getElementById('newPoNumber').value = 'ORD-2026-' + Math.floor(1000 + Math.random() * 900);
   const container = document.getElementById('poItemsContainer');
   container.innerHTML = '';
   itemRowCount = 0;
   
-  addNewItemRow("", "");
+  addNewItemRow('labels', '', '', '');
   calcNewPoTotal();
 
   openModal('newPoModal');
@@ -453,31 +735,39 @@ function handleNewPoSubmit(e) {
   const vendor = document.getElementById('newPoVendor').value;
 
   if (!num) {
-    showToast('Please enter a valid PO number!', true);
+    showToast('Please enter a valid order number!', true);
     return;
   }
 
-  // Prevent duplicate PO numbers
+  // Prevent duplicate order numbers
   if (state.pos.some(p => p.poNumber.toLowerCase() === num.toLowerCase())) {
-    showToast(`PO Number "${num}" already exists! Please use a unique PO number.`, true);
+    showToast(`Order Number "${num}" already exists! Please use a unique order number.`, true);
     return;
   }
 
-  const descInputs = document.querySelectorAll('.po-item-desc');
-  const qtyInputs = document.querySelectorAll('.po-item-qty');
+  const container = document.getElementById('poItemsContainer');
+  const rows = container ? container.querySelectorAll('[id^="item-row-"]') : [];
 
   const items = [];
-  for (let i = 0; i < descInputs.length; i++) {
-    const desc = descInputs[i].value.trim();
-    const qty = Number(qtyInputs[i].value);
-    if (desc && qty > 0) {
+  rows.forEach((row, idx) => {
+    const cat = row.querySelector('.po-item-cat')?.value || 'labels';
+    const model = row.querySelector('.po-item-model')?.value || '';
+    const spec = (row.querySelector('.po-item-spec')?.value || '').trim();
+    const qty = Number(row.querySelector('.po-item-qty')?.value);
+
+    if (model && qty > 0) {
+      const catInfo = PRODUCT_CATEGORIES[cat] || PRODUCT_CATEGORIES.labels;
+      const fullDesc = spec ? `${model} (${spec})` : model;
       items.push({
-        sku: `SKU-${i + 1}`,
-        description: desc,
+        sku: `${catInfo.prefix}-${idx + 1}`,
+        category: cat,
+        model: model,
+        spec: spec,
+        description: fullDesc,
         orderedQty: qty
       });
     }
-  }
+  });
 
   if (items.length === 0) {
     showToast('Please add at least 1 item with quantity!', true);
@@ -485,7 +775,7 @@ function handleNewPoSubmit(e) {
   }
 
   state.pos.push({
-    id: 'po-' + (state.pos.length + 1),
+    id: 'ord-' + (state.pos.length + 1),
     poNumber: num,
     vendor: vendor,
     items: items,
@@ -494,7 +784,7 @@ function handleNewPoSubmit(e) {
 
   saveState();
   closeModal('newPoModal');
-  showToast(`Created PO ${num} with ${items.length} items for ${vendor}!`);
+  showToast(`Created Order ${num} with ${items.length} items across categories for ${vendor}!`);
 
   // Cloud sync to Supabase
   if (supabaseClient) {
@@ -504,10 +794,11 @@ function handleNewPoSubmit(e) {
       items: items
     }]).then(({ error }) => {
       if (error) {
-        console.error('Supabase PO insert failed:', error.message);
+        console.error('Supabase Order insert failed:', error.message);
         showToast('Cloud database notice: ' + error.message, true);
       } else {
-        console.log('✓ PO synced to Supabase purchase_orders table');
+        console.log('✓ Order synced to Supabase purchase_orders table');
+        fetchCloudState();
       }
     });
   } else {
@@ -517,14 +808,18 @@ function handleNewPoSubmit(e) {
 }
 
 function deletePo(poNumber) {
-  if (!confirm('Are you sure you want to delete PO ' + poNumber + '? All related dispatches, receiving logs, and invoice entries will also be permanently deleted.')) return;
+  if (state.currentUser?.role === 'gatekeeper') {
+    showToast('Permission Denied: Gatekeepers cannot delete Orders.', true);
+    return;
+  }
+  if (!confirm('Are you sure you want to delete Order ' + poNumber + '? All related dispatches, receiving logs, and invoice entries will also be permanently deleted.')) return;
   
-  // 1. Remove PO and all its associated shipments from state
+  // 1. Remove Order and all its associated shipments from state
   state.pos = state.pos.filter(p => p.poNumber !== poNumber);
   state.shipments = state.shipments.filter(s => s.poNumber !== poNumber);
   
   saveState();
-  showToast(`Purchase Order ${poNumber} and all its dispatches removed.`);
+  showToast(`Order ${poNumber} and all its dispatches removed.`);
 
   // 2. Cascade delete from Supabase Cloud
   if (supabaseClient) {
@@ -536,12 +831,17 @@ function deletePo(poNumber) {
         supabaseClient.from('purchase_orders').delete().eq('po_number', poNumber)
           .then(({ error: pErr }) => {
             if (pErr) console.warn('Supabase PO delete notice:', pErr.message);
+            fetchCloudState();
           });
       });
   }
 }
 
 function deleteShipment(shipmentId) {
+  if (state.currentUser?.role === 'gatekeeper') {
+    showToast('Permission Denied: Gatekeepers cannot delete dispatch logs.', true);
+    return;
+  }
   const s = state.shipments.find(item => item.id === shipmentId);
   if (!s) return;
   if (!confirm(`Are you sure you want to delete dispatch record ${s.id} (Truck ${s.truckLR})?`)) return;
@@ -555,11 +855,16 @@ function deleteShipment(shipmentId) {
     supabaseClient.from('shipments').delete().eq('id', shipmentId)
       .then(({ error }) => {
         if (error) console.warn('Supabase shipment delete notice:', error.message);
+        fetchCloudState();
       });
   }
 }
 
 function clearAllShipments() {
+  if (state.currentUser?.role === 'gatekeeper') {
+    showToast('Permission Denied: Gatekeepers cannot clear dispatch logs.', true);
+    return;
+  }
   if (state.shipments.length === 0) {
     showToast('There are no dispatch records to clear.', true);
     return;
@@ -803,7 +1108,7 @@ function openDispatchModal(poNumber) {
   const { itemsMetrics, totalRemaining } = getPoMetrics(poNumber);
 
   if (totalRemaining === 0) {
-    showToast('This Purchase Order is already 100% fulfilled and locked.', true);
+    showToast('This order is already 100% fulfilled and locked.', true);
     return;
   }
 
@@ -811,11 +1116,14 @@ function openDispatchModal(poNumber) {
   document.getElementById('modalPoTitle').textContent = `${po.poNumber} — Dispatch Entry`;
 
   const select = document.getElementById('modalItemSelect');
-  select.innerHTML = itemsMetrics.map(item => `
-    <option value="${item.sku}" ${item.remaining === 0 ? 'disabled' : ''}>
-      ${item.sku} — ${item.description} (Remaining: ${formatNumber(item.remaining)} units)${item.remaining === 0 ? ' [FULFILLED]' : ''}
-    </option>
-  `).join('');
+  select.innerHTML = itemsMetrics.map(item => {
+    const catInfo = getItemCategoryInfo(item);
+    return `
+      <option value="${item.sku}" ${item.remaining === 0 ? 'disabled' : ''}>
+        [${catInfo.icon} ${catInfo.name}] ${item.sku} — ${item.description} (Remaining: ${formatNumber(item.remaining)} units)${item.remaining === 0 ? ' [FULFILLED]' : ''}
+      </option>
+    `;
+  }).join('');
 
   // Auto-select first non-fulfilled item
   const firstAvailable = itemsMetrics.findIndex(i => i.remaining > 0);
@@ -907,10 +1215,13 @@ async function handleDispatchSubmit(e) {
     }
   }
 
+  const catInfo = getItemCategoryInfo(currentItem);
   const newShipment = {
     id: shipmentId,
     poNumber: poNumber,
     sku: currentItem.sku,
+    category: currentItem.category || catInfo.id,
+    model: currentItem.model || currentItem.description || catInfo.models[0],
     description: currentItem.description,
     qtySent: qty,
     boxCount: boxCount || 1,
@@ -938,22 +1249,39 @@ async function handleDispatchSubmit(e) {
         vendor_name: targetPo.vendor,
         items: targetPo.items
       }], { onConflict: 'po_number' }).then(() => {
-        supabaseClient.from('shipments').insert([{
+        const shipmentPayload = {
           id: shipmentId,
           po_number: poNumber,
           sku: currentItem.sku,
           description: currentItem.description,
           qty_sent: qty,
+          box_count: boxCount || 1,
           truck_lr: truck,
           date: date,
           received_qty: null,
+          received_boxes: null,
           invoice_url: invoiceCloudUrl
-        }]).then(({ error }) => {
+        };
+
+        supabaseClient.from('shipments').insert([shipmentPayload]).then(({ error }) => {
           if (error) {
-            console.error('Supabase shipment insert failed:', error.message);
-            showToast('Cloud database notice: ' + error.message, true);
+            console.warn('Supabase shipment insert notice:', error.message);
+            // Fallback if box_count / received_boxes columns are not yet in Supabase
+            const legacyPayload = { ...shipmentPayload };
+            delete legacyPayload.box_count;
+            delete legacyPayload.received_boxes;
+            supabaseClient.from('shipments').insert([legacyPayload]).then(({ error: legErr }) => {
+              if (legErr) {
+                console.error('Supabase shipment insert failed:', legErr.message);
+                showToast('Cloud database notice: ' + legErr.message, true);
+              } else {
+                console.log('✓ Dispatch synced to Supabase shipments table (legacy fallback)');
+                fetchCloudState();
+              }
+            });
           } else {
-            console.log('✓ Dispatch synced to Supabase shipments table');
+            console.log('✓ Dispatch with box_count synced to Supabase shipments table');
+            fetchCloudState();
           }
         });
       });
@@ -962,9 +1290,235 @@ async function handleDispatchSubmit(e) {
 }
 
 // ==========================================
-// Warehouse Gatekeeper Receiving
+// Warehouse Gatekeeper Receiving & Gate Verification
 // ==========================================
 let currentReceiveShipmentId = null;
+let currentDamagePhoto = null;
+
+async function handleDamagePhotoSelected(e) {
+  const file = e.target.files[0];
+  if (!file) return;
+
+  if (file.size > 12 * 1024 * 1024) {
+    showToast('Image exceeds 12MB limit. Please select a standard document/carton photo.', true);
+    e.target.value = '';
+    return;
+  }
+
+  showToast('Optimizing damage proof photo...', false);
+  const optimized = await compressDocumentImage(file);
+  if (!optimized) {
+    showToast('Unable to process photo. Please try a different image.', true);
+    e.target.value = '';
+    return;
+  }
+
+  currentDamagePhoto = optimized;
+  const thumb = document.getElementById('damagePhotoThumb');
+  const container = document.getElementById('damagePhotoThumbContainer');
+  if (thumb && container) {
+    thumb.src = optimized.dataUrl;
+    container.classList.remove('hidden');
+  }
+  const dropzone = document.getElementById('damagePhotoDropzone');
+  const errorMsg = document.getElementById('damagePhotoErrorMsg');
+  if (dropzone) {
+    dropzone.classList.remove('ring-2', 'ring-rose-500', 'border-rose-500', 'bg-rose-50/70');
+    dropzone.classList.add('border-emerald-400', 'bg-emerald-50/30');
+  }
+  if (errorMsg) errorMsg.classList.add('hidden');
+  showToast('Damage proof photo attached!');
+}
+
+function removeDamagePhoto(e) {
+  if (e) e.stopPropagation();
+  currentDamagePhoto = null;
+  const fileInp = document.getElementById('inputDamagePhotoFile');
+  if (fileInp) fileInp.value = '';
+  const container = document.getElementById('damagePhotoThumbContainer');
+  if (container) container.classList.add('hidden');
+  const dropzone = document.getElementById('damagePhotoDropzone');
+  if (dropzone) {
+    dropzone.classList.remove('border-emerald-400', 'bg-emerald-50/30');
+    dropzone.classList.add('border-rose-200', 'bg-white');
+  }
+}
+
+function previewSelectedDamagePhoto() {
+  if (!currentDamagePhoto) return;
+  document.getElementById('invoicePreviewTitle').textContent = 'Damaged Carton & Goods Proof';
+  document.getElementById('invoicePreviewName').textContent = currentDamagePhoto.name;
+  document.getElementById('invoicePreviewSize').textContent = currentDamagePhoto.size;
+
+  const contentDiv = document.getElementById('invoicePreviewContent');
+  contentDiv.innerHTML = `
+    <div class="text-center w-full space-y-3">
+      <p class="text-xs text-rose-600 font-bold">Physical Damage Evidence Recorded at Warehouse Gate</p>
+      <div class="border border-rose-200 rounded-2xl bg-slate-50 p-2.5">
+        <img src="${currentDamagePhoto.dataUrl}" alt="Damage proof preview" class="max-h-[52vh] max-w-full mx-auto rounded-lg shadow-sm object-contain">
+      </div>
+    </div>
+  `;
+  openModal('invoicePreviewModal');
+  const scrollContainer = document.getElementById('invoicePreviewContent');
+  if (scrollContainer) scrollContainer.scrollTop = 0;
+}
+
+function viewDamagePhoto(shipmentId) {
+  const s = state.shipments.find(item => item.id === shipmentId);
+  if (!s || !s.damagePhoto) {
+    showToast('No damage photo proof recorded for this shipment.', true);
+    return;
+  }
+
+  const photo = s.damagePhoto;
+  document.getElementById('invoicePreviewTitle').textContent = `Damage Evidence: ${s.id} (Invoice #${s.truckLR})`;
+  document.getElementById('invoicePreviewName').textContent = photo.name || 'damage_proof.jpg';
+  document.getElementById('invoicePreviewSize').textContent = photo.size || '';
+
+  const contentDiv = document.getElementById('invoicePreviewContent');
+  contentDiv.innerHTML = `
+    <div class="w-full space-y-3.5">
+      <div class="p-4 bg-rose-50/80 border border-rose-200/90 rounded-2xl text-xs text-rose-900 text-left space-y-2 shadow-2xs">
+        <div class="flex items-center justify-between">
+          <span class="font-extrabold text-rose-800 uppercase tracking-wider text-[11px] flex items-center gap-1.5">
+            <span>⚠️</span>
+            <span>Warehouse Gate Inspection Report</span>
+          </span>
+          <span class="font-mono text-[10px] text-slate-500 font-semibold bg-white px-2 py-0.5 rounded border border-rose-200/60">${escapeHtml(s.date)}</span>
+        </div>
+        <div><strong>Reported Defect Reason:</strong> <span class="text-rose-700 font-bold">${escapeHtml(s.defectReason || 'Transit carton damage')}</span></div>
+        <div class="grid grid-cols-2 gap-2 pt-1.5 border-t border-rose-200/80 text-[11px]">
+          <div>Rejected Defective: <strong class="font-mono text-rose-700 font-bold">${formatNumber(s.damagedQty || 0)} units</strong></div>
+          <div>Accepted Good Stock: <strong class="font-mono text-emerald-700 font-bold">${formatNumber(s.receivedQty || 0)} units</strong></div>
+        </div>
+      </div>
+      <div class="border border-rose-200/80 rounded-2xl bg-slate-900/5 p-2.5 text-center">
+        <img src="${photo.dataUrl}" alt="Damage evidence" class="max-h-[50vh] max-w-full mx-auto rounded-xl shadow-md border border-slate-200 object-contain">
+      </div>
+      <div class="pt-1 flex items-center justify-center gap-2 pb-2">
+        <a href="${photo.dataUrl}" download="${photo.name || 'damage_evidence.jpg'}" class="btn-gradient-primary px-4 py-2.5 text-white font-bold text-xs rounded-xl shadow-xs transition inline-flex items-center gap-2 cursor-pointer">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
+          <span>Download Evidence Photo</span>
+        </a>
+      </div>
+    </div>
+  `;
+  openModal('invoicePreviewModal');
+  const scrollContainer = document.getElementById('invoicePreviewContent');
+  if (scrollContainer) scrollContainer.scrollTop = 0;
+}
+
+function quickMatchReceive() {
+  if (!currentReceiveShipmentId) return;
+  const s = state.shipments.find(item => item.id === currentReceiveShipmentId);
+  if (!s) return;
+
+  const boxInput = document.getElementById('inputReceivedBoxes');
+  const qtyInput = document.getElementById('inputReceivedQty');
+  const damagedInput = document.getElementById('inputDamagedQty');
+  if (boxInput) boxInput.value = s.boxCount || 1;
+  if (qtyInput) qtyInput.value = s.qtySent;
+  if (damagedInput) damagedInput.value = 0;
+
+  removeDamagePhoto();
+  updateReceiveComparison();
+  showToast(`Matched vendor claim: ${formatNumber(s.qtySent)} units in ${s.boxCount || 1} boxes.`);
+}
+
+function updateReceiveComparison() {
+  if (!currentReceiveShipmentId) return;
+  const s = state.shipments.find(item => item.id === currentReceiveShipmentId);
+  if (!s) return;
+
+  const boxVal = document.getElementById('inputReceivedBoxes')?.value;
+  const goodVal = document.getElementById('inputReceivedQty')?.value;
+  const damagedVal = document.getElementById('inputDamagedQty')?.value;
+  const badge = document.getElementById('receiveComparisonBadge');
+  const damageSection = document.getElementById('damageProofSection');
+  if (!badge) return;
+
+  const countedBoxes = Number(boxVal) || 0;
+  const goodQty = Number(goodVal) || 0;
+  const damagedQty = Number(damagedVal) || 0;
+  const totalPhysical = goodQty + damagedQty;
+  const claimedBoxes = s.boxCount || 1;
+  const claimedQty = s.qtySent;
+
+  // Toggle damage proof section
+  if (damagedQty > 0) {
+    damageSection?.classList.remove('hidden');
+    const dropzone = document.getElementById('damagePhotoDropzone');
+    if (!currentDamagePhoto && dropzone) {
+      dropzone.classList.remove('border-emerald-400', 'bg-emerald-50/30');
+      dropzone.classList.add('border-rose-300', 'bg-white');
+    }
+  } else {
+    damageSection?.classList.add('hidden');
+    const dropzone = document.getElementById('damagePhotoDropzone');
+    const errorMsg = document.getElementById('damagePhotoErrorMsg');
+    if (dropzone) {
+      dropzone.classList.remove('ring-2', 'ring-rose-500', 'border-rose-500', 'bg-rose-50/70', 'border-emerald-400', 'bg-emerald-50/30');
+      dropzone.classList.add('border-rose-200', 'bg-white');
+    }
+    if (errorMsg) errorMsg.classList.add('hidden');
+  }
+
+  const boxDiff = countedBoxes - claimedBoxes;
+  const qtyDiff = totalPhysical - claimedQty;
+
+  if (damagedQty > 0) {
+    if (totalPhysical === claimedQty) {
+      badge.className = 'p-2.5 rounded-xl text-xs flex items-center justify-between font-medium bg-amber-50 border border-amber-200 text-amber-900';
+      badge.innerHTML = `
+        <span>⚠️ <strong>Total Count Matched (${formatNumber(totalPhysical)}):</strong> ${formatNumber(damagedQty)} damaged/rejected. Only ${formatNumber(goodQty)} units accepted.</span>
+        <span class="font-bold text-[11px] bg-amber-200/80 text-amber-900 px-2 py-0.5 rounded-full">Partial Rejection</span>
+      `;
+    } else if (totalPhysical < claimedQty) {
+      badge.className = 'p-2.5 rounded-xl text-xs flex items-center justify-between font-medium bg-rose-50 border border-rose-200 text-rose-900';
+      badge.innerHTML = `
+        <span>⚠️ <strong>Shortage & Damage:</strong> ${formatNumber(Math.abs(qtyDiff))} missing &bull; ${formatNumber(damagedQty)} damaged/rejected.</span>
+        <span class="font-bold text-[11px] bg-rose-200/80 text-rose-900 px-2 py-0.5 rounded-full">Discrepancy</span>
+      `;
+    } else {
+      badge.className = 'p-2.5 rounded-xl text-xs flex items-center justify-between font-medium bg-purple-50 border border-purple-200 text-purple-900';
+      badge.innerHTML = `
+        <span>📦 <strong>Excess with Damage:</strong> +${qtyDiff} extra, with ${formatNumber(damagedQty)} damaged.</span>
+        <span class="font-bold text-[11px] bg-purple-200/80 text-purple-900 px-2 py-0.5 rounded-full">Excess</span>
+      `;
+    }
+  } else {
+    if (boxDiff === 0 && qtyDiff === 0) {
+      badge.className = 'p-2.5 rounded-xl text-xs flex items-center justify-between font-medium bg-emerald-50 border border-emerald-200 text-emerald-800';
+      badge.innerHTML = `
+        <span>✓ <strong>Full Match:</strong> All ${formatNumber(goodQty)} units across ${countedBoxes} boxes in good condition.</span>
+        <span class="font-bold text-[11px] bg-emerald-200/70 text-emerald-900 px-2 py-0.5 rounded-full">No Shortage</span>
+      `;
+    } else if (qtyDiff < 0 || boxDiff < 0) {
+      const parts = [];
+      if (boxDiff < 0) parts.push(`${Math.abs(boxDiff)} box(es) short`);
+      if (qtyDiff < 0) parts.push(`${formatNumber(Math.abs(qtyDiff))} unit(s) short`);
+      if (boxDiff > 0) parts.push(`+${boxDiff} extra box(es)`);
+      if (qtyDiff > 0) parts.push(`+${formatNumber(qtyDiff)} extra unit(s)`);
+
+      badge.className = 'p-2.5 rounded-xl text-xs flex items-center justify-between font-medium bg-amber-50 border border-amber-200 text-amber-900';
+      badge.innerHTML = `
+        <span>⚠️ <strong>Shortage:</strong> ${parts.join(', ')}</span>
+        <span class="font-bold text-[11px] bg-amber-200/80 text-amber-900 px-2 py-0.5 rounded-full">Discrepancy</span>
+      `;
+    } else {
+      const parts = [];
+      if (boxDiff > 0) parts.push(`+${boxDiff} extra box(es)`);
+      if (qtyDiff > 0) parts.push(`+${formatNumber(qtyDiff)} extra unit(s)`);
+
+      badge.className = 'p-2.5 rounded-xl text-xs flex items-center justify-between font-medium bg-blue-50 border border-blue-200 text-blue-900';
+      badge.innerHTML = `
+        <span>📦 <strong>Excess Received:</strong> ${parts.join(', ')}</span>
+        <span class="font-bold text-[11px] bg-blue-200/80 text-blue-900 px-2 py-0.5 rounded-full">Excess</span>
+      `;
+    }
+  }
+}
 
 function openReceiveModal(shipmentId) {
   currentReceiveShipmentId = shipmentId;
@@ -978,11 +1532,56 @@ function openReceiveModal(shipmentId) {
   document.getElementById('receiveModalVendor').textContent = po ? po.vendor : '-';
   document.getElementById('receiveModalItem').textContent = s.description;
   document.getElementById('receiveModalClaimed').textContent = `${formatNumber(s.qtySent)} units in ${s.boxCount || 1} box(es) (Invoice #${s.truckLR})`;
-  document.getElementById('inputReceivedQty').value = s.receivedQty !== null ? s.receivedQty : s.qtySent;
+
+  // Gatekeeper verification fields: prefill with claimed or previously verified
   const boxInput = document.getElementById('inputReceivedBoxes');
+  const qtyInput = document.getElementById('inputReceivedQty');
+  const damagedInput = document.getElementById('inputDamagedQty');
+  const defectSelect = document.getElementById('selectDefectReason');
+
   if (boxInput) {
     boxInput.value = s.receivedBoxes !== null && s.receivedBoxes !== undefined ? s.receivedBoxes : (s.boxCount || 1);
   }
+  if (qtyInput) {
+    qtyInput.value = s.receivedQty !== null && s.receivedQty !== undefined ? s.receivedQty : s.qtySent;
+  }
+  if (damagedInput) {
+    damagedInput.value = s.damagedQty !== null && s.damagedQty !== undefined ? s.damagedQty : 0;
+  }
+  if (defectSelect && s.defectReason) {
+    defectSelect.value = s.defectReason;
+  }
+
+  // Restore damage photo thumbnail if exists
+  currentDamagePhoto = s.damagePhoto || null;
+  const thumb = document.getElementById('damagePhotoThumb');
+  const container = document.getElementById('damagePhotoThumbContainer');
+  const fileInp = document.getElementById('inputDamagePhotoFile');
+  if (fileInp) fileInp.value = '';
+  if (currentDamagePhoto && thumb && container) {
+    thumb.src = currentDamagePhoto.dataUrl;
+    container.classList.remove('hidden');
+  } else if (container) {
+    container.classList.add('hidden');
+  }
+
+  // Reset damage photo UI validation states
+  const dropzone = document.getElementById('damagePhotoDropzone');
+  const errorMsg = document.getElementById('damagePhotoErrorMsg');
+  if (dropzone) {
+    dropzone.classList.remove('ring-2', 'ring-rose-500', 'border-rose-500', 'bg-rose-50/70');
+    if (currentDamagePhoto) {
+      dropzone.classList.add('border-emerald-400', 'bg-emerald-50/30');
+      dropzone.classList.remove('border-rose-200', 'bg-white');
+    } else {
+      dropzone.classList.remove('border-emerald-400', 'bg-emerald-50/30');
+      dropzone.classList.add('border-rose-200', 'bg-white');
+    }
+  }
+  if (errorMsg) errorMsg.classList.add('hidden');
+
+  // Update comparison status badge
+  updateReceiveComparison();
 
   // Invoice display in receiving modal
   const invoiceBox = document.getElementById('receiveModalInvoiceSection');
@@ -997,34 +1596,105 @@ function openReceiveModal(shipmentId) {
   openModal('receiveModal');
 }
 
-function handleReceiveSubmit(e) {
+async function handleReceiveSubmit(e) {
   e.preventDefault();
   const sId = document.getElementById('receiveShipmentId').value;
-  const received = Number(document.getElementById('inputReceivedQty').value);
-  const receivedBoxes = Number(document.getElementById('inputReceivedBoxes')?.value || 0);
+  const receivedGood = Number(document.getElementById('inputReceivedQty').value);
+  const damaged = Number(document.getElementById('inputDamagedQty')?.value || 0);
+  const receivedBoxes = Number(document.getElementById('inputReceivedBoxes')?.value || 1);
+  const defectReason = damaged > 0 ? document.getElementById('selectDefectReason')?.value : null;
+
   const s = state.shipments.find(item => item.id === sId);
   if (!s) return;
 
-  if (isNaN(received) || received < 0) {
-    showToast('Physically counted quantity cannot be negative!', true);
+  if (isNaN(receivedGood) || receivedGood < 0) {
+    showToast('Good units accepted cannot be negative!', true);
+    return;
+  }
+  if (isNaN(damaged) || damaged < 0) {
+    showToast('Damaged units cannot be negative!', true);
+    return;
+  }
+  if (isNaN(receivedBoxes) || receivedBoxes < 1) {
+    showToast('Boxes received count must be at least 1 box!', true);
     return;
   }
 
-  s.receivedQty = received;
-  if (!isNaN(receivedBoxes) && receivedBoxes > 0) {
-    s.receivedBoxes = receivedBoxes;
+  // Mandatory damage photo validation: If damaged units are entered, image proof is mandatory
+  if (damaged > 0 && (!currentDamagePhoto || !currentDamagePhoto.dataUrl)) {
+    const dropzone = document.getElementById('damagePhotoDropzone');
+    const errorMsg = document.getElementById('damagePhotoErrorMsg');
+    const fileInp = document.getElementById('inputDamagePhotoFile');
+
+    if (dropzone) {
+      dropzone.classList.add('ring-2', 'ring-rose-500', 'border-rose-500', 'bg-rose-50/70');
+      dropzone.classList.remove('border-rose-200', 'bg-white', 'border-emerald-400', 'bg-emerald-50/30');
+    }
+    if (errorMsg) {
+      errorMsg.classList.remove('hidden');
+    }
+    if (fileInp) {
+      fileInp.focus();
+    }
+    showToast('⚠️ Mandatory: Photo proof of the damaged piece/carton is required!', true);
+    return;
   }
+
+  // Upload damage proof photo to Supabase storage if available
+  let damageCloudUrl = null;
+  if (supabaseClient && currentDamagePhoto && currentDamagePhoto.dataUrl && !currentDamagePhoto.dataUrl.startsWith('http')) {
+    try {
+      damageCloudUrl = await uploadInvoiceToSupabase(currentDamagePhoto);
+    } catch (err) {
+      console.warn('Supabase damage photo upload notice:', err);
+    }
+  }
+
+  s.receivedQty = receivedGood;
+  s.damagedQty = damaged;
+  s.receivedBoxes = receivedBoxes;
+  s.defectReason = defectReason;
+  s.damagePhoto = currentDamagePhoto ? {
+    ...currentDamagePhoto,
+    dataUrl: damageCloudUrl || currentDamagePhoto.dataUrl
+  } : null;
+
   saveState();
   closeModal('receiveModal');
-  showToast(`Logged verified count of ${formatNumber(received)} units (${s.receivedBoxes || s.boxCount || 1} boxes)!`);
+  showToast(`Verified ${formatNumber(receivedGood)} good units & ${formatNumber(damaged)} damaged across ${receivedBoxes} boxes!`);
 
   // Cloud sync to Supabase
   if (supabaseClient) {
-    supabaseClient.from('shipments').update({ 
-      received_qty: received
-    }).eq('id', sId)
+    const updatePayload = { 
+      received_qty: receivedGood,
+      received_boxes: receivedBoxes,
+      damaged_qty: damaged,
+      defect_reason: defectReason
+    };
+    if (damageCloudUrl) {
+      updatePayload.damage_photo_url = damageCloudUrl;
+    }
+
+    supabaseClient.from('shipments').update(updatePayload).eq('id', sId)
       .then(({ error }) => {
-        if (error) console.warn('Supabase receive update notice:', error.message);
+        if (error) {
+          console.warn('Initial receive update notice:', error.message);
+          // Fallback if damaged_qty or defect_reason columns not in Supabase schema
+          const fallbackPayload = { 
+            received_qty: receivedGood,
+            received_boxes: receivedBoxes
+          };
+          supabaseClient.from('shipments').update(fallbackPayload).eq('id', sId).then(({ error: err2 }) => {
+            if (err2) {
+              supabaseClient.from('shipments').update({ received_qty: receivedGood }).eq('id', sId).then(() => fetchCloudState());
+            } else {
+              fetchCloudState();
+            }
+          });
+        } else {
+          console.log('✓ Gate receiving with damage record and photo synced to Supabase');
+          fetchCloudState();
+        }
       });
   }
 }
@@ -1202,10 +1872,12 @@ async function handleNewVendorSubmit(e) {
               showToast('Cloud database notice: ' + err2.message, true);
             } else {
               console.log('✓ Vendor synced to Supabase successfully');
+              fetchCloudState();
             }
           });
       } else {
         console.log('✓ Vendor synced to Supabase successfully');
+        fetchCloudState();
       }
     });
   } else {
@@ -1220,7 +1892,7 @@ function deleteVendor(vendorId) {
 
   const hasOrders = state.pos.some(p => p.vendor === v.name);
   if (hasOrders) {
-    if (!confirm(`Warning: Vendor ${v.name} has active purchase orders recorded in the system. Are you sure you want to remove this vendor?`)) {
+    if (!confirm(`Warning: Vendor ${v.name} has active orders recorded in the system. Are you sure you want to remove this vendor?`)) {
       return;
     }
   } else {
@@ -1239,7 +1911,184 @@ function deleteVendor(vendorId) {
     supabaseClient.from('vendors').delete().eq('email', v.email)
       .then(({ error }) => {
         if (error) console.warn('Supabase vendor delete notice:', error.message);
+        fetchCloudState();
       });
+  }
+}
+
+// ==========================================
+// Change User & Vendor Password Controller
+// ==========================================
+function openChangePasswordModal(email, name, role) {
+  if (!email) {
+    if (state.currentUser) {
+      email = state.currentUser.email;
+      name = state.currentUser.name || state.currentUser.vendorName || email;
+      role = state.currentUser.role;
+    } else {
+      showToast('No user specified.', true);
+      return;
+    }
+  }
+  const modal = document.getElementById('changePasswordModal');
+  if (!modal) return;
+  
+  const emailInput = document.getElementById('changePassTargetEmail');
+  const roleInput = document.getElementById('changePassTargetRole');
+  const nameDisplay = document.getElementById('changePassTargetName');
+  const emailDisplay = document.getElementById('changePassTargetEmailDisplay');
+  const roleBadge = document.getElementById('changePassTargetRoleBadge');
+  const titleEl = document.getElementById('changePasswordModalTitle');
+
+  if (emailInput) emailInput.value = email;
+  if (roleInput) roleInput.value = role || 'vendor';
+  if (nameDisplay) nameDisplay.textContent = name || email;
+  if (emailDisplay) emailDisplay.textContent = email;
+  if (titleEl) {
+    titleEl.textContent = (state.currentUser && state.currentUser.email.toLowerCase() === email.toLowerCase())
+      ? 'Update Your Password'
+      : `Update Password for ${name || email}`;
+  }
+
+  if (roleBadge) {
+    roleBadge.textContent = (role || 'vendor').toUpperCase();
+    if (role === 'admin') roleBadge.className = 'px-2.5 py-1 rounded-lg text-[10px] font-bold font-mono uppercase bg-indigo-100 text-indigo-800';
+    else if (role === 'gatekeeper') roleBadge.className = 'px-2.5 py-1 rounded-lg text-[10px] font-bold font-mono uppercase bg-emerald-100 text-emerald-800';
+    else roleBadge.className = 'px-2.5 py-1 rounded-lg text-[10px] font-bold font-mono uppercase bg-blue-100 text-blue-800';
+  }
+
+  const pass1 = document.getElementById('changePassNewValue');
+  const pass2 = document.getElementById('changePassConfirmValue');
+  if (pass1) { pass1.value = ''; pass1.type = 'password'; }
+  if (pass2) { pass2.value = ''; pass2.type = 'password'; }
+
+  const fb = document.getElementById('changePassFeedback');
+  if (fb) {
+    fb.classList.add('hidden');
+    fb.innerHTML = '';
+  }
+
+  modal.classList.remove('hidden');
+}
+
+function closeChangePasswordModal() {
+  const modal = document.getElementById('changePasswordModal');
+  if (modal) modal.classList.add('hidden');
+}
+
+function generateRandomNewPassword() {
+  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnpqrstuvwxyz23456789!@#$%';
+  let pass = '';
+  for (let i = 0; i < 12; i++) {
+    pass += chars.charAt(Math.floor(Math.random() * chars.length));
+  }
+  const input1 = document.getElementById('changePassNewValue');
+  const input2 = document.getElementById('changePassConfirmValue');
+  if (input1) {
+    input1.value = pass;
+    input1.type = 'text';
+  }
+  if (input2) {
+    input2.value = pass;
+    input2.type = 'text';
+  }
+  showToast('Generated strong password: ' + pass);
+}
+
+function toggleChangePassVisibility(inputId, btn) {
+  const input = document.getElementById(inputId);
+  if (!input) return;
+  if (input.type === 'password') {
+    input.type = 'text';
+    if (btn) btn.textContent = 'Hide';
+  } else {
+    input.type = 'password';
+    if (btn) btn.textContent = 'Show';
+  }
+}
+
+async function handleChangePasswordSubmit(e) {
+  if (e) e.preventDefault();
+  const email = (document.getElementById('changePassTargetEmail')?.value || '').trim().toLowerCase();
+  const role = document.getElementById('changePassTargetRole')?.value || 'vendor';
+  const newPass = document.getElementById('changePassNewValue')?.value || '';
+  const confirmPass = document.getElementById('changePassConfirmValue')?.value || '';
+  const fb = document.getElementById('changePassFeedback');
+  const submitBtn = document.getElementById('btnSubmitChangePass');
+
+  const showFb = (msg, isError = true) => {
+    if (!fb) return;
+    fb.classList.remove('hidden');
+    if (isError) {
+      fb.className = "text-xs p-3 rounded-xl border font-semibold flex items-center gap-2 bg-rose-50 text-rose-800 border-rose-200";
+      fb.innerHTML = `<svg class="w-4 h-4 text-rose-600 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg><span>${msg}</span>`;
+    } else {
+      fb.className = "text-xs p-3 rounded-xl border font-semibold flex items-center gap-2 bg-emerald-50 text-emerald-800 border-emerald-200";
+      fb.innerHTML = `<svg class="w-4 h-4 text-emerald-600 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg><span>${msg}</span>`;
+    }
+  };
+
+  if (!newPass || newPass.length < 4) {
+    showFb('Password must be at least 4 characters long.');
+    return;
+  }
+  if (newPass !== confirmPass) {
+    showFb('Passwords do not match. Please re-enter.');
+    return;
+  }
+
+  if (submitBtn) {
+    submitBtn.disabled = true;
+    submitBtn.innerHTML = '<span>Updating...</span>';
+  }
+
+  try {
+    const randomSalt = 's4lt_v_' + Math.random().toString(36).substring(2, 12);
+    const passHash = await hashPassword(randomSalt, newPass);
+
+    if (!state.authVault) state.authVault = { users: [] };
+    if (!Array.isArray(state.authVault.users)) state.authVault.users = [];
+
+    let vaultUser = state.authVault.users.find(u => u.email.toLowerCase() === email);
+    if (vaultUser) {
+      vaultUser.salt = randomSalt;
+      vaultUser.password_hash = passHash;
+    } else {
+      vaultUser = {
+        email: email,
+        role: role,
+        name: document.getElementById('changePassTargetName')?.textContent || email,
+        salt: randomSalt,
+        password_hash: passHash
+      };
+      state.authVault.users.push(vaultUser);
+    }
+    state.authVault.updated_at = new Date().toISOString();
+    localStorage.setItem('labeltrack_auth_vault', JSON.stringify(state.authVault));
+
+    // Cloud sync to Supabase for vendors
+    if (supabaseClient) {
+      const { error } = await supabaseClient
+        .from('vendors')
+        .update({ salt: randomSalt, password_hash: passHash })
+        .eq('email', email);
+      if (error) {
+        console.warn('Supabase vendor password update notice:', error.message);
+      } else {
+        console.log('✓ Password synced to Supabase Cloud DB for', email);
+      }
+    }
+
+    showToast(`Password for ${email} updated and encrypted successfully!`);
+    closeChangePasswordModal();
+  } catch (err) {
+    console.error('Password update error:', err);
+    showFb('Error updating password: ' + err.message);
+  } finally {
+    if (submitBtn) {
+      submitBtn.disabled = false;
+      submitBtn.innerHTML = '<span>Update Password</span>';
+    }
   }
 }
 
@@ -1256,27 +2105,218 @@ function setFilter(filter) {
   const btnAct = document.getElementById('filterBtnActive');
   const btnCmp = document.getElementById('filterBtnCompleted');
 
-  btnAll.className = isAll 
-    ? "px-4 py-2 text-xs font-bold rounded-xl bg-slate-900 text-white shadow-xs transition flex items-center gap-1.5"
-    : "px-4 py-2 text-xs font-semibold rounded-xl text-slate-600 hover:text-slate-900 hover:bg-slate-200/60 transition flex items-center gap-1.5";
+  if (btnAll) btnAll.className = isAll 
+    ? "px-4 py-2 text-xs font-bold rounded-xl bg-slate-900 text-white shadow-xs transition-all duration-150 flex items-center gap-1.5 cursor-pointer"
+    : "px-4 py-2 text-xs font-semibold rounded-xl text-slate-600 hover:text-slate-900 hover:bg-slate-200/60 transition-all duration-150 flex items-center gap-1.5 cursor-pointer";
 
-  btnAct.className = isActive 
-    ? "px-4 py-2 text-xs font-bold rounded-xl bg-slate-900 text-white shadow-xs transition flex items-center gap-1.5"
-    : "px-4 py-2 text-xs font-semibold rounded-xl text-slate-600 hover:text-slate-900 hover:bg-slate-200/60 transition flex items-center gap-1.5";
+  if (btnAct) btnAct.className = isActive 
+    ? "px-4 py-2 text-xs font-bold rounded-xl bg-blue-600 text-white shadow-sm shadow-blue-500/25 transition-all duration-150 flex items-center gap-1.5 cursor-pointer"
+    : "px-4 py-2 text-xs font-semibold rounded-xl text-slate-600 hover:text-slate-900 hover:bg-slate-200/60 transition-all duration-150 flex items-center gap-1.5 cursor-pointer";
 
-  btnCmp.className = isComp 
-    ? "px-4 py-2 text-xs font-bold rounded-xl bg-slate-900 text-white shadow-xs transition flex items-center gap-1.5"
-    : "px-4 py-2 text-xs font-semibold rounded-xl text-slate-600 hover:text-slate-900 hover:bg-slate-200/60 transition flex items-center gap-1.5";
+  if (btnCmp) btnCmp.className = isComp 
+    ? "px-4 py-2 text-xs font-bold rounded-xl bg-emerald-600 text-white shadow-sm shadow-emerald-500/25 transition-all duration-150 flex items-center gap-1.5 cursor-pointer"
+    : "px-4 py-2 text-xs font-semibold rounded-xl text-slate-600 hover:text-slate-900 hover:bg-slate-200/60 transition-all duration-150 flex items-center gap-1.5 cursor-pointer";
 
   const badgeAll = document.getElementById('countAll');
   const badgeAct = document.getElementById('countActive');
   const badgeCmp = document.getElementById('countCompleted');
 
   if (badgeAll) badgeAll.className = isAll ? "bg-slate-800 text-slate-200 px-1.5 py-0.5 rounded-full text-[10px] font-mono" : "bg-slate-200 text-slate-600 px-1.5 py-0.5 rounded-full text-[10px] font-mono";
-  if (badgeAct) badgeAct.className = isActive ? "bg-slate-800 text-slate-200 px-1.5 py-0.5 rounded-full text-[10px] font-mono" : "bg-slate-200 text-slate-600 px-1.5 py-0.5 rounded-full text-[10px] font-mono";
-  if (badgeCmp) badgeCmp.className = isComp ? "bg-slate-800 text-slate-200 px-1.5 py-0.5 rounded-full text-[10px] font-mono" : "bg-slate-200 text-slate-600 px-1.5 py-0.5 rounded-full text-[10px] font-mono";
+  if (badgeAct) badgeAct.className = isActive ? "bg-blue-700 text-blue-100 px-1.5 py-0.5 rounded-full text-[10px] font-mono" : "bg-slate-200 text-slate-600 px-1.5 py-0.5 rounded-full text-[10px] font-mono";
+  if (badgeCmp) badgeCmp.className = isComp ? "bg-emerald-700 text-emerald-100 px-1.5 py-0.5 rounded-full text-[10px] font-mono" : "bg-slate-200 text-slate-600 px-1.5 py-0.5 rounded-full text-[10px] font-mono";
 
   render();
+}
+
+
+function setShipmentFilter(filter) {
+  state.shipmentFilter = filter;
+  render();
+}
+
+function setGateFilter(filter) {
+  state.gateFilter = filter;
+  render();
+}
+
+function setCategoryFilter(cat) {
+  state.categoryFilter = cat;
+  const cats = ['all', 'labels', 'tags', 'ribbons', 'cards'];
+  cats.forEach(c => {
+    const btns = document.querySelectorAll(`.cat-filter-btn-${c}`);
+    btns.forEach(btn => {
+      if (c === cat) {
+        let activeClass = "cat-pill-all-active";
+        if (c === 'labels') activeClass = "cat-pill-labels-active";
+        else if (c === 'tags') activeClass = "cat-pill-tags-active";
+        else if (c === 'ribbons') activeClass = "cat-pill-ribbons-active";
+        else if (c === 'cards') activeClass = "cat-pill-cards-active";
+        btn.className = `cat-filter-btn-${c} px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all duration-150 flex items-center gap-1.5 cursor-pointer ${activeClass}`;
+      } else {
+        let inactiveClass = "border border-slate-200/90 text-slate-600 bg-white hover:bg-slate-100 hover:text-slate-900";
+        if (c === 'labels') inactiveClass = "border border-blue-200/80 text-blue-700 bg-white hover:bg-blue-50/70";
+        else if (c === 'tags') inactiveClass = "border border-emerald-200/80 text-emerald-700 bg-white hover:bg-emerald-50/70";
+        else if (c === 'ribbons') inactiveClass = "border border-purple-200/80 text-purple-700 bg-white hover:bg-purple-50/70";
+        else if (c === 'cards') inactiveClass = "border border-amber-200/80 text-amber-700 bg-white hover:bg-amber-50/70";
+        btn.className = `cat-filter-btn-${c} px-3.5 py-1.5 rounded-xl text-xs font-semibold transition-all duration-150 flex items-center gap-1.5 cursor-pointer ${inactiveClass}`;
+      }
+    });
+  });
+  render();
+}
+
+function renderVendorScorecards() {
+  const container = document.getElementById('vendorScorecardsList');
+  if (!container) return;
+
+  const vendors = state.vendors || [];
+  let fleetDispatched = 0;
+  let fleetReceivedGood = 0;
+  let fleetShortages = 0;
+  let fleetDamaged = 0;
+
+  const vendorStats = vendors.map(v => {
+    const vendorPoNumbers = state.pos.filter(p => p.vendor === v.name).map(p => p.poNumber);
+    const shipments = state.shipments.filter(s => vendorPoNumbers.includes(s.poNumber));
+    
+    let totalSent = 0;
+    let verifiedSent = 0;
+    let goodReceived = 0;
+    let damagedUnits = 0;
+    let shortageIncidents = 0;
+    let damageIncidents = 0;
+    let verifiedCount = 0;
+
+    shipments.forEach(s => {
+      totalSent += Number(s.qtySent || 0);
+      const hasCount = s.receivedQty !== null && s.receivedQty !== undefined;
+      if (hasCount) {
+        verifiedCount++;
+        verifiedSent += Number(s.qtySent || 0);
+        goodReceived += Number(s.receivedQty || 0);
+        const damaged = Number(s.damagedQty || 0);
+        damagedUnits += damaged;
+        if (damaged > 0) damageIncidents++;
+        const variance = Number(s.receivedQty) - Number(s.qtySent);
+        if (variance < 0) shortageIncidents++;
+      }
+    });
+
+    fleetDispatched += verifiedSent;
+    fleetReceivedGood += goodReceived;
+    fleetShortages += shortageIncidents;
+    fleetDamaged += damagedUnits;
+
+    let accuracyPct = verifiedSent > 0 
+      ? Math.round((goodReceived / verifiedSent) * 100) 
+      : 100;
+    if (accuracyPct > 100) accuracyPct = 100;
+
+    let grade = 'Grade A';
+    let gradeBadge = 'bg-emerald-50 text-emerald-700 border-emerald-200';
+    let gradeLabel = 'Premier Quality';
+    if (verifiedCount === 0) {
+      grade = 'Unrated';
+      gradeBadge = 'bg-slate-50 text-slate-600 border-slate-200';
+      gradeLabel = 'No Audits Yet';
+    } else if (accuracyPct < 90 || shortageIncidents >= 3) {
+      grade = 'Grade C';
+      gradeBadge = 'bg-rose-50 text-rose-700 border-rose-200';
+      gradeLabel = 'High Shortage Risk';
+    } else if (accuracyPct < 97 || shortageIncidents > 0 || damagedUnits > 0) {
+      grade = 'Grade B';
+      gradeBadge = 'bg-blue-50 text-blue-700 border-blue-200';
+      gradeLabel = 'Standard Compliance';
+    }
+
+    return {
+      vendor: v,
+      shipmentsCount: shipments.length,
+      verifiedCount,
+      totalSent,
+      goodReceived,
+      damagedUnits,
+      shortageIncidents,
+      damageIncidents,
+      accuracyPct,
+      grade,
+      gradeBadge,
+      gradeLabel
+    };
+  });
+
+  const activeSuppliersEl = document.getElementById('scorecardActiveSuppliers');
+  const fleetAccuracyEl = document.getElementById('scorecardFleetAccuracy');
+  const totalShortagesEl = document.getElementById('scorecardTotalShortages');
+  const totalDamagedEl = document.getElementById('scorecardTotalDamaged');
+
+  if (activeSuppliersEl) activeSuppliersEl.textContent = vendors.length;
+  if (fleetAccuracyEl) {
+    const fleetAcc = fleetDispatched > 0 ? Math.round((fleetReceivedGood / fleetDispatched) * 100) : 100;
+    fleetAccuracyEl.textContent = `${Math.min(100, fleetAcc)}%`;
+  }
+  if (totalShortagesEl) totalShortagesEl.textContent = fleetShortages;
+  if (totalDamagedEl) totalDamagedEl.textContent = `${formatNumber(fleetDamaged)} units`;
+
+  if (vendorStats.length === 0) {
+    container.innerHTML = `<div class="col-span-2 text-center py-8 text-slate-400 text-xs">No registered suppliers found.</div>`;
+    return;
+  }
+
+  container.innerHTML = vendorStats.map(stat => {
+    return `
+      <div class="bg-white rounded-2xl border border-slate-200/90 p-4 space-y-3.5 shadow-2xs hover:shadow-xs transition">
+        <div class="flex items-start justify-between gap-2 border-b border-slate-100 pb-3">
+          <div>
+            <div class="flex items-center gap-2">
+              <span class="font-mono text-[11px] font-bold text-blue-600 bg-blue-50 px-1.5 py-0.5 rounded border border-blue-100">${escapeHtml(stat.vendor.code)}</span>
+              <h4 class="font-bold text-slate-900 text-sm">${escapeHtml(stat.vendor.name)}</h4>
+            </div>
+            <p class="text-[11px] text-slate-400 font-mono mt-0.5">${escapeHtml(stat.vendor.email)}</p>
+          </div>
+          <span class="px-2.5 py-1 rounded-xl text-xs font-bold border ${stat.gradeBadge}">
+            ${stat.grade} &bull; ${stat.gradeLabel}
+          </span>
+        </div>
+
+        <div class="grid grid-cols-3 gap-2 text-center bg-slate-50/80 p-2.5 rounded-xl border border-slate-100">
+          <div>
+            <span class="text-[10px] uppercase font-bold text-slate-400 block">Fulfillment</span>
+            <span class="text-base font-black ${stat.accuracyPct >= 97 ? 'text-emerald-600' : (stat.accuracyPct >= 90 ? 'text-blue-600' : 'text-rose-600')} font-mono">
+              ${stat.verifiedCount > 0 ? stat.accuracyPct + '%' : 'N/A'}
+            </span>
+          </div>
+          <div>
+            <span class="text-[10px] uppercase font-bold text-slate-400 block">Shortages</span>
+            <span class="text-base font-black ${stat.shortageIncidents > 0 ? 'text-rose-600' : 'text-slate-800'} font-mono">
+              ${stat.shortageIncidents}
+            </span>
+          </div>
+          <div>
+            <span class="text-[10px] uppercase font-bold text-slate-400 block">Damaged</span>
+            <span class="text-base font-black ${stat.damagedUnits > 0 ? 'text-amber-600' : 'text-slate-800'} font-mono">
+              ${formatNumber(stat.damagedUnits)}
+            </span>
+          </div>
+        </div>
+
+        <div class="space-y-1">
+          <div class="flex justify-between text-[11px] text-slate-500 font-medium">
+            <span>Accuracy Match Rate</span>
+            <span>${stat.verifiedCount > 0 ? `${formatNumber(stat.goodReceived)} / ${formatNumber(stat.totalSent)} units` : 'No shipments verified'}</span>
+          </div>
+          <div class="w-full h-2 bg-slate-100 rounded-full overflow-hidden">
+            <div class="h-full ${stat.accuracyPct >= 97 ? 'bg-emerald-500' : (stat.accuracyPct >= 90 ? 'bg-blue-600' : 'bg-rose-500')} rounded-full transition-all" style="width: ${stat.verifiedCount > 0 ? stat.accuracyPct : 0}%"></div>
+          </div>
+        </div>
+
+        <div class="flex items-center justify-between text-[11px] text-slate-400 pt-1 border-t border-slate-100">
+          <span>${stat.shipmentsCount} total dispatches (${stat.verifiedCount} audited)</span>
+          <span class="font-semibold text-slate-600">${stat.damageIncidents} damage claim(s)</span>
+        </div>
+      </div>
+    `;
+  }).join('');
 }
 
 function render() {
@@ -1284,31 +2324,45 @@ function render() {
 
   const user = state.currentUser;
   const isAdmin = user.role === 'admin';
-  const activeVendorName = !isAdmin ? user.vendorName : (state.vendors[0]?.name || '');
+  const isGatekeeper = user.role === 'gatekeeper';
+  const isVendor = !isAdmin && !isGatekeeper;
+  const activeVendorName = isVendor ? user.vendorName : (state.vendors[0]?.name || '');
+
+  const vendorSection = document.getElementById('vendorSection');
+  const adminSection = document.getElementById('adminSection');
+  const gatekeeperSection = document.getElementById('gatekeeperSection');
 
   // Update Top Navigation
+  const adminSwitcher = document.getElementById('adminNavSwitcher');
   if (isAdmin) {
+    if (adminSwitcher) adminSwitcher.classList.remove('hidden');
     document.getElementById('navSubtitle').textContent = 'Operations Command';
     document.getElementById('navUserName').textContent = 'Internal Operations Team';
-    document.getElementById('navUserRole').innerHTML = `<span class="badge-pill badge-slate">Admin Controller</span>`;
+    document.getElementById('navUserRole').innerHTML = `<span class="badge-pill badge-indigo">👑 Ops Admin</span>`;
     document.getElementById('navUserAvatar').textContent = 'OP';
+    vendorSection?.classList.add('hidden');
+    adminSection?.classList.remove('hidden');
+    gatekeeperSection?.classList.add('hidden');
+  } else if (isGatekeeper) {
+    if (adminSwitcher) adminSwitcher.classList.add('hidden');
+    document.getElementById('navSubtitle').textContent = 'Gate Inward Command';
+    document.getElementById('navUserName').textContent = user.name || 'Gate Security Controller';
+    document.getElementById('navUserRole').innerHTML = `<span class="badge-pill badge-emerald">🛂 Gate Security</span>`;
+    document.getElementById('navUserAvatar').textContent = 'GK';
+    vendorSection?.classList.add('hidden');
+    adminSection?.classList.add('hidden');
+    gatekeeperSection?.classList.remove('hidden');
   } else {
+    if (adminSwitcher) adminSwitcher.classList.add('hidden');
     document.getElementById('navSubtitle').textContent = 'Supplier Portal';
     document.getElementById('navUserName').textContent = user.vendorName;
     document.getElementById('navUserRole').innerHTML = `Vendor ID: <span class="font-mono text-slate-700 font-semibold">${user.vendorCode || 'VEN-01'}</span>`;
     document.getElementById('navUserAvatar').textContent = (user.vendorName || 'VP').substring(0, 2).toUpperCase();
-  }
-
-  const vendorSection = document.getElementById('vendorSection');
-  const adminSection = document.getElementById('adminSection');
-
-  if (isAdmin) {
-    vendorSection.classList.add('hidden');
-    adminSection.classList.remove('hidden');
-  } else {
-    vendorSection.classList.remove('hidden');
-    adminSection.classList.add('hidden');
-    document.getElementById('vendorWelcomeTitle').textContent = `Welcome, ${activeVendorName}`;
+    vendorSection?.classList.remove('hidden');
+    adminSection?.classList.add('hidden');
+    gatekeeperSection?.classList.add('hidden');
+    const welcomeTitle = document.getElementById('vendorWelcomeTitle');
+    if (welcomeTitle) welcomeTitle.textContent = `Welcome, ${activeVendorName}`;
   }
 
   // Dropdown Sync
@@ -1332,9 +2386,14 @@ function render() {
         <td class="p-3 font-mono text-slate-600 text-[11px]">${escapeHtml(v.email)}</td>
         <td class="p-3 text-center font-mono font-bold text-slate-800">${orderCount}</td>
         <td class="p-3 text-center">
-          <button onclick="deleteVendor('${v.id}')" class="px-2.5 py-1 text-xs font-semibold text-rose-600 hover:bg-rose-50 border border-rose-200/70 rounded-lg transition inline-flex items-center gap-1 shadow-2xs">
-            <span>Remove</span>
-          </button>
+          <div class="flex items-center justify-center gap-1.5">
+            <button onclick="openChangePasswordModal('${escapeHtml(v.email)}', '${escapeHtml(v.name)}', 'vendor')" class="px-2.5 py-1 text-xs font-semibold text-indigo-700 hover:bg-indigo-50 border border-indigo-200/80 rounded-lg transition inline-flex items-center gap-1 shadow-2xs cursor-pointer">
+              <span>🔑 Password</span>
+            </button>
+            <button onclick="deleteVendor('${v.id}')" class="px-2.5 py-1 text-xs font-semibold text-rose-600 hover:bg-rose-50 border border-rose-200/70 rounded-lg transition inline-flex items-center gap-1 shadow-2xs cursor-pointer">
+              <span>Remove</span>
+            </button>
+          </div>
         </td>
       </tr>
     `;
@@ -1374,7 +2433,23 @@ function render() {
   if (searchVal) {
     vendorPOs = vendorPOs.filter(p => 
       p.poNumber.toLowerCase().includes(searchVal) ||
-      p.items.some(i => i.description.toLowerCase().includes(searchVal))
+      (p.vendor && p.vendor.toLowerCase().includes(searchVal)) ||
+      p.items.some(i => 
+        (i.description && i.description.toLowerCase().includes(searchVal)) ||
+        (i.category && i.category.toLowerCase().includes(searchVal)) ||
+        (i.model && i.model.toLowerCase().includes(searchVal)) ||
+        (i.sku && i.sku.toLowerCase().includes(searchVal))
+      )
+    );
+  }
+
+  // Category Filter
+  if (state.categoryFilter && state.categoryFilter !== 'all') {
+    vendorPOs = vendorPOs.filter(p => 
+      (p.items || []).some(i => {
+        const catInfo = getItemCategoryInfo(i);
+        return catInfo.id === state.categoryFilter;
+      })
     );
   }
 
@@ -1396,7 +2471,7 @@ function render() {
       <div class="bg-white p-12 rounded-3xl border border-slate-200 text-center shadow-xs space-y-3">
         <div class="w-12 h-12 bg-slate-100 rounded-2xl mx-auto flex items-center justify-center text-2xl">📋</div>
         <h3 class="text-sm font-bold text-slate-800">No Matching Orders Found</h3>
-        <p class="text-xs text-slate-400 max-w-sm mx-auto">There are currently no purchase orders allocated under this view for <strong>${escapeHtml(activeVendorName)}</strong>.</p>
+        <p class="text-xs text-slate-400 max-w-sm mx-auto">There are currently no orders allocated under this view matching your category and status filters.</p>
       </div>
     `;
   } else {
@@ -1415,18 +2490,23 @@ function render() {
         badgeText = "Partially Dispatched";
       }
 
-      // SKU breakdown
+      // SKU breakdown with Category and Model
       const itemsHtml = itemsMetrics.map(item => {
         const itemPct = Math.min(100, Math.round((item.shipped / item.orderedQty) * 100));
         const isFulfilled = item.remaining === 0;
+        const catInfo = getItemCategoryInfo(item);
         return `
           <div class="p-3.5 bg-slate-50/80 rounded-xl border border-slate-200/70 space-y-2 transition-colors hover:bg-slate-50">
             <div class="flex items-center justify-between text-xs">
-              <div class="flex items-center gap-2">
+              <div class="flex items-center gap-2 flex-wrap">
+                <span class="inline-flex items-center gap-1 font-bold text-[10px] px-2 py-0.5 rounded-md border ${catInfo.badgeClass}">
+                  <span>${catInfo.icon}</span>
+                  <span>${catInfo.name}</span>
+                </span>
                 <span class="font-mono text-[10px] font-bold px-1.5 py-0.5 rounded bg-slate-200 text-slate-700">${escapeHtml(item.sku)}</span>
                 <span class="font-bold text-slate-900">${escapeHtml(item.description)}</span>
               </div>
-              <span class="font-mono text-slate-500 text-[11px]">Target: <strong class="text-slate-800">${formatNumber(item.orderedQty)}</strong></span>
+              <span class="font-mono text-slate-500 text-[11px] whitespace-nowrap">Target: <strong class="text-slate-800">${formatNumber(item.orderedQty)}</strong></span>
             </div>
             <div class="grid grid-cols-3 text-[11px] text-slate-500 pt-0.5">
               <span>Dispatched: <strong class="text-blue-600 font-mono">${formatNumber(item.shipped)}</strong></span>
@@ -1440,15 +2520,22 @@ function render() {
         `;
       }).join('');
 
-      // Shipments history with invoice button
+      // Shipments history with invoice button, damage photo proof, and category badge
       const historyHtml = shipments.length > 0 ? `
         <div class="mt-4 pt-4 border-t border-slate-100">
-          <span class="text-[11px] uppercase font-bold text-slate-400 tracking-wider block mb-2">Truck Dispatches Under This PO:</span>
+          <span class="text-[11px] uppercase font-bold text-slate-400 tracking-wider block mb-2">Truck Dispatches Under This Order:</span>
           <div class="space-y-1.5">
-            ${shipments.map(s => `
+            ${shipments.map(s => {
+              const sCat = getItemCategoryInfo(s);
+              const damaged = Number(s.damagedQty || 0);
+              return `
               <div class="flex items-center justify-between text-xs bg-slate-50/80 px-3 py-2 rounded-xl border border-slate-200/60 hover:bg-slate-50 transition">
-                <div class="flex items-center gap-2">
+                <div class="flex items-center gap-2 flex-wrap">
                   <span class="font-mono font-bold text-slate-800 text-[11px] bg-white px-2 py-0.5 rounded border border-slate-200">${escapeHtml(s.id)}</span>
+                  <span class="inline-flex items-center gap-1 font-bold text-[10px] px-1.5 py-0.2 rounded border ${sCat.badgeClass}">
+                    <span>${sCat.icon}</span>
+                    <span>${sCat.name}</span>
+                  </span>
                   <span class="text-slate-500 text-[11px]">Invoice: <strong class="text-slate-800">${escapeHtml(s.truckLR)}</strong></span>
                   <span class="text-slate-400 text-[10px]">(${escapeHtml(s.date)})</span>
                   ${s.invoice ? `
@@ -1456,6 +2543,15 @@ function render() {
                       <span>📄 Invoice</span>
                     </button>
                   ` : ''}
+                  ${s.damagePhoto ? `
+                    <button onclick="viewDamagePhoto('${s.id}')" class="px-2.5 py-0.5 rounded text-[11px] font-bold bg-rose-100 text-rose-700 hover:bg-rose-200 border border-rose-300 transition flex items-center gap-1 shadow-2xs animate-pulse hover:animate-none">
+                      <span>📸 Damage Photo Proof</span>
+                    </button>
+                  ` : (damaged > 0 ? `
+                    <span class="px-2 py-0.5 rounded text-[10px] font-semibold bg-rose-50 text-rose-700 border border-rose-200">
+                      ⚠️ ${formatNumber(damaged)} Damaged (${escapeHtml(s.defectReason || 'Reported')})
+                    </span>
+                  ` : '')}
                 </div>
                 <div class="flex items-center gap-3 text-xs">
                   <span class="text-slate-600 truncate max-w-[160px] font-medium">${escapeHtml(s.description)}:</span>
@@ -1463,15 +2559,44 @@ function render() {
                     <span class="font-mono font-bold text-slate-900">${formatNumber(s.qtySent)} units</span>
                     <span class="text-[10px] text-slate-500 font-semibold block">(${s.boxCount || 1} boxes)</span>
                   </div>
-                  <span class="text-[11px] font-semibold px-2 py-0.5 rounded-full border ${s.receivedQty !== null ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-amber-50 text-amber-700 border-amber-200'}">
-                    ${s.receivedQty !== null ? `✓ Verified: ${formatNumber(s.receivedQty)}` : 'In Transit'}
-                  </span>
+                  ${(() => {
+                    if (s.receivedQty === null || s.receivedQty === undefined) {
+                      return '<span class="text-[11px] font-semibold px-2 py-0.5 rounded-full border bg-amber-50 text-amber-700 border-amber-200">⏳ In Transit</span>';
+                    }
+                    const variance = s.receivedQty - s.qtySent;
+
+                    if (damaged > 0) {
+                      const damageBadge = s.damagePhoto
+                        ? `<button type="button" onclick="viewDamagePhoto('${s.id}')" class="text-[11px] font-bold px-2 py-0.5 rounded-full border bg-rose-50 text-rose-700 border-rose-200 inline-flex items-center gap-1 hover:bg-rose-100 transition cursor-pointer hover:border-rose-300">
+                             <span>⚠️ Verified: ${formatNumber(s.receivedQty)} Good &bull; ${formatNumber(damaged)} Damaged</span>
+                             <span class="text-xs">📸</span>
+                           </button>`
+                        : `<span class="text-[11px] font-bold px-2 py-0.5 rounded-full border bg-rose-50 text-rose-700 border-rose-200 inline-flex items-center gap-1">
+                             <span>⚠️ Verified: ${formatNumber(s.receivedQty)} Good &bull; ${formatNumber(damaged)} Damaged</span>
+                           </span>`;
+                      return `
+                        <div class="text-right">
+                          ${damageBadge}
+                          <span class="text-[10px] text-rose-600 font-semibold block mt-0.5">
+                            Defect: ${escapeHtml(s.defectReason || 'Damaged carton / piece')}
+                          </span>
+                        </div>
+                      `;
+                    } else if (variance === 0) {
+                      return `<span class="text-[11px] font-semibold px-2 py-0.5 rounded-full border bg-emerald-50 text-emerald-700 border-emerald-200">✓ Verified: ${formatNumber(s.receivedQty)} (Full Match)</span>`;
+                    } else if (variance < 0) {
+                      return `<span class="text-[11px] font-semibold px-2 py-0.5 rounded-full border bg-rose-50 text-rose-700 border-rose-200">⚠️ Verified: ${formatNumber(s.receivedQty)} (-${formatNumber(Math.abs(variance))} Shortage)</span>`;
+                    } else {
+                      return `<span class="text-[11px] font-semibold px-2 py-0.5 rounded-full border bg-purple-50 text-purple-700 border-purple-200">📦 Verified: ${formatNumber(s.receivedQty)} (+${formatNumber(variance)} Over)</span>`;
+                    }
+                  })()}
                   <button onclick="deleteShipment('${s.id}')" title="Delete dispatch log" class="p-1 text-slate-400 hover:text-rose-600 transition text-xs">
                     <span>🗑️</span>
                   </button>
                 </div>
               </div>
-            `).join('')}
+            `;
+            }).join('')}
           </div>
         </div>
       ` : '';
@@ -1488,7 +2613,7 @@ function render() {
             </div>
             <div class="flex items-center gap-4 text-xs">
               <div class="text-right">
-                <span class="text-slate-400 block text-[11px]">Total PO Target</span>
+                <span class="text-slate-400 block text-[11px]">Total Order Target</span>
                 <span class="font-bold text-slate-900">${formatNumber(totalOrdered)} units</span>
               </div>
               <div class="text-right">
@@ -1504,7 +2629,7 @@ function render() {
 
           <div class="space-y-1.5 mb-4 pt-2">
             <div class="flex justify-between text-xs text-slate-500 font-medium">
-              <span>Overall PO Fulfillment: ${pct}%</span>
+              <span>Overall Order Fulfillment: ${pct}%</span>
               <span>${totalRemaining > 0 ? formatNumber(totalRemaining) + ' units pending' : 'Zero balance left'}</span>
             </div>
             <div class="w-full h-2.5 bg-slate-100 rounded-full overflow-hidden">
@@ -1513,14 +2638,14 @@ function render() {
           </div>
 
           <div class="flex items-center justify-between pt-2">
-            <span class="text-xs text-slate-400">${isCompleted ? 'All items in this PO are 100% fulfilled.' : 'Select SKU & log dispatch before truck leaves factory.'}</span>
+            <span class="text-xs text-slate-400">${isCompleted ? 'All items in this order are 100% fulfilled.' : 'Select SKU & log dispatch before truck leaves factory.'}</span>
             
             ${isCompleted ? `
               <span class="text-xs font-semibold text-slate-400 italic bg-slate-100 px-3 py-1.5 rounded-lg border border-slate-200">
-                🔒 PO Fully Fulfilled & Locked
+                🔒 Order Fully Fulfilled & Locked
               </span>
             ` : `
-              <button onclick="openDispatchModal('${escapeHtml(po.poNumber)}')" class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-xl shadow-xs transition flex items-center gap-1.5">
+              <button onclick="openDispatchModal('${escapeHtml(po.poNumber)}')" class="btn-gradient-primary px-4 py-2 text-white text-xs font-bold rounded-xl shadow-xs transition flex items-center gap-1.5 cursor-pointer">
                 <span>+ Log Item Dispatch</span>
                 <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"/></svg>
               </button>
@@ -1540,7 +2665,7 @@ function render() {
 
   const adminPoBody = document.getElementById('adminPoTableBody');
   if (state.pos.length === 0) {
-    adminPoBody.innerHTML = `<tr><td colspan="8" class="p-8 text-center text-slate-400 text-xs">No purchase orders created yet. Click <button type="button" onclick="openNewPoModal()" class="text-blue-600 font-bold hover:underline cursor-pointer">+ Raise New PO</button> above to deploy your first order ticket.</td></tr>`;
+    adminPoBody.innerHTML = `<tr><td colspan="8" class="p-8 text-center text-slate-400 text-xs">No orders created yet. Click <button type="button" onclick="openNewPoModal()" class="text-blue-600 font-bold hover:underline cursor-pointer">+ Create New Order</button> above to deploy your first order ticket.</td></tr>`;
   } else {
     adminPoBody.innerHTML = state.pos.map(po => {
       const { totalOrdered, totalShipped, totalRemaining } = getPoMetrics(po.poNumber);
@@ -1575,78 +2700,347 @@ function render() {
   }).join('');
   }
 
-  const adminShipmentsBody = document.getElementById('adminShipmentsTableBody');
-  if (state.shipments.length === 0) {
-    adminShipmentsBody.innerHTML = `<tr><td colspan="12" class="p-8 text-center text-slate-400 text-xs">No dispatches logged yet by any vendor.</td></tr>`;
-  } else {
-    adminShipmentsBody.innerHTML = state.shipments.map(s => {
-      const po = state.pos.find(p => p.poNumber === s.poNumber);
-      const hasCount = s.receivedQty !== null && s.receivedQty !== undefined;
-      if (hasCount) totalReceivedAll += Number(s.receivedQty);
+  // 3. Admin Shipments & Quick Audit Filters
+  const shipments = state.shipments || [];
+  const todayStr = new Date().toISOString().slice(0, 10);
 
-      const variance = hasCount ? (s.receivedQty - s.qtySent) : 0;
-      let auditBadge = `<span class="badge-pill badge-amber">⏳ Awaiting Count</span>`;
-      if (hasCount) {
-        if (variance === 0) {
-          auditBadge = `<span class="badge-pill badge-emerald">✓ Exact Match</span>`;
-        } else if (variance < 0) {
-          auditBadge = `<span class="badge-pill badge-rose">⚠️ Shortfall: -${formatNumber(Math.abs(variance))}</span>`;
-        } else {
-          auditBadge = `<span class="badge-pill badge-purple">⚠️ Over: +${formatNumber(variance)}</span>`;
-        }
-      }
+  let countAll = shipments.length;
+  let countShortages = 0;
+  let countDamaged = 0;
+  let countToday = 0;
+  let countTransit = 0;
+  let totalVerifiedShipped = 0;
+  let totalVerifiedVariance = 0;
 
-      return `
-        <tr class="hover:bg-slate-50/80 transition">
-          <td class="p-3 font-mono font-bold text-slate-800 text-xs">${escapeHtml(s.id)}</td>
-          <td class="p-3 font-mono font-semibold text-blue-600 text-xs">${escapeHtml(s.poNumber)}</td>
-          <td class="p-3 text-slate-800 font-semibold">${escapeHtml(po ? po.vendor : '-')}</td>
-          <td class="p-3 text-slate-700 font-mono text-[11px] font-medium">${escapeHtml(s.truckLR)}</td>
-          <td class="p-3 text-slate-500 font-mono text-[11px]">${escapeHtml(s.date)}</td>
-          <td class="p-3 font-medium text-slate-900">${escapeHtml(s.description)}</td>
-          <td class="p-3 text-right">
-            <span class="font-mono font-bold text-blue-600 block">${formatNumber(s.qtySent)}</span>
-            <span class="text-[10px] text-slate-500 font-semibold inline-block px-1.5 py-0.2 bg-slate-100 rounded border border-slate-200 mt-0.5">${s.boxCount || 1} box(es)</span>
-          </td>
-          <td class="p-3 text-right">
-            ${hasCount ? `
-              <span class="font-mono font-bold text-slate-900 block">${formatNumber(s.receivedQty)}</span>
-              <span class="text-[10px] text-emerald-700 font-semibold inline-block px-1.5 py-0.2 bg-emerald-50 rounded border border-emerald-200 mt-0.5">${s.receivedBoxes || s.boxCount || 1} box(es)</span>
-            ` : '<span class="text-slate-300 font-mono text-xs">-</span>'}
-          </td>
-          <td class="p-3 text-right font-mono font-bold ${variance < 0 ? 'text-rose-600' : (variance > 0 ? 'text-purple-600' : 'text-emerald-600')}">
-            ${hasCount ? (variance > 0 ? '+' : '') + formatNumber(variance) : '-'}
-          </td>
-          <td class="p-3 text-center">
-            ${s.invoice ? `
-              <button onclick="viewInvoice('${s.id}')" class="px-2.5 py-1 text-xs font-bold bg-blue-50 text-blue-700 hover:bg-blue-100 border border-blue-200 rounded-xl transition inline-flex items-center gap-1 shadow-2xs">
-                <span>📄 View</span>
-              </button>
-            ` : '<span class="text-slate-300 text-xs font-mono">-</span>'}
-          </td>
-          <td class="p-3 text-center">${auditBadge}</td>
-          <td class="p-3 text-center">
-            <div class="inline-flex items-center gap-1.5">
-              <button onclick="openReceiveModal('${s.id}')" class="px-2.5 py-1 text-xs font-bold bg-emerald-50 text-emerald-700 hover:bg-emerald-100 border border-emerald-200 rounded-xl transition shadow-2xs inline-flex items-center gap-1">
-                <span>${hasCount ? '✏️ Edit Count' : '📥 Receive'}</span>
-              </button>
-              <button onclick="deleteShipment('${s.id}')" title="Delete dispatch entry" class="px-2 py-1 text-xs font-semibold text-rose-600 hover:bg-rose-50 border border-rose-200/70 rounded-xl transition shadow-2xs inline-flex items-center">
-                <span>🗑️</span>
-              </button>
-            </div>
-          </td>
-        </tr>
-      `;
-    }).join('');
+  shipments.forEach(s => {
+    const hasCount = s.receivedQty !== null && s.receivedQty !== undefined;
+    if (!hasCount) {
+      countTransit++;
+    } else {
+      totalReceivedAll += Number(s.receivedQty);
+      totalVerifiedShipped += Number(s.qtySent);
+      const variance = Number(s.receivedQty) - Number(s.qtySent);
+      totalVerifiedVariance += variance;
+      if (variance < 0) countShortages++;
+    }
+    if (Number(s.damagedQty || 0) > 0) countDamaged++;
+    if (s.date === todayStr) countToday++;
+  });
+
+  const bAll = document.getElementById('badgeShipAll');
+  const bShortages = document.getElementById('badgeShipShortages');
+  const bDamaged = document.getElementById('badgeShipDamaged');
+  const bToday = document.getElementById('badgeShipToday');
+  const bTransit = document.getElementById('badgeShipTransit');
+
+  if (bAll) bAll.textContent = countAll;
+  if (bShortages) bShortages.textContent = countShortages;
+  if (bDamaged) bDamaged.textContent = countDamaged;
+  if (bToday) bToday.textContent = countToday;
+  if (bTransit) bTransit.textContent = countTransit;
+
+  const currentShipFilter = state.shipmentFilter || 'all';
+  const filterBtns = {
+    all: document.getElementById('filterShipAll'),
+    shortages: document.getElementById('filterShipShortages'),
+    damaged: document.getElementById('filterShipDamaged'),
+    today: document.getElementById('filterShipToday'),
+    transit: document.getElementById('filterShipTransit'),
+  };
+
+  Object.entries(filterBtns).forEach(([key, btn]) => {
+    if (!btn) return;
+    const isActive = key === currentShipFilter;
+    if (isActive) {
+      let activeCls = 'ship-filter-all-active';
+      if (key === 'shortages') activeCls = 'ship-filter-shortages-active';
+      else if (key === 'damaged') activeCls = 'ship-filter-damaged-active';
+      else if (key === 'today') activeCls = 'ship-filter-today-active';
+      else if (key === 'transit') activeCls = 'ship-filter-transit-active';
+      btn.className = `px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all duration-150 flex items-center gap-1.5 cursor-pointer ${activeCls}`;
+    } else {
+      let inactiveCls = 'border border-slate-200/90 text-slate-600 bg-white hover:bg-slate-100 hover:text-slate-900';
+      if (key === 'shortages') inactiveCls = 'border border-rose-200/80 text-rose-700 bg-rose-50/50 hover:bg-rose-100/70';
+      else if (key === 'damaged') inactiveCls = 'border border-amber-200/80 text-amber-800 bg-amber-50/50 hover:bg-amber-100/70';
+      else if (key === 'today') inactiveCls = 'border border-teal-200/80 text-teal-800 bg-teal-50/50 hover:bg-teal-100/70';
+      else if (key === 'transit') inactiveCls = 'border border-indigo-200/80 text-indigo-800 bg-indigo-50/50 hover:bg-indigo-100/70';
+      btn.className = `px-3.5 py-1.5 rounded-xl text-xs font-semibold transition-all duration-150 flex items-center gap-1.5 cursor-pointer ${inactiveCls}`;
+    }
+  });
+
+  const statusLabel = document.getElementById('shipmentsFilterStatusLabel');
+  if (statusLabel) {
+    const labels = {
+      all: `Showing all ${countAll} records`,
+      shortages: `Showing ${countShortages} shortage discrepancies`,
+      damaged: `Showing ${countDamaged} dispatches with damage/rejection`,
+      today: `Showing ${countToday} dispatches from today (${todayStr})`,
+      transit: `Showing ${countTransit} dispatches awaiting gate inward count`
+    };
+    statusLabel.textContent = labels[currentShipFilter] || 'Filtered records';
   }
 
-  document.getElementById('adminStatOrdered').textContent = formatNumber(totalOrderedAll);
-  document.getElementById('adminStatShipped').textContent = formatNumber(totalShippedAll);
-  document.getElementById('adminStatReceived').textContent = formatNumber(totalReceivedAll);
-  const totalVariance = totalReceivedAll - totalShippedAll;
-  document.getElementById('adminStatVariance').className = totalVariance < 0 
-    ? "text-2xl font-black text-rose-600 font-mono mt-1" 
-    : (totalVariance > 0 ? "text-2xl font-black text-purple-600 font-mono mt-1" : "text-2xl font-black text-emerald-600 font-mono mt-1");
+  let adminFilteredShipments = shipments;
+  if (currentShipFilter === 'shortages') {
+    adminFilteredShipments = shipments.filter(s => s.receivedQty !== null && s.receivedQty !== undefined && (Number(s.receivedQty) - Number(s.qtySent)) < 0);
+  } else if (currentShipFilter === 'damaged') {
+    adminFilteredShipments = shipments.filter(s => Number(s.damagedQty || 0) > 0);
+  } else if (currentShipFilter === 'today') {
+    adminFilteredShipments = shipments.filter(s => s.date === todayStr);
+  } else if (currentShipFilter === 'transit') {
+    adminFilteredShipments = shipments.filter(s => s.receivedQty === null || s.receivedQty === undefined);
+  }
+
+  // Category Filter for Dispatches
+  if (state.categoryFilter && state.categoryFilter !== 'all') {
+    adminFilteredShipments = adminFilteredShipments.filter(s => {
+      const cInfo = getItemCategoryInfo(s);
+      return cInfo.id === state.categoryFilter;
+    });
+  }
+
+  const adminShipmentsBody = document.getElementById('adminShipmentsTableBody');
+  if (adminShipmentsBody) {
+    if (adminFilteredShipments.length === 0) {
+      adminShipmentsBody.innerHTML = `<tr><td colspan="12" class="p-8 text-center text-slate-400 text-xs">No dispatches match the selected audit and category filters.</td></tr>`;
+    } else {
+      adminShipmentsBody.innerHTML = adminFilteredShipments.map(s => {
+        const po = state.pos.find(p => p.poNumber === s.poNumber);
+        const hasCount = s.receivedQty !== null && s.receivedQty !== undefined;
+        const variance = hasCount ? (Number(s.receivedQty) - Number(s.qtySent)) : 0;
+        const damaged = Number(s.damagedQty || 0);
+        const catInfo = getItemCategoryInfo(s);
+
+        let auditBadge = `<span class="badge-pill badge-amber">⏳ In Transit</span>`;
+        if (hasCount) {
+          if (damaged > 0 && variance === 0) {
+            auditBadge = `<span class="badge-pill badge-amber">⚠️ Damage Recorded</span>`;
+          } else if (variance === 0) {
+            auditBadge = `<span class="badge-pill badge-emerald">✓ Exact Match</span>`;
+          } else if (variance < 0) {
+            auditBadge = `<span class="badge-pill badge-rose">⚠️ Shortfall: -${formatNumber(Math.abs(variance))}</span>`;
+          } else {
+            auditBadge = `<span class="badge-pill badge-purple">⚠️ Over: +${formatNumber(variance)}</span>`;
+          }
+        }
+
+        return `
+          <tr class="hover:bg-slate-50/80 transition">
+            <td class="p-3 font-mono font-bold text-slate-800 text-xs">${escapeHtml(s.id)}</td>
+            <td class="p-3 font-mono font-semibold text-blue-600 text-xs">${escapeHtml(s.poNumber)}</td>
+            <td class="p-3 text-slate-800 font-semibold">${escapeHtml(po ? po.vendor : '-')}</td>
+            <td class="p-3 text-slate-700 font-mono text-[11px] font-medium">${escapeHtml(s.truckLR)}</td>
+            <td class="p-3 text-slate-500 font-mono text-[11px]">${escapeHtml(s.date)}</td>
+            <td class="p-3">
+              <div class="flex items-center gap-1.5 mb-1">
+                <span class="inline-flex items-center gap-1 font-bold text-[10px] px-2 py-0.5 rounded border ${catInfo.badgeClass}">
+                  <span>${catInfo.icon}</span>
+                  <span>${catInfo.name}</span>
+                </span>
+                ${s.sku ? `<span class="font-mono text-[10px] font-bold text-slate-500 bg-slate-100 px-1 py-0.2 rounded border border-slate-200">${escapeHtml(s.sku)}</span>` : ''}
+              </div>
+              <span class="font-medium text-slate-900 block leading-tight">${escapeHtml(s.description)}</span>
+            </td>
+            <td class="p-3 text-right">
+              <span class="font-mono font-bold text-blue-600 block">${formatNumber(s.qtySent)}</span>
+              <span class="text-[10px] text-slate-500 font-semibold inline-block px-1.5 py-0.2 bg-slate-100 rounded border border-slate-200 mt-0.5">${s.boxCount || 1} box(es)</span>
+            </td>
+            <td class="p-3 text-right">
+              ${hasCount ? `
+                <span class="font-mono font-bold text-slate-900 block">${formatNumber(s.receivedQty)} good</span>
+                <span class="text-[10px] text-emerald-700 font-semibold inline-block px-1.5 py-0.2 bg-emerald-50 rounded border border-emerald-200 mt-0.5">${s.receivedBoxes || s.boxCount || 1} box(es)</span>
+                ${damaged > 0 ? `<span class="text-[10px] text-rose-700 bg-rose-50 border border-rose-200 px-1.5 py-0.2 rounded font-semibold block mt-0.5">⚠️ ${formatNumber(damaged)} damaged</span>` : ''}
+              ` : '<span class="text-slate-300 font-mono text-xs">-</span>'}
+            </td>
+            <td class="p-3 text-right font-mono font-bold ${variance < 0 ? 'text-rose-600' : (variance > 0 ? 'text-purple-600' : 'text-emerald-600')}">
+              ${hasCount ? (variance > 0 ? '+' : '') + formatNumber(variance) : '-'}
+              ${hasCount && damaged > 0 ? `<span class="text-[10px] text-slate-400 font-normal block font-sans">(${formatNumber(Number(s.receivedQty) + damaged)} total)</span>` : ''}
+            </td>
+            <td class="p-3 text-center">
+              <div class="inline-flex flex-col gap-1 items-center">
+                ${s.invoice ? `
+                  <button onclick="viewInvoice('${s.id}')" class="px-2 py-0.5 text-[11px] font-bold bg-blue-50 text-blue-700 hover:bg-blue-100 border border-blue-200 rounded-lg transition inline-flex items-center gap-1 shadow-2xs">
+                    <span>📄 Challan</span>
+                  </button>
+                ` : '<span class="text-slate-300 text-xs font-mono">-</span>'}
+                ${s.damagePhoto ? `
+                  <button onclick="viewDamagePhoto('${s.id}')" class="px-2 py-0.5 rounded text-[11px] font-bold bg-rose-50 text-rose-700 hover:bg-rose-100 border border-rose-200 transition inline-flex items-center gap-1 shadow-2xs">
+                    <span>📸 Photo</span>
+                  </button>
+                ` : ''}
+              </div>
+            </td>
+            <td class="p-3 text-center">${auditBadge}</td>
+            <td class="p-3 text-center">
+              <div class="inline-flex items-center gap-1.5">
+                <button onclick="openReceiveModal('${s.id}')" class="px-2.5 py-1 text-xs font-bold bg-emerald-50 text-emerald-700 hover:bg-emerald-100 border border-emerald-200 rounded-xl transition shadow-2xs inline-flex items-center gap-1">
+                  <span>${hasCount ? '✏️ Edit Count' : '📥 Receive'}</span>
+                </button>
+                <button onclick="deleteShipment('${s.id}')" title="Delete dispatch entry" class="px-2 py-1 text-xs font-semibold text-rose-600 hover:bg-rose-50 border border-rose-200/70 rounded-xl transition shadow-2xs inline-flex items-center">
+                  <span>🗑️</span>
+                </button>
+              </div>
+            </td>
+          </tr>
+        `;
+      }).join('');
+    }
+  }
+
+  // 4. Gatekeeper Inward Inspection Table
+  const currentGateFilter = state.gateFilter || 'all';
+  const gateBtns = {
+    all: document.getElementById('gateFilterAll'),
+    transit: document.getElementById('gateFilterTransit'),
+    today: document.getElementById('gateFilterToday'),
+    damaged: document.getElementById('gateFilterDamaged')
+  };
+  Object.entries(gateBtns).forEach(([key, btn]) => {
+    if (!btn) return;
+    const isActive = key === currentGateFilter;
+    if (isActive) {
+      let activeCls = 'ship-filter-all-active';
+      if (key === 'transit') activeCls = 'ship-filter-transit-active';
+      else if (key === 'today') activeCls = 'ship-filter-today-active';
+      else if (key === 'damaged') activeCls = 'ship-filter-damaged-active';
+      btn.className = `px-3.5 py-1.5 rounded-xl font-bold text-xs transition-all duration-150 flex items-center gap-1.5 cursor-pointer ${activeCls}`;
+    } else {
+      let inactiveCls = 'border border-slate-200/90 text-slate-600 bg-white hover:bg-slate-100 hover:text-slate-900';
+      if (key === 'transit') inactiveCls = 'border border-indigo-200/80 text-indigo-800 bg-indigo-50/50 hover:bg-indigo-100/70';
+      else if (key === 'today') inactiveCls = 'border border-teal-200/80 text-teal-800 bg-teal-50/50 hover:bg-teal-100/70';
+      else if (key === 'damaged') inactiveCls = 'border border-amber-200/80 text-amber-800 bg-amber-50/50 hover:bg-amber-100/70';
+      btn.className = `px-3.5 py-1.5 rounded-xl font-semibold text-xs transition-all duration-150 flex items-center gap-1.5 cursor-pointer ${inactiveCls}`;
+    }
+  });
+
+  let gateShipments = shipments;
+  if (currentGateFilter === 'transit') {
+    gateShipments = shipments.filter(s => s.receivedQty === null || s.receivedQty === undefined);
+  } else if (currentGateFilter === 'today') {
+    gateShipments = shipments.filter(s => s.date === todayStr);
+  } else if (currentGateFilter === 'damaged') {
+    gateShipments = shipments.filter(s => Number(s.damagedQty || 0) > 0);
+  }
+
+  // Category Filter for Gatekeeper
+  if (state.categoryFilter && state.categoryFilter !== 'all') {
+    gateShipments = gateShipments.filter(s => {
+      const cInfo = getItemCategoryInfo(s);
+      return cInfo.id === state.categoryFilter;
+    });
+  }
+
+  const gateSearch = (document.getElementById('gateSearchInput')?.value || '').trim().toLowerCase();
+  if (gateSearch) {
+    gateShipments = gateShipments.filter(s => {
+      const po = state.pos.find(p => p.poNumber === s.poNumber);
+      const vendorName = po ? po.vendor.toLowerCase() : '';
+      return s.id.toLowerCase().includes(gateSearch) ||
+        s.poNumber.toLowerCase().includes(gateSearch) ||
+        (s.truckLR && s.truckLR.toLowerCase().includes(gateSearch)) ||
+        (s.description && s.description.toLowerCase().includes(gateSearch)) ||
+        vendorName.includes(gateSearch);
+    });
+  }
+
+  const gateShipmentsBody = document.getElementById('gateShipmentsTableBody');
+  if (gateShipmentsBody) {
+    if (gateShipments.length === 0) {
+      gateShipmentsBody.innerHTML = `<tr><td colspan="11" class="p-8 text-center text-slate-400 text-xs">No incoming dispatches match the selected inward gate and category filter.</td></tr>`;
+    } else {
+      gateShipmentsBody.innerHTML = gateShipments.map(s => {
+        const po = state.pos.find(p => p.poNumber === s.poNumber);
+        const hasCount = s.receivedQty !== null && s.receivedQty !== undefined;
+        const variance = hasCount ? (Number(s.receivedQty) - Number(s.qtySent)) : 0;
+        const damaged = Number(s.damagedQty || 0);
+        const catInfo = getItemCategoryInfo(s);
+
+        let auditBadge = `<span class="badge-pill badge-amber">⏳ Awaiting Count</span>`;
+        if (hasCount) {
+          if (damaged > 0 && variance === 0) {
+            auditBadge = `<span class="badge-pill badge-amber">⚠️ Damage Recorded</span>`;
+          } else if (variance === 0) {
+            auditBadge = `<span class="badge-pill badge-emerald">✓ Exact Match</span>`;
+          } else if (variance < 0) {
+            auditBadge = `<span class="badge-pill badge-rose">⚠️ Shortfall: -${formatNumber(Math.abs(variance))}</span>`;
+          } else {
+            auditBadge = `<span class="badge-pill badge-purple">⚠️ Over: +${formatNumber(variance)}</span>`;
+          }
+        }
+
+        return `
+          <tr class="hover:bg-slate-50/80 transition">
+            <td class="p-3 font-mono font-bold text-slate-800 text-xs">${escapeHtml(s.id)}</td>
+            <td class="p-3 font-mono font-semibold text-blue-600 text-xs">${escapeHtml(s.poNumber)}</td>
+            <td class="p-3 text-slate-800 font-semibold">${escapeHtml(po ? po.vendor : '-')}</td>
+            <td class="p-3 text-slate-700 font-mono text-[11px] font-medium">${escapeHtml(s.truckLR)}</td>
+            <td class="p-3 text-slate-500 font-mono text-[11px]">${escapeHtml(s.date)}</td>
+            <td class="p-3">
+              <div class="flex items-center gap-1.5 mb-1">
+                <span class="inline-flex items-center gap-1 font-bold text-[10px] px-2 py-0.5 rounded border ${catInfo.badgeClass}">
+                  <span>${catInfo.icon}</span>
+                  <span>${catInfo.name}</span>
+                </span>
+                ${s.sku ? `<span class="font-mono text-[10px] font-bold text-slate-500 bg-slate-100 px-1 py-0.2 rounded border border-slate-200">${escapeHtml(s.sku)}</span>` : ''}
+              </div>
+              <span class="font-medium text-slate-900 block leading-tight">${escapeHtml(s.description)}</span>
+            </td>
+            <td class="p-3 text-right">
+              <span class="font-mono font-bold text-blue-600 block">${formatNumber(s.qtySent)}</span>
+              <span class="text-[10px] text-slate-500 font-semibold inline-block px-1.5 py-0.2 bg-slate-100 rounded border border-slate-200 mt-0.5">${s.boxCount || 1} box(es)</span>
+            </td>
+            <td class="p-3 text-right">
+              ${hasCount ? `
+                <span class="font-mono font-bold text-emerald-700 block">${formatNumber(s.receivedQty)} good</span>
+                <span class="text-[10px] text-slate-500 font-semibold inline-block px-1.5 py-0.2 bg-slate-100 rounded border border-slate-200 mt-0.5">${s.receivedBoxes || s.boxCount || 1} box(es)</span>
+                ${damaged > 0 ? `<span class="text-[10px] text-rose-700 bg-rose-50 border border-rose-200 px-1.5 py-0.2 rounded font-semibold block mt-0.5">⚠️ ${formatNumber(damaged)} rejected</span>` : ''}
+              ` : '<span class="text-amber-600 font-semibold text-xs">⏳ Uninspected</span>'}
+            </td>
+            <td class="p-3 text-center">
+              <div class="inline-flex flex-col gap-1 items-center">
+                ${s.invoice ? `
+                  <button onclick="viewInvoice('${s.id}')" class="px-2 py-0.5 text-[11px] font-bold bg-blue-50 text-blue-700 hover:bg-blue-100 border border-blue-200 rounded-lg transition inline-flex items-center gap-1 shadow-2xs">
+                    <span>📄 Challan</span>
+                  </button>
+                ` : '<span class="text-slate-300 text-xs font-mono">-</span>'}
+                ${s.damagePhoto ? `
+                  <button onclick="viewDamagePhoto('${s.id}')" class="px-2 py-0.5 rounded text-[11px] font-bold bg-rose-50 text-rose-700 hover:bg-rose-100 border border-rose-200 transition inline-flex items-center gap-1 shadow-2xs">
+                    <span>📸 Photo</span>
+                  </button>
+                ` : ''}
+              </div>
+            </td>
+            <td class="p-3 text-center">${auditBadge}</td>
+            <td class="p-3 text-center">
+              <button onclick="openReceiveModal('${s.id}')" class="px-3.5 py-1.5 ${hasCount ? 'bg-slate-100 text-slate-700 hover:bg-slate-200 border border-slate-200/90' : 'btn-gradient-emerald text-white shadow-2xs'} font-bold rounded-xl text-xs transition inline-flex items-center gap-1.5 cursor-pointer">
+                <span>${hasCount ? '✏️ Edit Count' : '📥 Verify Inward'}</span>
+              </button>
+            </td>
+          </tr>
+        `;
+      }).join('');
+    }
+  }
+
+  // 5. Update Executive Metrics
+  const adminStatOrd = document.getElementById('adminStatOrdered');
+  const adminStatShp = document.getElementById('adminStatShipped');
+  const adminStatRcv = document.getElementById('adminStatReceived');
+  const adminStatVar = document.getElementById('adminStatVariance');
+
+  if (adminStatOrd) adminStatOrd.textContent = formatNumber(totalOrderedAll);
+  if (adminStatShp) adminStatShp.textContent = formatNumber(totalShippedAll);
+  if (adminStatRcv) adminStatRcv.textContent = formatNumber(totalReceivedAll);
+
+  if (adminStatVar) {
+    adminStatVar.textContent = (totalVerifiedVariance > 0 ? '+' : '') + formatNumber(totalVerifiedVariance);
+    adminStatVar.className = totalVerifiedVariance < 0 
+      ? "text-2xl font-black text-rose-600 font-mono mt-1" 
+      : (totalVerifiedVariance > 0 ? "text-2xl font-black text-purple-600 font-mono mt-1" : "text-2xl font-black text-emerald-600 font-mono mt-1");
+  }
+
+  // 6. Update Vendor Scorecards
+  renderVendorScorecards();
 }
 
 // ==========================================
@@ -1658,24 +3052,51 @@ function exportShipmentsCsv() {
     return;
   }
 
-  const headers = ["Shipment ID", "PO Number", "Vendor", "Invoice Number", "Dispatch Date", "Item Description", "Qty Dispatched (Units)", "Boxes Dispatched", "Qty Received (Units)", "Boxes Received", "Variance", "Audit Status", "Invoice Filename"];
+  const headers = [
+    "Shipment ID", 
+    "Order Number", 
+    "Vendor", 
+    "Product Category",
+    "Product Model",
+    "Invoice Number", 
+    "Dispatch Date", 
+    "Item Description", 
+    "Qty Dispatched (Units)", 
+    "Boxes Dispatched", 
+    "Good Units Received", 
+    "Boxes Received", 
+    "Damaged Units",
+    "Defect Reason",
+    "Variance", 
+    "Audit Status", 
+    "Invoice Filename",
+    "Damage Photo Proof"
+  ];
+
   const rows = state.shipments.map(s => {
     const po = state.pos.find(p => p.poNumber === s.poNumber);
     const vendorName = po ? po.vendor : '';
     const hasCount = s.receivedQty !== null && s.receivedQty !== undefined;
     const variance = hasCount ? (s.receivedQty - s.qtySent) : '';
+    const damaged = Number(s.damagedQty || 0);
+    const catInfo = getItemCategoryInfo(s);
+
     let status = 'Awaiting Count';
     if (hasCount) {
-      if (variance === 0) status = 'Exact Match';
+      if (damaged > 0 && variance === 0) status = 'Damage Recorded';
+      else if (variance === 0) status = 'Exact Match';
       else if (variance < 0) status = `Shortfall (${variance})`;
       else status = `Over (+${variance})`;
     }
     const invoiceName = s.invoice ? s.invoice.name : 'None';
+    const hasPhoto = s.damagePhoto ? 'Yes' : 'No';
 
     return [
       `"${s.id}"`,
       `"${s.poNumber}"`,
       `"${vendorName}"`,
+      `"${catInfo.name}"`,
+      `"${(s.model || catInfo.name).replace(/"/g, '""')}"`,
       `"${s.truckLR}"`,
       `"${s.date}"`,
       `"${(s.description || '').replace(/"/g, '""')}"`,
@@ -1683,9 +3104,12 @@ function exportShipmentsCsv() {
       s.boxCount || 1,
       hasCount ? s.receivedQty : '""',
       hasCount ? (s.receivedBoxes || s.boxCount || 1) : '""',
+      damaged,
+      `"${(s.defectReason || '').replace(/"/g, '""')}"`,
       variance,
       `"${status}"`,
-      `"${invoiceName}"`
+      `"${invoiceName}"`,
+      `"${hasPhoto}"`
     ].join(',');
   });
 
@@ -1700,15 +3124,21 @@ function exportShipmentsCsv() {
   showToast('Exported discrepancy audit log to CSV!');
 }
 
-// Global accessibility: close active modals on Escape key
+// Global accessibility: close active modals on Escape key or Backdrop click
 document.addEventListener('keydown', (e) => {
   if (e.key === 'Escape') {
-    ['dispatchModal', 'receiveModal', 'newPoModal', 'vendorManageModal', 'invoicePreviewModal'].forEach(id => {
+    ['dispatchModal', 'receiveModal', 'newPoModal', 'vendorManageModal', 'invoicePreviewModal', 'vendorScorecardModal', 'changePasswordModal'].forEach(id => {
       const el = document.getElementById(id);
       if (el && !el.classList.contains('hidden')) {
         closeModal(id);
       }
     });
+  }
+});
+
+document.addEventListener('click', (e) => {
+  if (e.target && e.target.classList.contains('modal-backdrop')) {
+    closeModal(e.target.id);
   }
 });
 
@@ -1721,5 +3151,45 @@ if (typeof window !== 'undefined') {
   } else {
     initSupabase();
   }
+
+  // Global Window API Exposure for Template Handlers
+  window.openModal = openModal;
+  window.closeModal = closeModal;
+  window.openDispatchModal = openDispatchModal;
+  window.handleDispatchSubmit = handleDispatchSubmit;
+  window.openReceiveModal = openReceiveModal;
+  window.handleReceiveSubmit = handleReceiveSubmit;
+  window.viewInvoice = viewInvoice;
+  window.viewDamagePhoto = viewDamagePhoto;
+  window.handleDamagePhotoSelected = handleDamagePhotoSelected;
+  window.removeDamagePhoto = removeDamagePhoto;
+  window.previewSelectedDamagePhoto = previewSelectedDamagePhoto;
+  window.openPdfInNewTab = openPdfInNewTab;
+  window.openNewPoModal = openNewPoModal;
+  window.handleNewPoSubmit = handleNewPoSubmit;
+  window.addNewItemRow = addNewItemRow;
+  window.removeItemRow = removeItemRow;
+  window.handleCategoryChange = handleCategoryChange;
+  window.handleModelChange = handleModelChange;
+  window.calcNewPoTotal = calcNewPoTotal;
+  window.deletePo = deletePo;
+  window.deleteShipment = deleteShipment;
+  window.deleteVendor = deleteVendor;
+  window.clearAllShipments = clearAllShipments;
+  window.exportShipmentsCsv = exportShipmentsCsv;
+  window.setFilter = setFilter;
+  window.setCategoryFilter = setCategoryFilter;
+  window.setShipmentFilter = setShipmentFilter;
+  window.setGateFilter = setGateFilter;
+  window.quickMatchReceive = quickMatchReceive;
+  window.updateReceiveComparison = updateReceiveComparison;
+  window.updateModalItemBalance = updateModalItemBalance;
+  window.openChangePasswordModal = openChangePasswordModal;
+  window.closeChangePasswordModal = closeChangePasswordModal;
+  window.generateRandomNewPassword = generateRandomNewPassword;
+  window.toggleChangePassVisibility = toggleChangePassVisibility;
+  window.handleChangePasswordSubmit = handleChangePasswordSubmit;
+  window.render = render;
 }
+
 
