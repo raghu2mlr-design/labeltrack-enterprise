@@ -608,11 +608,27 @@ function handleModelChange(rowId) {
   const rowEl = document.getElementById(rowId);
   if (!rowEl) return;
   const modelSelect = rowEl.querySelector('.po-item-model');
+  const specWrapper = rowEl.querySelector('.po-custom-spec-wrapper');
   const specInput = rowEl.querySelector('.po-item-spec');
-  if (modelSelect && specInput) {
-    const selectedModel = modelSelect.value;
-    if (MODEL_SPECS_MAP && MODEL_SPECS_MAP[selectedModel]) {
-      specInput.value = MODEL_SPECS_MAP[selectedModel];
+  
+  if (modelSelect) {
+    const selectedModel = modelSelect.value || '';
+    const isCustom = selectedModel.toLowerCase().includes('custom');
+
+    if (specWrapper) {
+      if (isCustom) {
+        specWrapper.classList.remove('hidden');
+        if (specInput) {
+          specInput.required = true;
+          specInput.focus();
+        }
+      } else {
+        specWrapper.classList.add('hidden');
+        if (specInput) {
+          specInput.required = false;
+          specInput.value = '';
+        }
+      }
     }
   }
 }
@@ -633,7 +649,7 @@ function addNewItemRow(cat = 'labels', model = '', spec = '', qty = '') {
   const rowId = `item-row-${itemRowCount}`;
   const div = document.createElement('div');
   div.id = rowId;
-  div.className = "p-3 bg-slate-50 rounded-2xl border border-slate-200 space-y-2.5 transition hover:border-slate-300";
+  div.className = "p-3.5 bg-slate-50 rounded-2xl border border-slate-200 space-y-2.5 transition hover:border-slate-300";
 
   const currentCount = container.children.length + 1;
   const selectedCat = PRODUCT_CATEGORIES[cat] ? cat : 'labels';
@@ -644,7 +660,7 @@ function addNewItemRow(cat = 'labels', model = '', spec = '', qty = '') {
         <span class="font-mono text-xs font-bold px-2 py-0.5 rounded-md bg-slate-200 text-slate-700 po-row-badge">#${currentCount}</span>
         <span class="font-bold text-slate-700 po-row-title">Item #${currentCount} Configuration</span>
       </div>
-      <button type="button" onclick="removeItemRow('${rowId}')" class="text-rose-500 hover:text-rose-700 text-xs font-semibold px-2 py-0.5 rounded hover:bg-rose-50 transition flex items-center gap-1">
+      <button type="button" onclick="removeItemRow('${rowId}')" class="text-rose-500 hover:text-rose-700 text-xs font-semibold px-2 py-0.5 rounded hover:bg-rose-50 transition flex items-center gap-1 cursor-pointer">
         <span>✕ Remove Item</span>
       </button>
     </div>
@@ -658,27 +674,31 @@ function addNewItemRow(cat = 'labels', model = '', spec = '', qty = '') {
           <option value="cards" ${selectedCat === 'cards' ? 'selected' : ''}>💳 Cards</option>
         </select>
       </div>
-      <div class="sm:col-span-4">
+      <div class="sm:col-span-6 po-model-col">
         <label class="block text-[10px] font-bold uppercase tracking-wider text-slate-500 mb-1">2. Product Model *</label>
         <select onchange="handleModelChange('${rowId}')" class="po-item-model w-full text-xs px-2.5 py-2 border border-slate-300 rounded-xl outline-none focus:ring-2 focus:ring-blue-500 bg-white font-medium text-slate-800">
           <!-- Dynamically populated via populateModelDropdown -->
         </select>
       </div>
       <div class="sm:col-span-3">
-        <label class="block text-[10px] font-bold uppercase tracking-wider text-slate-500 mb-1">3. Size / Specs / Notes</label>
-        <input type="text" placeholder="e.g. 50x25mm / 1000 roll" value="${escapeHtml(spec)}" class="po-item-spec w-full text-xs px-2.5 py-2 border border-slate-300 rounded-xl outline-none focus:ring-2 focus:ring-blue-500 bg-white text-slate-800">
-      </div>
-      <div class="sm:col-span-2">
-        <label class="block text-[10px] font-bold uppercase tracking-wider text-slate-500 mb-1">4. Qty (Units) *</label>
+        <label class="block text-[10px] font-bold uppercase tracking-wider text-slate-500 mb-1">3. Qty (Units) *</label>
         <input type="number" placeholder="Units" min="1" value="${qty}" oninput="calcNewPoTotal()" required class="po-item-qty w-full text-xs px-2.5 py-2 border border-slate-300 rounded-xl outline-none focus:ring-2 focus:ring-blue-500 bg-white text-right font-mono font-bold text-slate-900">
+      </div>
+    </div>
+    <!-- Custom Specifications (Only revealed when a Custom Model is selected) -->
+    <div class="po-custom-spec-wrapper hidden pt-1">
+      <div class="p-2.5 bg-amber-50/70 border border-amber-200 rounded-xl space-y-1">
+        <div class="flex items-center justify-between">
+          <label class="block text-[10px] font-bold uppercase tracking-wider text-amber-800">✏️ Custom Model Specifications & Notes *</label>
+          <span class="text-[10px] text-amber-600 font-semibold bg-amber-100 px-2 py-0.5 rounded">Custom Specification</span>
+        </div>
+        <input type="text" placeholder="Enter custom dimensions, material type, core diameter, UPS & roll count (e.g. 60x40mm | Removable Gum | 1' Core | 1,000/roll)" value="${escapeHtml(spec)}" class="po-item-spec w-full text-xs px-3 py-2 border border-amber-300 rounded-lg outline-none focus:ring-2 focus:ring-amber-500 bg-white text-slate-800 font-medium">
       </div>
     </div>
   `;
   container.appendChild(div);
   populateModelDropdown(div, selectedCat, model);
-  if (!spec) {
-    handleModelChange(rowId);
-  }
+  handleModelChange(rowId);
   calcNewPoTotal();
 }
 
@@ -757,12 +777,14 @@ function handleNewPoSubmit(e) {
 
     if (model && qty > 0) {
       const catInfo = PRODUCT_CATEGORIES[cat] || PRODUCT_CATEGORIES.labels;
-      const fullDesc = spec ? `${model} (${spec})` : model;
+      const isCustom = model.toLowerCase().includes('custom');
+      const itemSpec = isCustom ? spec : (MODEL_SPECS_MAP[model] || '');
+      const fullDesc = isCustom && spec ? `${model} (${spec})` : model;
       items.push({
         sku: `${catInfo.prefix}-${idx + 1}`,
         category: cat,
         model: model,
-        spec: spec,
+        spec: itemSpec,
         description: fullDesc,
         orderedQty: qty
       });

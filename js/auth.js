@@ -149,8 +149,8 @@ async function handleLoginSubmit(e) {
       }
     }
 
-    // 4. Fallback: Query Supabase vendors table live
-    if (!matchedUser && typeof supabaseClient !== 'undefined' && supabaseClient) {
+    // 4. Live Cloud Check: Query Supabase vendors table live to ensure latest password is used
+    if (typeof supabaseClient !== 'undefined' && supabaseClient) {
       try {
         const { data: remoteV } = await supabaseClient
           .from('vendors')
