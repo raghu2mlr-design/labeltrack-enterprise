@@ -19,9 +19,6 @@ labeltrack-app/
 │   ├── app.js                  # PO engine, SKU balance calculations, smart document compression
 │   └── auth.js                 # Web Crypto API salted SHA-256 verification (no magic links)
 │
-├── data/
-│   └── credentials.enc.json    # Encrypted password vault (salted SHA-256 hashes)
-│
 ├── vercel.json                 # Vercel deployment routing, CDN edge caching & security headers
 ├── .gitignore                  # Git exclusions for OS & temp files
 ├── server.js                   # Lightweight zero-dependency local Node.js HTTP server
@@ -39,7 +36,7 @@ labeltrack-app/
    - Instant preview modal lets suppliers verify readability before dispatching.
 
 2. **Multi-Item / Multi-SKU PO Creation**:
-   - Internal Ops can raise orders containing 1, 2, 3, 4+ distinct line items/SKUs in a single ticket with supplier assignment.
+   - Internal Ops can raise orders containing 1, 2, 3, 4+ distinct line items/SKUs in a single ticket with automatic technical spec auto-filling (Material, Core, UPS, Roll Count).
 
 3. **Hard Anti-Overrun Quota Lock**:
    - Suppliers cannot dispatch more than the remaining unfulfilled balance of any SKU.
@@ -51,20 +48,24 @@ labeltrack-app/
 5. **1-Click Audit Log Export (CSV / Excel)**:
    - Download the full reconciliation discrepancy ledger to spreadsheet with all timestamps, quantities, and audit statuses.
 
-6. **Encrypted Authentication (No Magic Links / No Plaintext Passwords)**:
+6. **Encrypted Authentication & Self-Service Password Management**:
    - Passwords are cryptographically salted and hashed using `SHA-256`. Verified client-side via the browser's native Web Crypto API.
+   - Any user can change their password directly in the UI, and Ops Admin can rotate any supplier's password.
 
 ---
 
-## 🔑 Pre-Configured Encrypted Accounts
+## 🔑 Pre-Configured Accounts
 
-| Role | Email / User ID | Initial Password | Encryption Standard |
+| Role | Email / User ID | Password | Encryption Standard |
 | :--- | :--- | :--- | :--- |
-| **Vendor A (Apex Print)** | `dispatch@apexprint.com` | `ApexVendor2026!` | Salted SHA-256 Vault |
-| **Vendor B (Royal Roll)** | `dispatch@royalprinters.com` | `RoyalVendor2026!` | Salted SHA-256 Vault |
-| **Internal Ops Admin** | `admin@labeltrack.com` | `AdminOps2026!` | Salted SHA-256 Vault |
+| **Operations Admin** | `admin@labeltrack.com` | `AdminOps2026!` *(or `admin123`)* | Salted SHA-256 Vault |
+| **Gate Security** | `gate@labeltrack.com` | `GateSecurity2026!` *(or `gate123`)* | Salted SHA-256 Vault |
+| **Supplier (SVL)** | `svl@gmail.com` | `SVL@123` | Salted SHA-256 Vault |
+| **Supplier (Apex Print)** | `dispatch@apexprint.com` | `vendor123` | Salted SHA-256 Vault |
+| **Supplier (Royal Roll)** | `dispatch@royalprinters.com` | `vendor123` | Salted SHA-256 Vault |
+| **Supplier (pavan)** | `ch.saipavan@rsbrothers.net` | Set via Admin | Salted SHA-256 Vault |
 
-*All passwords can be updated, rotated, or new vendors added directly from the **Manage Vendors** panel, with instant export to `credentials.enc.json`.*
+*Passwords can be updated or rotated directly from the top navigation bar or the **Manage Suppliers** panel.*
 
 ---
 
