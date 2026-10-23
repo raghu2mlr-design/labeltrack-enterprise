@@ -89,6 +89,97 @@ const MODEL_SPECS_MAP = {
   "Full Resin Ribbon (110mm x 300m | 1\" Core — Scratch & Wash Proof for Synthetic)": "110mm x 300m | FULL RESIN | 1\" Core (Synthetic Tags & Cards)"
 };
 
+// ==========================================
+// Annual Master Color Codes & Physical Proofs Configuration
+// Mandated color standards change annually (e.g. 2025: Emerald Green, 2026: Cyan/Yellow, 2027: Violet/Tangerine)
+// ==========================================
+const DEFAULT_ANNUAL_COLOR_CONFIG = {
+  activeYear: 2026,
+  years: [
+    {
+      year: 2025,
+      colorName: "Emerald Green & White",
+      hexColor: "#059669",
+      secondaryHex: "#ecfdf5",
+      status: "archived",
+      guidelines: "2025 Mandate: Emerald green core ring band, green ink lot stamp."
+    },
+    {
+      year: 2026,
+      colorName: "Sapphire Cyan & Canary Yellow",
+      hexColor: "#0284c7",
+      secondaryHex: "#facc15",
+      status: "active",
+      guidelines: "2026 Active Mandate: Canary yellow roll core band, sapphire cyan approval stamp on outer cartons."
+    },
+    {
+      year: 2027,
+      colorName: "Royal Violet & Tangerine",
+      hexColor: "#7c3aed",
+      secondaryHex: "#fb923c",
+      status: "upcoming",
+      guidelines: "2027 Advance Release: Tangerine core insert with royal violet inspection mark."
+    }
+  ]
+};
+
+function normalizeModelKey(modelStr) {
+  if (!modelStr) return 'standard_model';
+  return String(modelStr)
+    .toLowerCase()
+    .replace(/[^\w\d]+/g, '_')
+    .replace(/^_+|_+$/g, '');
+}
+
+function getProofKey(modelStr, year) {
+  const norm = normalizeModelKey(modelStr);
+  const y = Number(year) || getActiveYear();
+  return `${norm}_${y}`;
+}
+
+function getActiveYear() {
+  if (typeof state !== 'undefined' && state.annualColorConfig && state.annualColorConfig.activeYear) {
+    return Number(state.annualColorConfig.activeYear);
+  }
+  return 2026;
+}
+
+function getYearColorConfig(year) {
+  const targetYear = Number(year) || getActiveYear();
+  const yearsList = (typeof state !== 'undefined' && state.annualColorConfig && Array.isArray(state.annualColorConfig.years))
+    ? state.annualColorConfig.years
+    : DEFAULT_ANNUAL_COLOR_CONFIG.years;
+
+  const found = yearsList.find(y => Number(y.year) === targetYear);
+  if (found) return found;
+
+  return {
+    year: targetYear,
+    colorName: "Standard Cyan & White",
+    hexColor: "#0284c7",
+    secondaryHex: "#facc15",
+    status: (targetYear === getActiveYear() ? "active" : "upcoming"),
+    guidelines: `Annual color mandate for FY ${targetYear}. Suppliers must follow this color scheme.`
+  };
+}
+
+function updateAnnualColorUI() {
+  const activeYear = getActiveYear();
+  const yearConfig = getYearColorConfig(activeYear);
+
+  const dot = document.getElementById('adminActiveYearColorDot');
+  if (dot) dot.style.backgroundColor = yearConfig.hexColor;
+
+  const badgeText = document.getElementById('adminActiveYearColorBadgeText');
+  if (badgeText) badgeText.textContent = `🎨 Annual Color Proofs (${activeYear})`;
+
+  const activePill = document.getElementById('annualActiveYearPill');
+  if (activePill) {
+    activePill.textContent = activeYear;
+    activePill.style.backgroundColor = yearConfig.hexColor;
+  }
+}
+
 function getItemCategoryInfo(itemOrDescription) {
   if (!itemOrDescription) return PRODUCT_CATEGORIES.labels;
   
@@ -117,22 +208,1557 @@ function getItemCategoryInfo(itemOrDescription) {
 function formatProductDisplay(description) {
   if (!description) return { title: 'Item', specs: '', shortTitle: 'Item' };
   
-  let title = String(description).trim();
-  let specs = '';
+  let raw = String(description).trim();
 
-  const parenMatch = title.match(/^(.*?)\s*\((.*?)\)$/);
-  const colonMatch = title.match(/^(.*?)\s*:\s*(.*)$/);
-
-  if (parenMatch) {
-    title = parenMatch[1].trim();
-    specs = parenMatch[2].trim();
-  } else if (colonMatch) {
-    title = colonMatch[1].trim();
-    specs = colonMatch[2].trim();
+  // Extract all parenthesized specification groups (e.g. "(Chromo | 3\" Core | 2 UPS | 5,000/roll) (50x32mm | CHROMO | ...)")
+  const parenGroups = [];
+  const parenRegex = /\(([^()]+)\)/g;
+  let match;
+  while ((match = parenRegex.exec(raw)) !== null) {
+    const val = match[1].trim();
+    if (val && !parenGroups.includes(val)) {
+      parenGroups.push(val);
+    }
   }
 
-  return { title, specs, shortTitle: title };
+  // Strip all parenthesized groups from raw text to isolate the clean product title
+  let title = raw.replace(/\(([^()]+)\)/g, '').replace(/\s+/g, ' ').trim();
+  title = title.replace(/[-—:]\s*$/, '').trim();
+  if (!title && parenGroups.length > 0) {
+    title = parenGroups.shift();
+  }
+
+  let specs = '';
+  if (parenGroups.length === 1) {
+    specs = parenGroups[0];
+  } else if (parenGroups.length > 1) {
+    // If multiple parenthesized groups exist, check if they are redundant / duplicate specs
+    // e.g. Group 1: 'Chromo | 3" Core | 2 UPS | 5,000/roll'
+    // e.g. Group 2: '50x32mm | CHROMO | 3" Core | 2 UPS | 5,000/roll'
+    const g1 = parenGroups[0];
+    const g2 = parenGroups[1];
+    
+    const tokens1 = g1.toLowerCase().split(/[|\s,]+/).filter(Boolean);
+    const tokens2 = g2.toLowerCase().split(/[|\s,]+/).filter(Boolean);
+    const commonTokens = tokens1.filter(t => tokens2.includes(t));
+
+    // If they share 2 or more spec tokens (e.g., chromo, core, ups, roll), deduplicate to the most complete spec
+    if (commonTokens.length >= 2 || g1.toLowerCase() === g2.toLowerCase()) {
+      specs = g2.length >= g1.length ? g2 : g1;
+    } else {
+      // Distinct specifications: merge them cleanly
+      specs = parenGroups.join(' | ');
+    }
+  } else {
+    // Fallback: check for colon separation if no parentheses exist
+    const colonMatch = raw.match(/^(.*?)\s*:\s*(.*)$/);
+    if (colonMatch) {
+      title = colonMatch[1].trim();
+      specs = colonMatch[2].trim();
+    }
+  }
+
+  // Ensure specs contain no stray or duplicate unclosed parentheses
+  specs = specs.replace(/[()]/g, '').trim();
+
+  return { title: title || raw, specs, shortTitle: title || raw };
 }
+
+// ==========================================
+// TECHNICAL ARTWORK SPECIMEN & PROOF SYSTEM
+// Universal Vector SVG Renderers for All 4 Categories
+// ==========================================
+function generateSampleArtworkSvg(modelName, customSpecs) {
+  const model = String(modelName || '').trim();
+  const specs = customSpecs || MODEL_SPECS_MAP[model] || '';
+  
+  // 1. Regular Label 50x32 (3" or 1" Core | 2 UPS)
+  if (model.includes('50x32')) {
+    const is3Core = model.includes('3"');
+    const coreText = is3Core ? '3" Core (76.2mm)' : '1" Core (25.4mm)';
+    const rollCapacity = is3Core ? '5,000 labels/roll' : '2,500 labels/roll';
+    return `
+      <svg viewBox="0 0 460 260" class="w-full max-w-md mx-auto drop-shadow-md select-none" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+          <linearGradient id="webGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+            <stop offset="0%" stop-color="#f8fafc"/>
+            <stop offset="50%" stop-color="#e2e8f0"/>
+            <stop offset="100%" stop-color="#f8fafc"/>
+          </linearGradient>
+          <filter id="labelShadow" x="-5%" y="-5%" width="110%" height="115%">
+            <feDropShadow dx="0" dy="2" stdDeviation="2" flood-color="#0f172a" flood-opacity="0.12"/>
+          </filter>
+        </defs>
+        <rect x="20" y="20" width="420" height="220" rx="10" fill="url(#webGrad)" stroke="#cbd5e1" stroke-width="1.5"/>
+        <line x1="20" y1="20" x2="440" y2="20" stroke="#94a3b8" stroke-dasharray="4,4" stroke-width="1"/>
+        <line x1="20" y1="240" x2="440" y2="240" stroke="#94a3b8" stroke-dasharray="4,4" stroke-width="1"/>
+        
+        <!-- Left Label (UPS 1) -->
+        <g filter="url(#labelShadow)">
+          <rect x="35" y="45" width="185" height="150" rx="8" fill="#ffffff" stroke="#94a3b8" stroke-width="1"/>
+          <text x="45" y="65" font-family="system-ui, sans-serif" font-size="9" font-weight="bold" fill="#0f172a">LABELTRACK &bull; CHROMO</text>
+          <text x="175" y="65" font-family="monospace" font-size="8" font-weight="bold" fill="#2563eb">50x32</text>
+          <line x1="45" y1="70" x2="210" y2="70" stroke="#e2e8f0" stroke-width="1"/>
+          <g transform="translate(45, 76)">
+            <rect x="0" y="0" width="3" height="35" fill="#0f172a"/>
+            <rect x="5" y="0" width="2" height="35" fill="#0f172a"/>
+            <rect x="9" y="0" width="5" height="35" fill="#0f172a"/>
+            <rect x="17" y="0" width="1" height="35" fill="#0f172a"/>
+            <rect x="21" y="0" width="4" height="35" fill="#0f172a"/>
+            <rect x="28" y="0" width="2" height="35" fill="#0f172a"/>
+            <rect x="32" y="0" width="6" height="35" fill="#0f172a"/>
+            <rect x="42" y="0" width="3" height="35" fill="#0f172a"/>
+            <rect x="47" y="0" width="2" height="35" fill="#0f172a"/>
+            <rect x="52" y="0" width="5" height="35" fill="#0f172a"/>
+            <rect x="60" y="0" width="2" height="35" fill="#0f172a"/>
+            <rect x="65" y="0" width="4" height="35" fill="#0f172a"/>
+            <rect x="72" y="0" width="2" height="35" fill="#0f172a"/>
+            <rect x="76" y="0" width="6" height="35" fill="#0f172a"/>
+            <rect x="85" y="0" width="3" height="35" fill="#0f172a"/>
+            <rect x="91" y="0" width="2" height="35" fill="#0f172a"/>
+            <rect x="96" y="0" width="4" height="35" fill="#0f172a"/>
+            <rect x="103" y="0" width="2" height="35" fill="#0f172a"/>
+            <rect x="107" y="0" width="5" height="35" fill="#0f172a"/>
+            <rect x="115" y="0" width="3" height="35" fill="#0f172a"/>
+            <rect x="120" y="0" width="1" height="35" fill="#0f172a"/>
+            <rect x="124" y="0" width="4" height="35" fill="#0f172a"/>
+            <rect x="131" y="0" width="3" height="35" fill="#0f172a"/>
+            <rect x="137" y="0" width="5" height="35" fill="#0f172a"/>
+            <rect x="145" y="0" width="2" height="35" fill="#0f172a"/>
+            <rect x="150" y="0" width="4" height="35" fill="#0f172a"/>
+            <rect x="157" y="0" width="3" height="35" fill="#0f172a"/>
+          </g>
+          <text x="127" y="121" font-family="monospace" font-size="8" font-weight="bold" fill="#334155" text-anchor="middle">8 904321 005432</text>
+          <text x="45" y="137" font-family="system-ui, sans-serif" font-size="8" fill="#64748b">STYLE: <tspan font-weight="bold" fill="#0f172a">TS-REG-01</tspan> &bull; SZ: <tspan font-weight="bold" fill="#0f172a">L</tspan></text>
+          <text x="45" y="152" font-family="system-ui, sans-serif" font-size="8" fill="#64748b">MRP: <tspan font-weight="bold" fill="#047857">₹ 799.00</tspan> (INCL. TAX)</text>
+          <rect x="45" y="162" width="60" height="15" rx="3" fill="#eff6ff" stroke="#bfdbfe" stroke-width="0.5"/>
+          <text x="75" y="173" font-family="system-ui, sans-serif" font-size="7" font-weight="bold" fill="#1d4ed8" text-anchor="middle">UPS 1 (LEFT)</text>
+          <text x="175" y="173" font-family="monospace" font-size="7" fill="#94a3b8">GAP: 3mm</text>
+        </g>
+
+        <!-- Right Label (UPS 2) -->
+        <g filter="url(#labelShadow)">
+          <rect x="240" y="45" width="185" height="150" rx="8" fill="#ffffff" stroke="#94a3b8" stroke-width="1"/>
+          <text x="250" y="65" font-family="system-ui, sans-serif" font-size="9" font-weight="bold" fill="#0f172a">LABELTRACK &bull; CHROMO</text>
+          <text x="380" y="65" font-family="monospace" font-size="8" font-weight="bold" fill="#2563eb">50x32</text>
+          <line x1="250" y1="70" x2="415" y2="70" stroke="#e2e8f0" stroke-width="1"/>
+          <g transform="translate(250, 76)">
+            <rect x="0" y="0" width="3" height="35" fill="#0f172a"/>
+            <rect x="5" y="0" width="2" height="35" fill="#0f172a"/>
+            <rect x="9" y="0" width="5" height="35" fill="#0f172a"/>
+            <rect x="17" y="0" width="1" height="35" fill="#0f172a"/>
+            <rect x="21" y="0" width="4" height="35" fill="#0f172a"/>
+            <rect x="28" y="0" width="2" height="35" fill="#0f172a"/>
+            <rect x="32" y="0" width="6" height="35" fill="#0f172a"/>
+            <rect x="42" y="0" width="3" height="35" fill="#0f172a"/>
+            <rect x="47" y="0" width="2" height="35" fill="#0f172a"/>
+            <rect x="52" y="0" width="5" height="35" fill="#0f172a"/>
+            <rect x="60" y="0" width="2" height="35" fill="#0f172a"/>
+            <rect x="65" y="0" width="4" height="35" fill="#0f172a"/>
+            <rect x="72" y="0" width="2" height="35" fill="#0f172a"/>
+            <rect x="76" y="0" width="6" height="35" fill="#0f172a"/>
+            <rect x="85" y="0" width="3" height="35" fill="#0f172a"/>
+            <rect x="91" y="0" width="2" height="35" fill="#0f172a"/>
+            <rect x="96" y="0" width="4" height="35" fill="#0f172a"/>
+            <rect x="103" y="0" width="2" height="35" fill="#0f172a"/>
+            <rect x="107" y="0" width="5" height="35" fill="#0f172a"/>
+            <rect x="115" y="0" width="3" height="35" fill="#0f172a"/>
+            <rect x="120" y="0" width="1" height="35" fill="#0f172a"/>
+            <rect x="124" y="0" width="4" height="35" fill="#0f172a"/>
+            <rect x="131" y="0" width="3" height="35" fill="#0f172a"/>
+            <rect x="137" y="0" width="5" height="35" fill="#0f172a"/>
+            <rect x="145" y="0" width="2" height="35" fill="#0f172a"/>
+            <rect x="150" y="0" width="4" height="35" fill="#0f172a"/>
+            <rect x="157" y="0" width="3" height="35" fill="#0f172a"/>
+          </g>
+          <text x="332" y="121" font-family="monospace" font-size="8" font-weight="bold" fill="#334155" text-anchor="middle">8 904321 005433</text>
+          <text x="250" y="137" font-family="system-ui, sans-serif" font-size="8" fill="#64748b">STYLE: <tspan font-weight="bold" fill="#0f172a">TS-REG-01</tspan> &bull; SZ: <tspan font-weight="bold" fill="#0f172a">XL</tspan></text>
+          <text x="250" y="152" font-family="system-ui, sans-serif" font-size="8" fill="#64748b">MRP: <tspan font-weight="bold" fill="#047857">₹ 799.00</tspan> (INCL. TAX)</text>
+          <rect x="250" y="162" width="65" height="15" rx="3" fill="#eff6ff" stroke="#bfdbfe" stroke-width="0.5"/>
+          <text x="282" y="173" font-family="system-ui, sans-serif" font-size="7" font-weight="bold" fill="#1d4ed8" text-anchor="middle">UPS 2 (RIGHT)</text>
+          <text x="380" y="173" font-family="monospace" font-size="7" fill="#94a3b8">GAP: 3mm</text>
+        </g>
+
+        <!-- Unwind & Technical Footer Callout -->
+        <g transform="translate(35, 210)">
+          <rect x="0" y="0" width="390" height="20" rx="5" fill="#0f172a" fill-opacity="0.9"/>
+          <text x="15" y="13" font-family="system-ui, sans-serif" font-size="8.5" font-weight="bold" fill="#38bdf8">2 UPS (2 ACROSS)</text>
+          <text x="120" y="13" font-family="monospace" font-size="8" fill="#e2e8f0">&bull; CORE: ${coreText}</text>
+          <text x="240" y="13" font-family="monospace" font-size="8" fill="#a7f3d0">&bull; ${rollCapacity}</text>
+          <text x="345" y="13" font-family="system-ui, sans-serif" font-size="8" font-weight="bold" fill="#fde047">➔ UNWIND</text>
+        </g>
+      </svg>
+    `;
+  }
+
+  // 2. Yellow Gate Entry Label 100x150 mm
+  if (model.includes('Yellow Label') || model.includes('Gate Entry')) {
+    return `
+      <svg viewBox="0 0 320 380" class="w-full max-w-xs mx-auto drop-shadow-md select-none" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+          <filter id="yellowLabelShadow" x="-5%" y="-5%" width="110%" height="110%">
+            <feDropShadow dx="0" dy="3" stdDeviation="3" flood-color="#0f172a" flood-opacity="0.15"/>
+          </filter>
+        </defs>
+        <g filter="url(#yellowLabelShadow)">
+          <rect x="15" y="15" width="290" height="350" rx="8" fill="#fef08a" stroke="#ca8a04" stroke-width="2"/>
+          <rect x="25" y="25" width="270" height="42" rx="5" fill="#ca8a04"/>
+          <text x="160" y="44" font-family="system-ui, sans-serif" font-size="11" font-weight="900" fill="#ffffff" text-anchor="middle" letter-spacing="0.5">WAREHOUSE GATE INWARD PASS</text>
+          <text x="160" y="58" font-family="monospace" font-size="8" font-weight="bold" fill="#fef9c3" text-anchor="middle">PRIMARY SECURITY INWARD GATE &bull; 100x150mm</text>
+
+          <g transform="translate(25, 78)">
+            <rect x="0" y="0" width="270" height="60" rx="5" fill="#ffffff" stroke="#eab308" stroke-width="1"/>
+            <text x="10" y="16" font-family="system-ui, sans-serif" font-size="8" font-weight="bold" fill="#713f12">TRUCK / LR NUMBER:</text>
+            <text x="10" y="32" font-family="monospace" font-size="12" font-weight="900" fill="#0f172a">TS-09-UB-4421</text>
+            <text x="150" y="16" font-family="system-ui, sans-serif" font-size="8" font-weight="bold" fill="#713f12">BOX COUNT:</text>
+            <text x="150" y="32" font-family="monospace" font-size="12" font-weight="900" fill="#0f172a">25 CARTONS</text>
+            <text x="10" y="50" font-family="system-ui, sans-serif" font-size="7.5" fill="#854d0e">VENDOR: <tspan font-weight="bold" fill="#0f172a">APEX PRINT LTD (VEN-01)</tspan></text>
+            <text x="150" y="50" font-family="system-ui, sans-serif" font-size="7.5" fill="#854d0e">DATE: <tspan font-weight="bold" fill="#0f172a">2026-10-23</tspan></text>
+          </g>
+
+          <g transform="translate(30, 150)">
+            <rect x="0" y="0" width="260" height="85" rx="5" fill="#ffffff" stroke="#eab308" stroke-width="1"/>
+            <g transform="translate(15, 12)">
+              <rect x="0" y="0" width="4" height="45" fill="#0f172a"/>
+              <rect x="6" y="0" width="2" height="45" fill="#0f172a"/>
+              <rect x="11" y="0" width="6" height="45" fill="#0f172a"/>
+              <rect x="20" y="0" width="3" height="45" fill="#0f172a"/>
+              <rect x="26" y="0" width="5" height="45" fill="#0f172a"/>
+              <rect x="35" y="0" width="2" height="45" fill="#0f172a"/>
+              <rect x="40" y="0" width="7" height="45" fill="#0f172a"/>
+              <rect x="51" y="0" width="3" height="45" fill="#0f172a"/>
+              <rect x="58" y="0" width="5" height="45" fill="#0f172a"/>
+              <rect x="67" y="0" width="2" height="45" fill="#0f172a"/>
+              <rect x="72" y="0" width="6" height="45" fill="#0f172a"/>
+              <rect x="82" y="0" width="3" height="45" fill="#0f172a"/>
+              <rect x="88" y="0" width="6" height="45" fill="#0f172a"/>
+              <rect x="98" y="0" width="2" height="45" fill="#0f172a"/>
+              <rect x="103" y="0" width="4" height="45" fill="#0f172a"/>
+              <rect x="111" y="0" width="6" height="45" fill="#0f172a"/>
+              <rect x="121" y="0" width="3" height="45" fill="#0f172a"/>
+              <rect x="127" y="0" width="5" height="45" fill="#0f172a"/>
+              <rect x="136" y="0" width="2" height="45" fill="#0f172a"/>
+              <rect x="142" y="0" width="7" height="45" fill="#0f172a"/>
+              <rect x="153" y="0" width="3" height="45" fill="#0f172a"/>
+              <rect x="160" y="0" width="5" height="45" fill="#0f172a"/>
+              <rect x="169" y="0" width="2" height="45" fill="#0f172a"/>
+              <rect x="175" y="0" width="6" height="45" fill="#0f172a"/>
+              <rect x="185" y="0" width="4" height="45" fill="#0f172a"/>
+              <rect x="193" y="0" width="5" height="45" fill="#0f172a"/>
+              <rect x="202" y="0" width="3" height="45" fill="#0f172a"/>
+              <rect x="209" y="0" width="6" height="45" fill="#0f172a"/>
+              <rect x="219" y="0" width="4" height="45" fill="#0f172a"/>
+            </g>
+            <text x="130" y="72" font-family="monospace" font-size="10" font-weight="900" fill="#0f172a" text-anchor="middle" letter-spacing="1">GATE-IN-2026-904321</text>
+          </g>
+
+          <g transform="translate(25, 245)">
+            <rect x="0" y="0" width="270" height="58" rx="5" fill="#ffffff" stroke="#eab308" stroke-width="1"/>
+            <text x="10" y="17" font-family="system-ui, sans-serif" font-size="8" font-weight="bold" fill="#713f12">SECURITY OFFICER SIGNATURE:</text>
+            <line x1="10" y1="42" x2="160" y2="42" stroke="#cbd5e1" stroke-width="1" stroke-dasharray="3,3"/>
+            <text x="10" y="52" font-family="system-ui, sans-serif" font-size="7" fill="#94a3b8">Authorized Gate Officer</text>
+            <g transform="translate(180, 8)">
+              <circle cx="20" cy="20" r="18" fill="#dcfce7" stroke="#16a34a" stroke-width="1.5"/>
+              <text x="20" y="18" font-family="system-ui, sans-serif" font-size="6.5" font-weight="900" fill="#15803d" text-anchor="middle">VERIFIED</text>
+              <text x="20" y="27" font-family="system-ui, sans-serif" font-size="6.5" font-weight="bold" fill="#15803d" text-anchor="middle">GATE PASS</text>
+            </g>
+          </g>
+
+          <rect x="25" y="315" width="270" height="22" rx="4" fill="#0f172a"/>
+          <text x="160" y="330" font-family="monospace" font-size="8" font-weight="bold" fill="#fde047" text-anchor="middle">1 UPS &bull; 3" CORE (76.2mm) &bull; 500 LABELS/ROLL</text>
+        </g>
+      </svg>
+    `;
+  }
+
+  // 3. Orange DC Label 100x150 mm
+  if (model.includes('Orange Label') || model.includes('DC Label')) {
+    return `
+      <svg viewBox="0 0 320 380" class="w-full max-w-xs mx-auto drop-shadow-md select-none" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+          <filter id="orangeLabelShadow" x="-5%" y="-5%" width="110%" height="110%">
+            <feDropShadow dx="0" dy="3" stdDeviation="3" flood-color="#0f172a" flood-opacity="0.15"/>
+          </filter>
+        </defs>
+        <g filter="url(#orangeLabelShadow)">
+          <rect x="15" y="15" width="290" height="350" rx="8" fill="#ffedd5" stroke="#ea580c" stroke-width="2"/>
+          <rect x="25" y="25" width="270" height="42" rx="5" fill="#ea580c"/>
+          <text x="160" y="44" font-family="system-ui, sans-serif" font-size="11" font-weight="900" fill="#ffffff" text-anchor="middle" letter-spacing="0.5">DISTRIBUTION CENTER TRANSFER</text>
+          <text x="160" y="58" font-family="monospace" font-size="8" font-weight="bold" fill="#fed7aa" text-anchor="middle">CENTRAL DC ROUTING &bull; 100x150mm</text>
+
+          <g transform="translate(25, 78)">
+            <rect x="0" y="0" width="270" height="60" rx="5" fill="#ffffff" stroke="#fdba74" stroke-width="1"/>
+            <text x="10" y="16" font-family="system-ui, sans-serif" font-size="8" font-weight="bold" fill="#9a3412">DESTINATION HUB:</text>
+            <text x="10" y="34" font-family="monospace" font-size="13" font-weight="900" fill="#ea580c">HYD-CENTRAL-DC-01</text>
+            <text x="165" y="16" font-family="system-ui, sans-serif" font-size="8" font-weight="bold" fill="#9a3412">ZONE / AISLE:</text>
+            <text x="165" y="34" font-family="monospace" font-size="13" font-weight="900" fill="#0f172a">ZN-B3</text>
+            <text x="10" y="51" font-family="system-ui, sans-serif" font-size="7.5" fill="#7c2d12">PACKAGE WEIGHT: <tspan font-weight="bold" fill="#0f172a">18.5 KG</tspan></text>
+            <text x="165" y="51" font-family="system-ui, sans-serif" font-size="7.5" fill="#7c2d12">PRIORITY: <tspan font-weight="bold" fill="#b91c1c">EXPRESS</tspan></text>
+          </g>
+
+          <g transform="translate(30, 150)">
+            <rect x="0" y="0" width="260" height="85" rx="5" fill="#ffffff" stroke="#fdba74" stroke-width="1"/>
+            <g transform="translate(15, 12)">
+              <rect x="0" y="0" width="4" height="45" fill="#0f172a"/>
+              <rect x="6" y="0" width="2" height="45" fill="#0f172a"/>
+              <rect x="11" y="0" width="6" height="45" fill="#0f172a"/>
+              <rect x="20" y="0" width="3" height="45" fill="#0f172a"/>
+              <rect x="26" y="0" width="5" height="45" fill="#0f172a"/>
+              <rect x="35" y="0" width="2" height="45" fill="#0f172a"/>
+              <rect x="40" y="0" width="7" height="45" fill="#0f172a"/>
+              <rect x="51" y="0" width="3" height="45" fill="#0f172a"/>
+              <rect x="58" y="0" width="5" height="45" fill="#0f172a"/>
+              <rect x="67" y="0" width="2" height="45" fill="#0f172a"/>
+              <rect x="72" y="0" width="6" height="45" fill="#0f172a"/>
+              <rect x="82" y="0" width="3" height="45" fill="#0f172a"/>
+              <rect x="88" y="0" width="6" height="45" fill="#0f172a"/>
+              <rect x="98" y="0" width="2" height="45" fill="#0f172a"/>
+              <rect x="103" y="0" width="4" height="45" fill="#0f172a"/>
+              <rect x="111" y="0" width="6" height="45" fill="#0f172a"/>
+              <rect x="121" y="0" width="3" height="45" fill="#0f172a"/>
+              <rect x="127" y="0" width="5" height="45" fill="#0f172a"/>
+              <rect x="136" y="0" width="2" height="45" fill="#0f172a"/>
+              <rect x="142" y="0" width="7" height="45" fill="#0f172a"/>
+              <rect x="153" y="0" width="3" height="45" fill="#0f172a"/>
+              <rect x="160" y="0" width="5" height="45" fill="#0f172a"/>
+              <rect x="169" y="0" width="2" height="45" fill="#0f172a"/>
+              <rect x="175" y="0" width="6" height="45" fill="#0f172a"/>
+              <rect x="185" y="0" width="4" height="45" fill="#0f172a"/>
+              <rect x="193" y="0" width="5" height="45" fill="#0f172a"/>
+              <rect x="202" y="0" width="3" height="45" fill="#0f172a"/>
+              <rect x="209" y="0" width="6" height="45" fill="#0f172a"/>
+              <rect x="219" y="0" width="4" height="45" fill="#0f172a"/>
+            </g>
+            <text x="130" y="72" font-family="monospace" font-size="10" font-weight="900" fill="#0f172a" text-anchor="middle" letter-spacing="1">DC-TRK-2026-789012</text>
+          </g>
+
+          <rect x="25" y="248" width="270" height="55" rx="5" fill="#ffffff" stroke="#fdba74" stroke-width="1"/>
+          <text x="35" y="268" font-family="system-ui, sans-serif" font-size="8" font-weight="bold" fill="#9a3412">HANDLING INSTRUCTIONS:</text>
+          <text x="35" y="282" font-family="system-ui, sans-serif" font-size="7.5" fill="#475569">&bull; Keep Dry &bull; Do Not Drop &bull; Scan on Forklift Inward</text>
+          <text x="35" y="294" font-family="system-ui, sans-serif" font-size="7" fill="#94a3b8">Chromo with Hi-Tack Adhesive &bull; Suitable for corrugated boxes</text>
+
+          <rect x="25" y="315" width="270" height="22" rx="4" fill="#0f172a"/>
+          <text x="160" y="330" font-family="monospace" font-size="8" font-weight="bold" fill="#fdba74" text-anchor="middle">1 UPS &bull; 1" CORE (25.4mm) &bull; 250 LABELS/ROLL</text>
+        </g>
+      </svg>
+    `;
+  }
+
+  // 4. Tags (Regular Tag / Value Zone Tag 50x101 mm)
+  if (model.includes('Tag') || model.includes('50x101')) {
+    const isVz = model.includes('Value Zone');
+    return `
+      <svg viewBox="0 0 240 380" class="w-full max-w-xs mx-auto drop-shadow-md select-none" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+          <filter id="tagShadow" x="-10%" y="-5%" width="120%" height="110%">
+            <feDropShadow dx="0" dy="3" stdDeviation="3" flood-color="#0f172a" flood-opacity="0.15"/>
+          </filter>
+        </defs>
+        <g filter="url(#tagShadow)">
+          <path d="M 40 45 L 80 15 L 160 15 L 200 45 L 200 350 L 40 350 Z" fill="#ffffff" stroke="#94a3b8" stroke-width="1.5"/>
+          <circle cx="120" cy="38" r="9" fill="#f1f5f9" stroke="#64748b" stroke-width="2"/>
+          <circle cx="120" cy="38" r="5" fill="#e2e8f0"/>
+
+          <rect x="50" y="65" width="140" height="28" rx="4" fill="${isVz ? '#b91c1c' : '#0f172a'}"/>
+          <text x="120" y="83" font-family="system-ui, sans-serif" font-size="10" font-weight="900" fill="#ffffff" text-anchor="middle" letter-spacing="1">
+            ${isVz ? 'VALUE ZONE' : 'LABELTRACK TAG'}
+          </text>
+
+          <text x="60" y="112" font-family="system-ui, sans-serif" font-size="8.5" font-weight="bold" fill="#0f172a">PREMIUM APPAREL</text>
+          <text x="60" y="125" font-family="system-ui, sans-serif" font-size="7.5" fill="#64748b">STYLE: <tspan font-weight="bold" fill="#0f172a">DENIM-SLIM-FIT</tspan></text>
+          <text x="60" y="137" font-family="system-ui, sans-serif" font-size="7.5" fill="#64748b">SIZE: <tspan font-weight="bold" fill="#0f172a">32 / 81 cm</tspan></text>
+          <text x="60" y="149" font-family="system-ui, sans-serif" font-size="7.5" fill="#64748b">COLOR: <tspan font-weight="bold" fill="#0f172a">DARK INDIGO</tspan></text>
+
+          <line x1="55" y1="160" x2="185" y2="160" stroke="#e2e8f0" stroke-width="1"/>
+
+          <g transform="translate(55, 172)">
+            <g transform="translate(10, 0)">
+              <rect x="0" y="0" width="3" height="42" fill="#0f172a"/>
+              <rect x="5" y="0" width="2" height="42" fill="#0f172a"/>
+              <rect x="9" y="0" width="4" height="42" fill="#0f172a"/>
+              <rect x="16" y="0" width="2" height="42" fill="#0f172a"/>
+              <rect x="21" y="0" width="5" height="42" fill="#0f172a"/>
+              <rect x="29" y="0" width="2" height="42" fill="#0f172a"/>
+              <rect x="34" y="0" width="5" height="42" fill="#0f172a"/>
+              <rect x="42" y="0" width="3" height="42" fill="#0f172a"/>
+              <rect x="48" y="0" width="4" height="42" fill="#0f172a"/>
+              <rect x="55" y="0" width="2" height="42" fill="#0f172a"/>
+              <rect x="60" y="0" width="6" height="42" fill="#0f172a"/>
+              <rect x="69" y="0" width="3" height="42" fill="#0f172a"/>
+              <rect x="75" y="0" width="4" height="42" fill="#0f172a"/>
+              <rect x="82" y="0" width="2" height="42" fill="#0f172a"/>
+              <rect x="87" y="0" width="5" height="42" fill="#0f172a"/>
+              <rect x="95" y="0" width="3" height="42" fill="#0f172a"/>
+              <rect x="101" y="0" width="4" height="42" fill="#0f172a"/>
+            </g>
+            <text x="65" y="55" font-family="monospace" font-size="8" font-weight="bold" fill="#334155" text-anchor="middle">8 901234 567890</text>
+          </g>
+
+          <rect x="55" y="240" width="130" height="42" rx="4" fill="#f8fafc" stroke="#cbd5e1" stroke-width="1"/>
+          <text x="65" y="255" font-family="system-ui, sans-serif" font-size="7.5" fill="#64748b">MAX. RETAIL PRICE</text>
+          <text x="65" y="272" font-family="system-ui, sans-serif" font-size="13" font-weight="900" fill="#0f172a">₹ 1,499.00</text>
+          <text x="140" y="271" font-family="system-ui, sans-serif" font-size="7" fill="#64748b">INCL. TAX</text>
+
+          <rect x="35" y="295" width="10" height="12" rx="2" fill="#475569"/>
+          <text x="50" y="304" font-family="monospace" font-size="6.5" fill="#64748b">SENSOR NOTCH</text>
+
+          <rect x="50" y="318" width="140" height="22" rx="4" fill="#0f172a"/>
+          <text x="120" y="332" font-family="monospace" font-size="7" font-weight="bold" fill="#38bdf8" text-anchor="middle">SYNTHETIC NON-TEARABLE</text>
+        </g>
+      </svg>
+    `;
+  }
+
+  // 5. Ribbons (Wax / Wax-Resin / Full Resin)
+  if (model.includes('Ribbon') || model.includes('Wax') || model.includes('Resin')) {
+    const isWax = model.includes('Wax') && !model.includes('Resin');
+    const isResin = model.includes('Full Resin');
+    const ribbonGrade = isWax ? 'WAX RIBBON' : (isResin ? 'FULL RESIN RIBBON' : 'WAX-RESIN RIBBON');
+    const ribbonColor = isWax ? '#3b82f6' : (isResin ? '#9333ea' : '#059669');
+    
+    return `
+      <svg viewBox="0 0 380 240" class="w-full max-w-md mx-auto drop-shadow-md select-none" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+          <linearGradient id="ribbonRollGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+            <stop offset="0%" stop-color="#1e293b"/>
+            <stop offset="40%" stop-color="#0f172a"/>
+            <stop offset="70%" stop-color="#020617"/>
+            <stop offset="100%" stop-color="#1e293b"/>
+          </linearGradient>
+          <linearGradient id="coreGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+            <stop offset="0%" stop-color="#78716c"/>
+            <stop offset="50%" stop-color="#d6d3d1"/>
+            <stop offset="100%" stop-color="#78716c"/>
+          </linearGradient>
+          <linearGradient id="silverLeader" x1="0%" y1="0%" x2="100%" y2="0%">
+            <stop offset="0%" stop-color="#94a3b8"/>
+            <stop offset="50%" stop-color="#f8fafc"/>
+            <stop offset="100%" stop-color="#94a3b8"/>
+          </linearGradient>
+        </defs>
+        
+        <rect x="15" y="15" width="350" height="210" rx="12" fill="#ffffff" stroke="#cbd5e1" stroke-width="1.5"/>
+        <rect x="25" y="25" width="330" height="30" rx="6" fill="${ribbonColor}"/>
+        <text x="190" y="45" font-family="system-ui, sans-serif" font-size="11" font-weight="900" fill="#ffffff" text-anchor="middle" letter-spacing="1">${ribbonGrade}</text>
+
+        <g transform="translate(40, 75)">
+          <rect x="0" y="30" width="200" height="40" rx="4" fill="url(#coreGrad)" stroke="#57534e" stroke-width="1"/>
+          <rect x="10" y="44" width="8" height="12" rx="1" fill="#292524"/>
+          <rect x="182" y="44" width="8" height="12" rx="1" fill="#292524"/>
+
+          <rect x="25" y="15" width="150" height="70" rx="6" fill="url(#ribbonRollGrad)" stroke="#334155" stroke-width="1.5"/>
+          <line x1="30" y1="25" x2="170" y2="25" stroke="#334155" stroke-width="0.75"/>
+          <line x1="30" y1="35" x2="170" y2="35" stroke="#334155" stroke-width="0.75"/>
+          <line x1="30" y1="65" x2="170" y2="65" stroke="#334155" stroke-width="0.75"/>
+          <line x1="30" y1="75" x2="170" y2="75" stroke="#334155" stroke-width="0.75"/>
+
+          <path d="M 175 35 Q 220 30 250 65 L 250 95 Q 220 60 175 65 Z" fill="url(#silverLeader)" stroke="#94a3b8" stroke-width="1"/>
+          <text x="215" y="80" font-family="monospace" font-size="7" font-weight="bold" fill="#334155">LEADER TAPE</text>
+        </g>
+
+        <g transform="translate(25, 178)">
+          <rect x="0" y="0" width="330" height="34" rx="6" fill="#f8fafc" stroke="#e2e8f0" stroke-width="1"/>
+          <text x="15" y="14" font-family="monospace" font-size="8" font-weight="bold" fill="#0f172a">110mm WIDTH &bull; 300m LENGTH</text>
+          <text x="15" y="26" font-family="system-ui, sans-serif" font-size="7.5" fill="#64748b">1" Cardboard Core (25.4mm) with dual notches &bull; Coated Side Out (CSO)</text>
+          <rect x="245" y="7" width="75" height="20" rx="4" fill="#0f172a"/>
+          <text x="282" y="20" font-family="system-ui, sans-serif" font-size="7" font-weight="bold" fill="#a7f3d0" text-anchor="middle">✓ MASTER FIT</text>
+        </g>
+      </svg>
+    `;
+  }
+
+  // 6. Generic Catalog item / Custom fallback
+  return `
+    <svg viewBox="0 0 360 220" class="w-full max-w-sm mx-auto drop-shadow-md select-none" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <filter id="genLabelShadow" x="-5%" y="-5%" width="110%" height="110%">
+          <feDropShadow dx="0" dy="2" stdDeviation="2" flood-color="#0f172a" flood-opacity="0.12"/>
+        </filter>
+      </defs>
+      <g filter="url(#genLabelShadow)">
+        <rect x="15" y="15" width="330" height="190" rx="10" fill="#ffffff" stroke="#94a3b8" stroke-width="1.5"/>
+        <rect x="25" y="25" width="310" height="32" rx="6" fill="#0f172a"/>
+        <text x="40" y="45" font-family="system-ui, sans-serif" font-size="10" font-weight="bold" fill="#ffffff">LABELTRACK TECHNICAL MASTER SPECIMEN</text>
+        <text x="320" y="45" font-family="monospace" font-size="8" font-weight="bold" fill="#38bdf8" text-anchor="end">APPROVED</text>
+
+        <text x="35" y="80" font-family="system-ui, sans-serif" font-size="11" font-weight="bold" fill="#0f172a">${escapeHtml(model.substring(0, 36))}</text>
+        <text x="35" y="96" font-family="monospace" font-size="8.5" fill="#2563eb">${escapeHtml(specs || 'Standard Factory Spec')}</text>
+
+        <g transform="translate(35, 110)">
+          <rect x="0" y="0" width="3" height="30" fill="#0f172a"/>
+          <rect x="5" y="0" width="2" height="30" fill="#0f172a"/>
+          <rect x="9" y="0" width="5" height="30" fill="#0f172a"/>
+          <rect x="17" y="0" width="1" height="30" fill="#0f172a"/>
+          <rect x="21" y="0" width="4" height="30" fill="#0f172a"/>
+          <rect x="28" y="0" width="2" height="30" fill="#0f172a"/>
+          <rect x="32" y="0" width="6" height="30" fill="#0f172a"/>
+          <rect x="42" y="0" width="3" height="30" fill="#0f172a"/>
+          <rect x="47" y="0" width="2" height="30" fill="#0f172a"/>
+          <rect x="52" y="0" width="5" height="30" fill="#0f172a"/>
+          <rect x="60" y="0" width="2" height="30" fill="#0f172a"/>
+          <rect x="65" y="0" width="4" height="30" fill="#0f172a"/>
+          <rect x="72" y="0" width="2" height="30" fill="#0f172a"/>
+          <rect x="76" y="0" width="6" height="30" fill="#0f172a"/>
+          <rect x="85" y="0" width="3" height="30" fill="#0f172a"/>
+          <rect x="91" y="0" width="2" height="30" fill="#0f172a"/>
+          <rect x="96" y="0" width="4" height="30" fill="#0f172a"/>
+          <rect x="103" y="0" width="2" height="30" fill="#0f172a"/>
+          <rect x="107" y="0" width="5" height="30" fill="#0f172a"/>
+          <rect x="115" y="0" width="3" height="30" fill="#0f172a"/>
+          <rect x="120" y="0" width="1" height="30" fill="#0f172a"/>
+          <rect x="124" y="0" width="4" height="30" fill="#0f172a"/>
+          <rect x="131" y="0" width="3" height="30" fill="#0f172a"/>
+          <rect x="137" y="0" width="5" height="30" fill="#0f172a"/>
+          <rect x="145" y="0" width="2" height="30" fill="#0f172a"/>
+          <rect x="150" y="0" width="4" height="30" fill="#0f172a"/>
+          <rect x="157" y="0" width="3" height="30" fill="#0f172a"/>
+          <text x="80" y="42" font-family="monospace" font-size="7.5" fill="#475569" text-anchor="middle">8 901234 567890</text>
+        </g>
+
+        <g transform="translate(230, 105)">
+          <rect x="0" y="0" width="95" height="45" rx="4" fill="#ecfdf5" stroke="#10b981" stroke-width="1.5" stroke-dasharray="3,2"/>
+          <text x="47" y="18" font-family="system-ui, sans-serif" font-size="7" font-weight="900" fill="#047857" text-anchor="middle">✓ APPROVED</text>
+          <text x="47" y="29" font-family="system-ui, sans-serif" font-size="6.5" font-weight="bold" fill="#047857" text-anchor="middle">OFFICIAL PROOF</text>
+          <text x="47" y="38" font-family="monospace" font-size="5.5" fill="#059669" text-anchor="middle">REF: SPEC-2026</text>
+        </g>
+
+        <rect x="25" y="165" width="310" height="25" rx="5" fill="#f8fafc" stroke="#e2e8f0" stroke-width="1"/>
+        <text x="35" y="181" font-family="system-ui, sans-serif" font-size="7.5" fill="#64748b">Direct compatibility verified for production printing & warehouse scanners.</text>
+      </g>
+    </svg>
+  `;
+}
+
+// State variables for Sample Proof Modal
+let currentSampleModalModel = '';
+let currentSampleModalCustomUrl = '';
+let currentSampleModalSpecs = '';
+let currentSampleModalYear = 2026;
+
+// Open Technical Sample Artwork Modal with Annual Master Color Code & Physical Proof Photos
+function openSampleArtworkModal(itemOrDescription, customUrl, selectedYear) {
+  const catInfo = getItemCategoryInfo(itemOrDescription);
+  let titleStr = '';
+  let modelStr = '';
+  let customSpecsStr = '';
+
+  if (typeof itemOrDescription === 'object' && itemOrDescription !== null) {
+    modelStr = itemOrDescription.model || itemOrDescription.description || catInfo.models[0];
+    customSpecsStr = itemOrDescription.spec || '';
+  } else {
+    modelStr = String(itemOrDescription || catInfo.models[0]).trim();
+  }
+
+  const parsed = formatProductDisplay(modelStr);
+  titleStr = parsed.title;
+  const activeSpecs = customSpecsStr || parsed.specs || MODEL_SPECS_MAP[modelStr] || 'Standard Factory Spec';
+
+  // Cache current modal target
+  currentSampleModalModel = modelStr;
+  currentSampleModalCustomUrl = customUrl || '';
+  currentSampleModalSpecs = activeSpecs;
+  currentSampleModalYear = Number(selectedYear) || getActiveYear();
+
+  renderSampleModalContent();
+  openModal('sampleArtworkModal');
+}
+
+// Switch Year in Sample Proof Modal
+function switchSampleModalYear(targetYear) {
+  currentSampleModalYear = Number(targetYear);
+  renderSampleModalContent();
+}
+
+// Render dynamic contents of Sample Modal for currentSampleModalModel & currentSampleModalYear
+function renderSampleModalContent() {
+  const modelStr = currentSampleModalModel;
+  const catInfo = getItemCategoryInfo(modelStr);
+  const parsed = formatProductDisplay(modelStr);
+  const titleStr = parsed.title;
+  const activeSpecs = currentSampleModalSpecs;
+  const year = currentSampleModalYear;
+  const yearObj = getYearColorConfig(year);
+  const activeFiscalYear = getActiveYear();
+  const isAdmin = state.currentUser && (state.currentUser.role === 'admin' || state.currentUser.role === 'store_manager');
+
+  // 1. Header Titles
+  const titleEl = document.getElementById('sampleArtworkTitle');
+  if (titleEl) titleEl.textContent = `${catInfo.icon} ${titleStr}`;
+
+  const yearHeaderBadge = document.getElementById('sampleYearHeaderBadge');
+  if (yearHeaderBadge) {
+    yearHeaderBadge.textContent = `FY ${year}`;
+    if (year === activeFiscalYear) {
+      yearHeaderBadge.className = "text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-400/30 font-mono";
+    } else {
+      yearHeaderBadge.className = "text-[10px] font-bold px-2 py-0.5 rounded-full bg-blue-500/20 text-blue-300 border border-blue-400/30 font-mono";
+    }
+  }
+
+  const codeEl = document.getElementById('sampleSpecimenCode');
+  if (codeEl) codeEl.textContent = `SPEC-REF: LT-${catInfo.prefix}-${year}`;
+
+  // 2. Year Selector Tabs
+  const yearTabsContainer = document.getElementById('sampleModalYearTabs');
+  if (yearTabsContainer && state.annualColorConfig && Array.isArray(state.annualColorConfig.years)) {
+    const sortedYears = [...state.annualColorConfig.years].sort((a, b) => a.year - b.year);
+    yearTabsContainer.innerHTML = sortedYears.map(y => {
+      const isSelected = y.year === year;
+      const isActiveMandate = y.year === activeFiscalYear;
+      return `
+        <button type="button" onclick="switchSampleModalYear(${y.year})" class="px-3 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1.5 cursor-pointer ${
+          isSelected 
+            ? 'bg-slate-900 text-white shadow-xs' 
+            : 'bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-200/80'
+        }">
+          <span class="w-2.5 h-2.5 rounded-full border border-white/40 shadow-2xs" style="background-color: ${y.hexColor};"></span>
+          <span>${y.year}</span>
+          ${isActiveMandate ? `<span class="text-[9px] px-1 py-0.2 rounded font-extrabold ${isSelected ? 'bg-emerald-500 text-white' : 'bg-emerald-100 text-emerald-800'}">ACTIVE</span>` : ''}
+        </button>
+      `;
+    }).join('');
+  }
+
+  // Admin Manage Standards Link
+  const manageBtnContainer = document.getElementById('sampleModalYearManageBtnContainer');
+  if (manageBtnContainer) {
+    if (isAdmin) {
+      manageBtnContainer.innerHTML = `
+        <button type="button" onclick="openAnnualColorManagerModal('mandates')" class="px-2.5 py-1 text-xs font-bold text-indigo-700 bg-indigo-50 hover:bg-indigo-100 border border-indigo-200 rounded-lg transition flex items-center gap-1 cursor-pointer">
+          <span>🎨 Manage Standards</span>
+        </button>
+      `;
+    } else {
+      manageBtnContainer.innerHTML = '';
+    }
+  }
+
+  // 3. Annual Master Color Code Banner
+  const colorBanner = document.getElementById('sampleModalColorBanner');
+  if (colorBanner) {
+    const isCurrentActive = year === activeFiscalYear;
+    colorBanner.style.background = `linear-gradient(135deg, ${yearObj.hexColor}12, #ffffff)`;
+    colorBanner.style.borderColor = `${yearObj.hexColor}40`;
+    colorBanner.innerHTML = `
+      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs">
+        <div class="flex items-start sm:items-center gap-3">
+          <div class="w-10 h-10 rounded-2xl flex items-center justify-center font-bold text-white shadow-sm shrink-0" style="background: linear-gradient(135deg, ${yearObj.hexColor}, ${yearObj.secondaryHex || yearObj.hexColor});">
+            🎨
+          </div>
+          <div>
+            <div class="flex items-center gap-2 flex-wrap">
+              <span class="font-extrabold uppercase tracking-wider text-[11px]" style="color: ${yearObj.hexColor};">
+                FY ${year} Annual Color Mandate
+              </span>
+              ${isCurrentActive 
+                ? '<span class="px-2 py-0.2 rounded-full text-[9px] font-extrabold bg-emerald-600 text-white uppercase tracking-wider">Active Standard</span>' 
+                : `<span class="px-2 py-0.2 rounded-full text-[9px] font-bold bg-slate-200 text-slate-700 uppercase tracking-wider font-mono">${yearObj.status}</span>`
+              }
+            </div>
+            <div class="font-bold text-slate-900 mt-0.5 text-xs flex items-center gap-1.5 flex-wrap">
+              <span>${escapeHtml(yearObj.colorName)}</span>
+              <span class="font-mono text-[10px] text-slate-500 font-semibold">(${yearObj.hexColor}${yearObj.secondaryHex ? ' / ' + yearObj.secondaryHex : ''})</span>
+            </div>
+            <p class="text-[11px] text-slate-600 font-medium mt-0.5 leading-snug">
+              ${escapeHtml(yearObj.guidelines || `All FY ${year} product shipments must follow this approved annual color scheme on roll core markings and outer cartons.`)}
+            </p>
+          </div>
+        </div>
+        <div class="flex items-center gap-1.5 self-end sm:self-center shrink-0">
+          <div class="flex flex-col items-center">
+            <span class="w-6 h-6 rounded-lg border border-slate-300 shadow-2xs block" style="background-color: ${yearObj.hexColor};" title="Primary Color: ${yearObj.hexColor}"></span>
+            <span class="text-[9px] font-mono text-slate-500 mt-0.5">Primary</span>
+          </div>
+          ${yearObj.secondaryHex ? `
+            <div class="flex flex-col items-center">
+              <span class="w-6 h-6 rounded-lg border border-slate-300 shadow-2xs block" style="background-color: ${yearObj.secondaryHex};" title="Secondary / Accent: ${yearObj.secondaryHex}"></span>
+              <span class="text-[9px] font-mono text-slate-500 mt-0.5">Accent</span>
+            </div>
+          ` : ''}
+        </div>
+      </div>
+    `;
+  }
+
+  // 4. Visual Specimen Frame (Uploaded Photo Proof or Dynamic SVG)
+  const container = document.getElementById('sampleArtworkVisualContainer');
+  const proofKey = getProofKey(modelStr, year);
+  const proof = state.sampleProofs ? state.sampleProofs[proofKey] : null;
+
+  if (container) {
+    if (proof && proof.imageUrl) {
+      // Physical approved sample photo uploaded
+      container.innerHTML = `
+        <div class="flex flex-col items-center justify-center p-2 relative w-full">
+          <div class="relative max-h-80 w-full flex items-center justify-center rounded-2xl overflow-hidden bg-slate-950/5 border border-slate-200">
+            <img src="${proof.imageUrl}" alt="${escapeHtml(titleStr)}" class="max-h-76 w-auto object-contain rounded-xl shadow cursor-pointer transition hover:scale-102" onclick="window.open('${proof.imageUrl}', '_blank')">
+            <div class="absolute top-2.5 left-2.5 bg-slate-950/85 backdrop-blur-md text-white text-[10px] font-bold px-3 py-1 rounded-full flex items-center gap-1.5 shadow">
+              <span class="w-2 h-2 rounded-full" style="background-color: ${yearObj.hexColor};"></span>
+              <span>Official ${year} Approved Physical Sample Proof</span>
+            </div>
+            <div class="absolute bottom-2.5 right-2.5 bg-slate-950/75 backdrop-blur-md text-slate-200 text-[10px] px-2 py-0.5 rounded-lg font-mono">
+              🔍 Click to open full resolution
+            </div>
+          </div>
+          <div class="w-full mt-3 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 p-3 bg-emerald-50/80 border border-emerald-200 rounded-xl text-xs">
+            <div>
+              <div class="flex items-center gap-1.5 flex-wrap">
+                <span class="font-bold text-emerald-900">✓ Factory Approved Sample Proof (${year})</span>
+                <span class="text-[10px] text-slate-500 font-mono">Uploaded by ${escapeHtml(proof.uploadedBy || 'Operations Admin')} on ${proof.uploadedAt ? new Date(proof.uploadedAt).toLocaleDateString() : 'N/A'}</span>
+              </div>
+              ${proof.notes ? `<p class="text-[11px] text-emerald-800 font-medium mt-0.5 leading-snug">Batch Note: "${escapeHtml(proof.notes)}"</p>` : ''}
+            </div>
+            ${isAdmin ? `
+              <div class="flex items-center gap-1.5 shrink-0">
+                <button type="button" onclick="document.getElementById('sampleProofGalleryInput').click()" class="px-2.5 py-1 bg-white hover:bg-slate-100 border border-slate-300 text-slate-700 text-[11px] font-bold rounded-lg shadow-2xs transition cursor-pointer">
+                  🔄 Replace Photo
+                </button>
+                <button type="button" onclick="deleteSampleProof('${proofKey}')" class="px-2.5 py-1 bg-rose-50 hover:bg-rose-100 border border-rose-200 text-rose-700 text-[11px] font-bold rounded-lg shadow-2xs transition cursor-pointer">
+                  🗑️ Remove
+                </button>
+              </div>
+            ` : ''}
+          </div>
+        </div>
+      `;
+    } else if (currentSampleModalCustomUrl) {
+      container.innerHTML = `
+        <div class="flex flex-col items-center justify-center p-4">
+          <img src="${currentSampleModalCustomUrl}" alt="${escapeHtml(titleStr)}" class="max-h-72 rounded-xl object-contain shadow border border-slate-200">
+          <span class="text-xs text-slate-500 font-mono mt-2">Custom Approved Artwork Proof</span>
+        </div>
+      `;
+    } else {
+      // Dynamic SVG Blueprint tinted with annual color
+      const svgContent = generateSampleArtworkSvg(modelStr, activeSpecs, yearObj);
+      container.innerHTML = `
+        <div class="w-full flex flex-col items-center">
+          ${svgContent}
+          <div class="w-full mt-3 p-3 bg-amber-50/80 border border-amber-200 rounded-xl flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 text-xs text-amber-900">
+            <div class="flex items-center gap-2">
+              <span class="text-base shrink-0">⚠️</span>
+              <div>
+                <span class="font-bold block">No Physical Sample Photo Uploaded for FY ${year} Yet</span>
+                <span class="text-[11px] text-amber-800 leading-snug block">Displaying vector technical layout with ${year} master color standard (${escapeHtml(yearObj.colorName)}).</span>
+              </div>
+            </div>
+            ${isAdmin ? `
+              <button type="button" onclick="document.getElementById('sampleProofGalleryInput').click()" class="px-3 py-1.5 bg-amber-600 hover:bg-amber-700 text-white font-bold rounded-lg text-xs shadow-2xs transition shrink-0 cursor-pointer self-start sm:self-auto">
+                📸 Upload ${year} Photo Proof
+              </button>
+            ` : ''}
+          </div>
+        </div>
+      `;
+    }
+  }
+
+  // 5. Admin Upload Box
+  const uploadBox = document.getElementById('sampleProofAdminUploadBox');
+  if (uploadBox) {
+    if (isAdmin) {
+      uploadBox.classList.remove('hidden');
+      const boxTitle = document.getElementById('sampleUploadBoxTitle');
+      if (boxTitle) boxTitle.textContent = `Upload / Replace Approved Physical Proof Photo for FY ${year}`;
+      const notesInput = document.getElementById('sampleProofNotesInput');
+      if (notesInput) notesInput.placeholder = `e.g. FY ${year} ${yearObj.colorName} flexo sample batch approved by Quality`;
+    } else {
+      uploadBox.classList.add('hidden');
+    }
+  }
+
+  // 6. Technical Specifications Grid
+  let substrate = 'Chromo Semi-Gloss Paper';
+  let coreSize = '3" Core (76.2 mm)';
+  let ups = '1 UPS (Single Across)';
+  let rollCapacity = '1,000 / roll';
+  let ribbonRec = 'Wax Ribbon (Chromo)';
+  let unwind = 'Face Out (Top First)';
+
+  const strLower = modelStr.toLowerCase();
+  if (strLower.includes('synthetic')) substrate = 'Synthetic Tear-Proof Poly';
+  else if (strLower.includes('board')) substrate = 'Heavy White Art Board';
+  else if (strLower.includes('dt direct') || strLower.includes('direct thermal')) {
+    substrate = 'Direct Thermal (DT) Top-Coated';
+    ribbonRec = 'No Ribbon Required (Direct Thermal)';
+  } else if (strLower.includes('ribbon')) {
+    substrate = 'Thermal Transfer Ink Ribbon Film';
+    if (strLower.includes('wax-resin')) ribbonRec = 'Wax-Resin Smudge-Proof';
+    else if (strLower.includes('resin')) ribbonRec = 'Full Resin Scratch-Proof';
+    else ribbonRec = 'Wax Standard';
+  }
+
+  if (strLower.includes('1" core')) coreSize = '1" Core (25.4 mm) Desktop';
+  else if (strLower.includes('3" core')) coreSize = '3" Core (76.2 mm) Industrial';
+
+  if (strLower.includes('2 ups')) ups = '2 UPS (Twin Labels Across)';
+  else if (strLower.includes('1 ups')) ups = '1 UPS (Single Across)';
+
+  if (strLower.includes('5,000')) rollCapacity = '5,000 units/roll';
+  else if (strLower.includes('2,500')) rollCapacity = '2,500 units/roll';
+  else if (strLower.includes('1,000')) rollCapacity = '1,000 units/roll';
+  else if (strLower.includes('500')) rollCapacity = '500 units/roll';
+  else if (strLower.includes('250')) rollCapacity = '250 units/roll';
+  else if (strLower.includes('300m')) rollCapacity = '110mm x 300m roll';
+
+  const specsGrid = document.getElementById('sampleSpecsGrid');
+  if (specsGrid) {
+    specsGrid.innerHTML = `
+      <div class="bg-slate-50 p-3 rounded-xl border border-slate-200">
+        <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Category & SKU</span>
+        <span class="font-bold text-slate-800 block mt-0.5">${catInfo.icon} ${catInfo.name}</span>
+      </div>
+      <div class="bg-slate-50 p-3 rounded-xl border border-slate-200">
+        <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Substrate / Material</span>
+        <span class="font-bold text-slate-800 block mt-0.5">${substrate}</span>
+      </div>
+      <div class="bg-slate-50 p-3 rounded-xl border border-slate-200">
+        <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Roll Core Inner Diameter</span>
+        <span class="font-bold text-blue-600 font-mono block mt-0.5">${coreSize}</span>
+      </div>
+      <div class="bg-slate-50 p-3 rounded-xl border border-slate-200">
+        <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Web Layout (UPS)</span>
+        <span class="font-bold text-indigo-600 block mt-0.5">${ups}</span>
+      </div>
+      <div class="bg-slate-50 p-3 rounded-xl border border-slate-200">
+        <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Standard Roll Packaging</span>
+        <span class="font-bold text-slate-800 font-mono block mt-0.5">${rollCapacity}</span>
+      </div>
+      <div class="bg-slate-50 p-3 rounded-xl border border-slate-200">
+        <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Recommended Ribbon</span>
+        <span class="font-bold text-emerald-700 block mt-0.5">${ribbonRec}</span>
+      </div>
+      <div class="bg-slate-50 p-3 rounded-xl border border-slate-200">
+        <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Unwind Direction</span>
+        <span class="font-bold text-slate-800 block mt-0.5">${unwind}</span>
+      </div>
+      <div class="bg-slate-50 p-3 rounded-xl border border-slate-200">
+        <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">FY ${year} Color Mandate</span>
+        <span class="font-bold font-mono block mt-0.5 flex items-center gap-1.5" style="color: ${yearObj.hexColor};">
+          <span class="w-2.5 h-2.5 rounded-full inline-block" style="background-color: ${yearObj.hexColor};"></span>
+          <span>${yearObj.hexColor}</span>
+        </span>
+      </div>
+    `;
+  }
+}
+
+// Handle Photo Proof File Change (Mobile Camera or File Picker)
+async function handleSampleProofFileChange(event) {
+  const file = event.target.files && event.target.files[0];
+  if (!file) return;
+
+  const year = currentSampleModalYear || getActiveYear();
+  const model = currentSampleModalModel;
+  const proofKey = getProofKey(model, year);
+  const yearObj = getYearColorConfig(year);
+  const notes = document.getElementById('sampleProofNotesInput')?.value.trim() || '';
+
+  showToast(`Compressing & verifying FY ${year} sample photo proof...`);
+
+  try {
+    const optimized = await compressDocumentImage(file);
+    if (!optimized || !optimized.dataUrl) {
+      showToast('Could not process the selected image.', true);
+      event.target.value = '';
+      return;
+    }
+
+    if (!state.sampleProofs) state.sampleProofs = {};
+    state.sampleProofs[proofKey] = {
+      modelKey: normalizeModelKey(model),
+      modelName: model,
+      year: Number(year),
+      imageUrl: optimized.dataUrl,
+      uploadedAt: new Date().toISOString(),
+      uploadedBy: (state.currentUser && state.currentUser.name) || 'Operations Admin',
+      colorName: yearObj.colorName,
+      hexColor: yearObj.hexColor,
+      notes: notes || `Approved FY ${year} physical sample (${yearObj.colorName})`
+    };
+
+    saveState();
+    showToast(`✅ Official FY ${year} physical sample photo proof saved successfully!`);
+
+    // Reset input
+    event.target.value = '';
+    const notesInput = document.getElementById('sampleProofNotesInput');
+    if (notesInput) notesInput.value = '';
+
+    // Re-render sample modal
+    renderSampleModalContent();
+  } catch (err) {
+    console.error('Error uploading sample proof:', err);
+    showToast('Failed to save sample proof image. Please try again.', true);
+  }
+}
+
+// Delete an uploaded sample proof
+function deleteSampleProof(proofKey) {
+  if (!confirm('Are you sure you want to remove this approved sample photo proof?')) return;
+  if (state.sampleProofs && state.sampleProofs[proofKey]) {
+    delete state.sampleProofs[proofKey];
+    saveState();
+    showToast('Approved sample photo proof removed.');
+    renderSampleModalContent();
+    if (!document.getElementById('annualColorCodeModal')?.classList.contains('hidden')) {
+      renderAnnualProofsMatrix();
+    }
+  }
+}
+
+// Gate Receiving Modal Sample Helper
+function openReceiveModalSample() {
+  if (typeof currentReceiveShipmentId === 'undefined' || !currentReceiveShipmentId) return;
+  const s = state.shipments.find(item => item.id === currentReceiveShipmentId);
+  if (!s) return;
+  openSampleArtworkModal(s.model || s.description || s.sku);
+}
+
+// ============================================================
+// MODAL 10: ANNUAL MASTER COLOR CODES & PROOFS GALLERY MANAGER
+// ============================================================
+let currentAnnualManagerTab = 'mandates';
+let currentMatrixSelectedYear = 2026;
+let currentMatrixCategoryFilter = 'all';
+
+function openAnnualColorManagerModal(subTab) {
+  currentAnnualManagerTab = subTab || 'mandates';
+  currentMatrixSelectedYear = getActiveYear();
+  switchAnnualManagerTab(currentAnnualManagerTab);
+  openModal('annualColorCodeModal');
+}
+
+function switchAnnualManagerTab(tab) {
+  currentAnnualManagerTab = tab || 'mandates';
+  const btnMandates = document.getElementById('annualTabBtnMandates');
+  const btnMatrix = document.getElementById('annualTabBtnMatrix');
+  const paneMandates = document.getElementById('annualPaneMandates');
+  const paneMatrix = document.getElementById('annualPaneMatrix');
+
+  const isMandates = currentAnnualManagerTab === 'mandates';
+  if (btnMandates) {
+    btnMandates.className = isMandates
+      ? 'nav-tab-btn nav-tab-btn-active px-3.5 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1.5 cursor-pointer'
+      : 'nav-tab-btn px-3.5 py-1.5 rounded-lg text-xs font-semibold text-slate-600 hover:text-slate-900 transition flex items-center gap-1.5 cursor-pointer';
+  }
+  if (btnMatrix) {
+    btnMatrix.className = !isMandates
+      ? 'nav-tab-btn nav-tab-btn-active px-3.5 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1.5 cursor-pointer'
+      : 'nav-tab-btn px-3.5 py-1.5 rounded-lg text-xs font-semibold text-slate-600 hover:text-slate-900 transition flex items-center gap-1.5 cursor-pointer';
+  }
+  if (paneMandates) {
+    if (isMandates) paneMandates.classList.remove('hidden');
+    else paneMandates.classList.add('hidden');
+  }
+  if (paneMatrix) {
+    if (!isMandates) paneMatrix.classList.remove('hidden');
+    else paneMatrix.classList.add('hidden');
+  }
+
+  if (isMandates) {
+    renderAnnualColorRegistry();
+  } else {
+    renderAnnualProofsMatrix();
+  }
+}
+
+// Render Annual Color Registry
+function renderAnnualColorRegistry() {
+  const grid = document.getElementById('annualYearsGrid');
+  if (!grid) return;
+
+  const activeYear = getActiveYear();
+  const years = (state.annualColorConfig && Array.isArray(state.annualColorConfig.years))
+    ? [...state.annualColorConfig.years].sort((a, b) => b.year - a.year)
+    : [];
+
+  grid.innerHTML = years.map(y => {
+    const isActive = Number(y.year) === activeYear;
+    
+    // Count uploaded proofs for this year
+    let proofsCount = 0;
+    if (state.sampleProofs) {
+      Object.keys(state.sampleProofs).forEach(k => {
+        if (state.sampleProofs[k] && Number(state.sampleProofs[k].year) === Number(y.year)) {
+          proofsCount++;
+        }
+      });
+    }
+
+    return `
+      <div class="rounded-2xl border ${isActive ? 'border-indigo-400 ring-2 ring-indigo-500/20 bg-indigo-50/20' : 'border-slate-200 bg-white'} shadow-xs overflow-hidden flex flex-col justify-between transition hover:shadow-md">
+        <div>
+          <!-- Top Color Bar -->
+          <div class="h-3 w-full" style="background: linear-gradient(90deg, ${y.hexColor}, ${y.secondaryHex || y.hexColor});"></div>
+          
+          <div class="p-5 space-y-3">
+            <div class="flex items-start justify-between gap-2">
+              <div>
+                <span class="text-xs font-mono font-bold text-slate-400">Financial Year</span>
+                <h3 class="text-xl font-black text-slate-900 leading-none mt-0.5">FY ${y.year}</h3>
+              </div>
+              ${isActive ? `
+                <span class="px-2.5 py-1 rounded-full text-[10px] font-extrabold bg-emerald-500 text-white shadow-2xs uppercase tracking-wider flex items-center gap-1">
+                  <span>✓</span>
+                  <span>Active Mandate</span>
+                </span>
+              ` : `
+                <span class="px-2.5 py-1 rounded-full text-[10px] font-bold bg-slate-100 text-slate-600 uppercase tracking-wider font-mono">
+                  ${y.status || 'archived'}
+                </span>
+              `}
+            </div>
+
+            <!-- Color Swatch Presentation -->
+            <div class="p-3 rounded-xl border border-slate-100 bg-slate-50/70 flex items-center gap-3">
+              <div class="flex items-center gap-1 shrink-0">
+                <span class="w-7 h-7 rounded-lg border border-slate-300 shadow-2xs block" style="background-color: ${y.hexColor};" title="Primary: ${y.hexColor}"></span>
+                ${y.secondaryHex ? `
+                  <span class="w-7 h-7 rounded-lg border border-slate-300 shadow-2xs block" style="background-color: ${y.secondaryHex};" title="Accent: ${y.secondaryHex}"></span>
+                ` : ''}
+              </div>
+              <div class="min-w-0">
+                <span class="font-bold text-slate-900 text-xs block truncate">${escapeHtml(y.colorName)}</span>
+                <span class="font-mono text-[10px] text-slate-500 font-semibold block">${y.hexColor}${y.secondaryHex ? ' • ' + y.secondaryHex : ''}</span>
+              </div>
+            </div>
+
+            <p class="text-xs text-slate-600 font-medium leading-relaxed">
+              ${escapeHtml(y.guidelines || 'Standard core marking and verification guideline for this financial year.')}
+            </p>
+
+            <div class="pt-2 border-t border-slate-100 flex items-center justify-between text-xs text-slate-500">
+              <span class="font-medium">Uploaded Proofs:</span>
+              <span class="font-mono font-bold ${proofsCount > 0 ? 'text-emerald-700 bg-emerald-50 border border-emerald-200' : 'text-slate-400 bg-slate-100'} px-2 py-0.5 rounded-md text-[11px]">
+                ${proofsCount} item(s)
+              </span>
+            </div>
+          </div>
+        </div>
+
+        <div class="p-3.5 bg-slate-50/90 border-t border-slate-200 flex items-center justify-between gap-2">
+          ${!isActive ? `
+            <button type="button" onclick="setActiveOperationalYear(${y.year})" class="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-bold transition flex items-center gap-1 shadow-2xs cursor-pointer">
+              <span>⭐ Set as Active Mandate</span>
+            </button>
+          ` : `
+            <span class="text-[11px] font-bold text-emerald-700 flex items-center gap-1">
+              <span>● Current Active Standard</span>
+            </span>
+          `}
+          <div class="flex items-center gap-1">
+            <button type="button" onclick="toggleNewYearForm(true, ${y.year})" class="p-1.5 hover:bg-slate-200 text-slate-600 rounded-lg text-xs font-bold transition cursor-pointer" title="Edit Color Standard">
+              ✏️
+            </button>
+            ${!isActive ? `
+              <button type="button" onclick="deleteAnnualColorYear(${y.year})" class="p-1.5 hover:bg-rose-100 text-rose-600 rounded-lg text-xs font-bold transition cursor-pointer" title="Delete Year">
+                🗑️
+              </button>
+            ` : ''}
+          </div>
+        </div>
+      </div>
+    `;
+  }).join('');
+}
+
+// Toggle Add/Edit Year Form
+function toggleNewYearForm(show, yearToEdit) {
+  const formCard = document.getElementById('newYearColorFormCard');
+  if (!formCard) return;
+
+  if (show === false) {
+    formCard.classList.add('hidden');
+    return;
+  }
+
+  formCard.classList.remove('hidden');
+  const heading = document.getElementById('yearFormHeading');
+  const origYearInput = document.getElementById('editYearOriginalYear');
+  const yearInput = document.getElementById('inputYearNumber');
+  const colorNameInput = document.getElementById('inputYearColorName');
+  const primaryPicker = document.getElementById('inputYearPrimaryPicker');
+  const primaryHex = document.getElementById('inputYearPrimaryHex');
+  const secondaryPicker = document.getElementById('inputYearSecondaryPicker');
+  const secondaryHex = document.getElementById('inputYearSecondaryHex');
+  const statusSelect = document.getElementById('inputYearStatus');
+  const guidelinesInput = document.getElementById('inputYearGuidelines');
+
+  if (yearToEdit) {
+    const yObj = getYearColorConfig(yearToEdit);
+    if (heading) heading.textContent = `Edit FY ${yearToEdit} Annual Color Standard`;
+    if (origYearInput) origYearInput.value = yearToEdit;
+    if (yearInput) {
+      yearInput.value = yObj.year;
+      yearInput.disabled = true;
+    }
+    if (colorNameInput) colorNameInput.value = yObj.colorName;
+    if (primaryPicker) primaryPicker.value = yObj.hexColor;
+    if (primaryHex) primaryHex.value = yObj.hexColor;
+    if (secondaryPicker) secondaryPicker.value = yObj.secondaryHex || '#facc15';
+    if (secondaryHex) secondaryHex.value = yObj.secondaryHex || '#facc15';
+    if (statusSelect) statusSelect.value = yObj.status || 'upcoming';
+    if (guidelinesInput) guidelinesInput.value = yObj.guidelines || '';
+  } else {
+    if (heading) heading.textContent = 'Register New Financial Year Color Standard';
+    if (origYearInput) origYearInput.value = '';
+    if (yearInput) {
+      const active = getActiveYear();
+      yearInput.value = active + 1;
+      yearInput.disabled = false;
+    }
+    if (colorNameInput) colorNameInput.value = '';
+    if (primaryPicker) primaryPicker.value = '#7c3aed';
+    if (primaryHex) primaryHex.value = '#7c3aed';
+    if (secondaryPicker) secondaryPicker.value = '#fb923c';
+    if (secondaryHex) secondaryHex.value = '#fb923c';
+    if (statusSelect) statusSelect.value = 'upcoming';
+    if (guidelinesInput) guidelinesInput.value = '';
+  }
+}
+
+// Save Year Color Standard
+function handleSaveYearColor(event) {
+  event.preventDefault();
+  const origYear = document.getElementById('editYearOriginalYear')?.value;
+  const yearNum = Number(document.getElementById('inputYearNumber')?.value);
+  const colorName = document.getElementById('inputYearColorName')?.value.trim();
+  const primary = document.getElementById('inputYearPrimaryHex')?.value.trim();
+  const secondary = document.getElementById('inputYearSecondaryHex')?.value.trim();
+  const status = document.getElementById('inputYearStatus')?.value;
+  const guidelines = document.getElementById('inputYearGuidelines')?.value.trim();
+
+  if (!yearNum || !colorName || !primary) {
+    showToast('Please fill in Year, Color Title, and Primary Color Hex.', true);
+    return;
+  }
+
+  if (!state.annualColorConfig) {
+    state.annualColorConfig = { ...DEFAULT_ANNUAL_COLOR_CONFIG };
+  }
+  if (!Array.isArray(state.annualColorConfig.years)) {
+    state.annualColorConfig.years = [...DEFAULT_ANNUAL_COLOR_CONFIG.years];
+  }
+
+  if (origYear) {
+    // Update existing
+    const idx = state.annualColorConfig.years.findIndex(y => Number(y.year) === Number(origYear));
+    if (idx !== -1) {
+      state.annualColorConfig.years[idx] = {
+        ...state.annualColorConfig.years[idx],
+        colorName,
+        hexColor: primary,
+        secondaryHex: secondary,
+        status,
+        guidelines
+      };
+    }
+  } else {
+    // Check duplicate
+    const exists = state.annualColorConfig.years.some(y => Number(y.year) === yearNum);
+    if (exists) {
+      showToast(`Financial Year ${yearNum} is already registered!`, true);
+      return;
+    }
+    state.annualColorConfig.years.push({
+      year: yearNum,
+      colorName,
+      hexColor: primary,
+      secondaryHex: secondary,
+      status,
+      guidelines
+    });
+  }
+
+  if (status === 'active') {
+    state.annualColorConfig.activeYear = yearNum;
+    state.annualColorConfig.years.forEach(y => {
+      if (Number(y.year) !== yearNum && y.status === 'active') {
+        y.status = (Number(y.year) > yearNum) ? 'upcoming' : 'archived';
+      }
+    });
+  }
+
+  saveState();
+  showToast(`✅ Financial Year ${yearNum} color standard saved successfully!`);
+  toggleNewYearForm(false);
+  renderAnnualColorRegistry();
+}
+
+// Set Active Operational Year
+function setActiveOperationalYear(year) {
+  const targetYear = Number(year);
+  if (!state.annualColorConfig) state.annualColorConfig = { ...DEFAULT_ANNUAL_COLOR_CONFIG };
+  state.annualColorConfig.activeYear = targetYear;
+
+  if (Array.isArray(state.annualColorConfig.years)) {
+    state.annualColorConfig.years.forEach(y => {
+      if (Number(y.year) === targetYear) {
+        y.status = 'active';
+      } else if (Number(y.year) > targetYear) {
+        y.status = 'upcoming';
+      } else {
+        y.status = 'archived';
+      }
+    });
+  }
+
+  saveState();
+  showToast(`⭐ FY ${targetYear} is now the universal active operational standard!`);
+  renderAnnualColorRegistry();
+}
+
+// Delete an annual color year
+function deleteAnnualColorYear(year) {
+  const targetYear = Number(year);
+  if (targetYear === getActiveYear()) {
+    showToast('Cannot delete the currently active operational mandate.', true);
+    return;
+  }
+  if (!confirm(`Are you sure you want to delete the color standard for FY ${targetYear}?`)) return;
+
+  if (state.annualColorConfig && Array.isArray(state.annualColorConfig.years)) {
+    state.annualColorConfig.years = state.annualColorConfig.years.filter(y => Number(y.year) !== targetYear);
+    saveState();
+    showToast(`FY ${targetYear} color standard deleted.`);
+    renderAnnualColorRegistry();
+  }
+}
+
+// Render Master Proofs Matrix
+function renderAnnualProofsMatrix(selectedYear, catFilter) {
+  if (selectedYear) currentMatrixSelectedYear = Number(selectedYear);
+  if (catFilter) currentMatrixCategoryFilter = catFilter;
+
+  const yearSelect = document.getElementById('matrixYearSelect');
+  if (yearSelect && state.annualColorConfig && Array.isArray(state.annualColorConfig.years)) {
+    yearSelect.innerHTML = state.annualColorConfig.years.map(y => `
+      <option value="${y.year}" ${Number(y.year) === currentMatrixSelectedYear ? 'selected' : ''}>
+        FY ${y.year} — ${escapeHtml(y.colorName)} ${Number(y.year) === getActiveYear() ? '(Active)' : ''}
+      </option>
+    `).join('');
+  }
+
+  const grid = document.getElementById('annualProofsMatrixGrid');
+  if (!grid) return;
+
+  // Collect all models from PRODUCT_CATEGORIES based on current filter
+  let allModels = [];
+  Object.keys(PRODUCT_CATEGORIES).forEach(catKey => {
+    if (currentMatrixCategoryFilter !== 'all' && catKey !== currentMatrixCategoryFilter) return;
+    const cat = PRODUCT_CATEGORIES[catKey];
+    cat.models.forEach(modelName => {
+      if (modelName.toLowerCase().includes('custom')) return; // standard catalog items
+      allModels.push({
+        category: catKey,
+        catInfo: cat,
+        modelName: modelName,
+        specs: MODEL_SPECS_MAP[modelName] || ''
+      });
+    });
+  });
+
+  grid.innerHTML = allModels.map(item => {
+    const proofKey = getProofKey(item.modelName, currentMatrixSelectedYear);
+    const proof = state.sampleProofs ? state.sampleProofs[proofKey] : null;
+    const parsed = formatProductDisplay(item.modelName);
+
+    return `
+      <div class="bg-white rounded-2xl border ${proof ? 'border-emerald-200 shadow-xs' : 'border-slate-200'} p-4 flex flex-col justify-between space-y-3 transition hover:shadow-md">
+        <div>
+          <div class="flex items-start justify-between gap-2">
+            <span class="inline-flex items-center gap-1 font-bold text-[10px] px-2 py-0.5 rounded-md border ${item.catInfo.badgeClass}">
+              <span>${item.catInfo.icon}</span>
+              <span>${item.catInfo.name}</span>
+            </span>
+            ${proof ? `
+              <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800 border border-emerald-200 flex items-center gap-1">
+                <span>✓ Approved Proof</span>
+              </span>
+            ` : `
+              <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-100 text-amber-800 border border-amber-200">
+                ⚠️ Awaiting Photo
+              </span>
+            `}
+          </div>
+
+          <h5 class="text-xs font-bold text-slate-900 mt-2">${escapeHtml(parsed.title)}</h5>
+          ${parsed.specs ? `<p class="text-[10px] font-mono text-slate-500 mt-0.5 leading-snug">${escapeHtml(parsed.specs)}</p>` : ''}
+
+          <!-- Preview Frame -->
+          <div class="mt-3 h-32 rounded-xl bg-slate-50 border border-slate-200 flex items-center justify-center overflow-hidden relative">
+            ${proof && proof.imageUrl ? `
+              <img src="${proof.imageUrl}" alt="${escapeHtml(parsed.title)}" class="w-full h-full object-cover">
+              <div class="absolute bottom-1 right-1 bg-slate-900/80 text-white text-[9px] px-1.5 py-0.5 rounded font-mono">
+                ${new Date(proof.uploadedAt).toLocaleDateString()}
+              </div>
+            ` : `
+              <div class="text-center p-3 text-slate-400">
+                <span class="text-2xl block mb-1">🖼️</span>
+                <span class="text-[11px] font-semibold block text-slate-500">No Photo Uploaded</span>
+                <span class="text-[9px] text-slate-400 font-mono">FY ${currentMatrixSelectedYear} Mandate</span>
+              </div>
+            `}
+          </div>
+        </div>
+
+        <div class="pt-2 border-t border-slate-100 flex items-center justify-between gap-2">
+          <button type="button" onclick="openSampleArtworkModal('${escapeHtml(item.modelName)}', null, ${currentMatrixSelectedYear})" class="px-2.5 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg text-xs font-bold transition flex items-center gap-1 cursor-pointer">
+            <span>🔍 View Proof</span>
+          </button>
+          
+          <div>
+            <input type="file" id="matrixInput_${proofKey}" accept="image/*" class="hidden" onchange="handleMatrixQuickUpload('${escapeHtml(item.modelName)}', ${currentMatrixSelectedYear}, this)">
+            <button type="button" onclick="document.getElementById('matrixInput_${proofKey}').click()" class="px-3 py-1.5 ${proof ? 'bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200' : 'btn-gradient-primary text-white'} rounded-lg text-xs font-bold transition flex items-center gap-1 shadow-2xs cursor-pointer">
+              <span>${proof ? '🔄 Replace' : '📸 Upload Photo'}</span>
+            </button>
+          </div>
+        </div>
+      </div>
+    `;
+  }).join('');
+}
+
+function handleMatrixYearChange(year) {
+  currentMatrixSelectedYear = Number(year);
+  renderAnnualProofsMatrix();
+}
+
+function handleMatrixCatChange(cat) {
+  currentMatrixCategoryFilter = cat;
+  renderAnnualProofsMatrix();
+}
+
+// Quick Upload from Master Proofs Gallery Matrix
+async function handleMatrixQuickUpload(modelName, year, fileInput) {
+  const file = fileInput.files && fileInput.files[0];
+  if (!file) return;
+
+  const proofKey = getProofKey(modelName, year);
+  const yearObj = getYearColorConfig(year);
+
+  showToast(`Compressing & uploading FY ${year} physical proof...`);
+
+  try {
+    const optimized = await compressDocumentImage(file);
+    if (!optimized || !optimized.dataUrl) {
+      showToast('Could not process the selected image.', true);
+      fileInput.value = '';
+      return;
+    }
+
+    if (!state.sampleProofs) state.sampleProofs = {};
+    state.sampleProofs[proofKey] = {
+      modelKey: normalizeModelKey(modelName),
+      modelName: modelName,
+      year: Number(year),
+      imageUrl: optimized.dataUrl,
+      uploadedAt: new Date().toISOString(),
+      uploadedBy: (state.currentUser && state.currentUser.name) || 'Operations Admin',
+      colorName: yearObj.colorName,
+      hexColor: yearObj.hexColor,
+      notes: `Batch upload for FY ${year} (${yearObj.colorName})`
+    };
+
+    saveState();
+    showToast(`✅ Approved proof uploaded for ${modelName.split('—')[0].trim()}!`);
+    fileInput.value = '';
+    renderAnnualProofsMatrix();
+  } catch (err) {
+    console.error('Matrix quick upload error:', err);
+    showToast('Failed to upload proof. Please try again.', true);
+  }
+}
+
+// ==========================================
+// PROFESSIONAL TAB MANAGEMENT & EXECUTIVE THEME
+// ==========================================
+function switchAdminTab(tabName) {
+  state.adminActiveTab = tabName || 'orders';
+  const tabs = ['orders', 'dispatches', 'scorecards', 'vendors'];
+  tabs.forEach(t => {
+    const btn = document.getElementById(`adminTabBtn${t.charAt(0).toUpperCase() + t.slice(1)}`);
+    const pane = document.getElementById(`adminPane${t.charAt(0).toUpperCase() + t.slice(1)}`);
+    const badge = document.getElementById(`adminTabBadge${t.charAt(0).toUpperCase() + t.slice(1)}`);
+    const isActive = (t === state.adminActiveTab);
+    if (btn) {
+      if (isActive) {
+        btn.className = "nav-tab-btn nav-tab-btn-active px-4 py-2.5 rounded-xl text-xs font-bold transition flex items-center gap-2 cursor-pointer";
+      } else {
+        btn.className = "nav-tab-btn px-4 py-2.5 rounded-xl text-xs font-semibold text-slate-600 hover:text-slate-900 transition flex items-center gap-2 cursor-pointer";
+      }
+    }
+    if (badge) {
+      if (isActive) {
+        badge.className = "px-2 py-0.5 rounded-full text-[10px] font-mono font-bold bg-slate-900 text-white shadow-2xs transition-colors";
+      } else {
+        badge.className = "px-2 py-0.5 rounded-full text-[10px] font-mono font-bold bg-slate-200/90 text-slate-600 transition-colors";
+      }
+    }
+    if (pane) {
+      if (isActive) {
+        pane.classList.remove('hidden');
+      } else {
+        pane.classList.add('hidden');
+      }
+    }
+  });
+}
+
+function setAdminPoFilter(filter) {
+  state.adminPoFilter = filter || 'all';
+  const btns = {
+    all: document.getElementById('adminPoFilterAll'),
+    pending: document.getElementById('adminPoFilterPending'),
+    in_production: document.getElementById('adminPoFilterProd'),
+    in_stock: document.getElementById('adminPoFilterStock'),
+    completed: document.getElementById('adminPoFilterComp')
+  };
+  Object.entries(btns).forEach(([key, btn]) => {
+    if (!btn) return;
+    if (key === state.adminPoFilter) {
+      btn.className = "nav-tab-btn nav-tab-btn-active-primary px-3 py-1 rounded-lg text-xs font-bold transition cursor-pointer";
+    } else {
+      btn.className = "nav-tab-btn px-3 py-1 rounded-lg text-xs font-semibold text-slate-600 hover:text-slate-900 transition cursor-pointer";
+    }
+  });
+  render();
+}
+
+// ==========================================
+// MANUFACTURING & PRODUCTION READINESS TRACKING
+// ==========================================
+function formatProductionStatusText(status) {
+  switch (status) {
+    case 'in_stock': return 'In Stock (Ready to Dispatch)';
+    case 'in_production': return 'In Production / Printing';
+    case 'packing': return 'Finishing & Packing';
+    case 'ready_to_ship': return 'Ready for Dispatch';
+    case 'pending': return 'Pending Supplier Confirmation';
+    default: return 'In Production';
+  }
+}
+
+function getProductionBadgeHtml(status, estDate) {
+  const dateStr = estDate ? `<span class="opacity-80 font-mono text-[9px] block">Est: ${estDate}</span>` : '';
+  switch (status) {
+    case 'in_stock':
+      return `<div class="inline-flex flex-col items-center"><span class="prod-badge prod-in-stock">📦 Ready in Stock</span>${dateStr}</div>`;
+    case 'in_production':
+      return `<div class="inline-flex flex-col items-center"><span class="prod-badge prod-in-production"><span class="w-1.5 h-1.5 rounded-full bg-indigo-600 animate-pulse"></span>🏭 In Production</span>${dateStr}</div>`;
+    case 'packing':
+      return `<div class="inline-flex flex-col items-center"><span class="prod-badge prod-packing">🔍 Packing / QA</span>${dateStr}</div>`;
+    case 'ready_to_ship':
+      return `<div class="inline-flex flex-col items-center"><span class="prod-badge prod-ready-dispatch">🚚 Ready to Dispatch</span>${dateStr}</div>`;
+    case 'pending':
+    default:
+      return `<div class="inline-flex flex-col items-center"><span class="prod-badge prod-pending">⏳ Pending Confirmation</span>${dateStr}</div>`;
+  }
+}
+
+function openUpdateProductionStatusModal(poNumber) {
+  const po = state.pos.find(p => p.poNumber === poNumber);
+  if (!po) return;
+
+  document.getElementById('updateProdPoNumber').value = po.poNumber;
+  document.getElementById('updateProdPoDisplay').textContent = po.poNumber;
+  document.getElementById('updateProdVendorDisplay').textContent = `Assigned Supplier: ${po.vendor}`;
+  
+  // Show Buyer Deadline & Instructions if specified
+  const buyerBox = document.getElementById('updateProdBuyerInstructionBox');
+  const buyerText = document.getElementById('updateProdBuyerInstructionText');
+  if (buyerBox && buyerText) {
+    let instructionParts = [];
+    if (po.requiredByDate) instructionParts.push(`Required Delivery Deadline: ${po.requiredByDate}`);
+    if (po.buyerNotes) instructionParts.push(`Instructions: "${po.buyerNotes}"`);
+    else if (po.productionNotes && po.productionNotes.startsWith('Buyer Instruction:')) instructionParts.push(po.productionNotes);
+
+    if (instructionParts.length > 0) {
+      buyerText.textContent = instructionParts.join(' • ');
+      buyerBox.classList.remove('hidden');
+    } else {
+      buyerBox.classList.add('hidden');
+    }
+  }
+
+  const currentStatus = po.productionStatus || (po.fulfillmentType === 'in_stock' ? 'in_stock' : 'pending');
+  const radios = document.getElementsByName('prodStatusRadio');
+  radios.forEach(r => {
+    r.checked = (r.value === currentStatus);
+  });
+  // If still pending, check in_stock as suggested default
+  if (currentStatus === 'pending' && radios.length > 0) {
+    radios[0].checked = true;
+  }
+
+  const estInput = document.getElementById('updateProdEstimatedDate');
+  if (estInput) estInput.value = po.productionEstimatedDate || po.requiredByDate || '';
+
+  const notesInput = document.getElementById('updateProdNotes');
+  if (notesInput) {
+    // If notes only contain initial buyer instruction, keep field clean for supplier notes
+    if (po.productionNotes && po.productionNotes.startsWith('Buyer Instruction:')) {
+      notesInput.value = '';
+    } else {
+      notesInput.value = po.productionNotes || '';
+    }
+  }
+
+  const badgeEl = document.getElementById('updateProdCurrentBadge');
+  if (badgeEl) {
+    badgeEl.innerHTML = getProductionBadgeHtml(currentStatus, po.productionEstimatedDate);
+  }
+
+  openModal('updateProductionStatusModal');
+}
+
+function handleProductionStatusSubmit(e) {
+  e.preventDefault();
+  const poNumber = document.getElementById('updateProdPoNumber').value;
+  const po = state.pos.find(p => p.poNumber === poNumber);
+  if (!po) return;
+
+  const selectedStatus = document.querySelector('input[name="prodStatusRadio"]:checked')?.value || 'in_production';
+  const estDate = document.getElementById('updateProdEstimatedDate')?.value || '';
+  const notes = document.getElementById('updateProdNotes')?.value.trim() || '';
+
+  po.productionStatus = selectedStatus;
+  po.fulfillmentType = (selectedStatus === 'in_stock') ? 'in_stock' : 'made_to_order';
+  po.productionEstimatedDate = estDate;
+  if (notes) po.productionNotes = notes;
+  if (!Array.isArray(po.productionHistory)) po.productionHistory = [];
+  po.productionHistory.push({
+    timestamp: new Date().toISOString(),
+    status: selectedStatus,
+    notes: notes || `Readiness confirmed: ${formatProductionStatusText(selectedStatus)}`,
+    updatedBy: state.currentUser?.name || (state.currentUser?.vendorName ? state.currentUser.vendorName : 'Supplier')
+  });
+
+  saveState();
+  closeModal('updateProductionStatusModal');
+  showToast(`Updated production stage for Order ${poNumber} to "${formatProductionStatusText(selectedStatus)}"!`);
+
+  if (supabaseClient) {
+    supabaseClient.from('purchase_orders').upsert([{
+      po_number: po.poNumber,
+      vendor_name: po.vendor,
+      items: po.items,
+      production_status: selectedStatus,
+      production_estimated_date: estDate,
+      production_notes: notes
+    }], { onConflict: 'po_number' }).then(({ error }) => {
+      if (error) {
+        supabaseClient.from('purchase_orders').upsert([{
+          po_number: po.poNumber,
+          vendor_name: po.vendor,
+          items: po.items
+        }], { onConflict: 'po_number' });
+      }
+    });
+  }
+}
+
 
 const DEFAULT_POS = [];
 
@@ -223,16 +1849,37 @@ if (Array.isArray(storedPos)) {
       p.items.forEach(item => {
         const catInfo = getItemCategoryInfo(item);
         if (!item.category) item.category = catInfo.id;
-        if (!item.model) item.model = item.description || catInfo.models[0];
+        const parsed = formatProductDisplay(item.description || item.model);
+        if (parsed.specs) {
+          item.description = `${parsed.title} (${parsed.specs})`;
+          item.spec = parsed.specs;
+        } else {
+          item.description = parsed.title;
+        }
+        item.model = parsed.title;
       });
     }
+    if (!p.productionStatus) {
+      p.productionStatus = (p.fulfillmentType === 'in_stock') ? 'in_stock' : 'in_production';
+    }
+    if (!p.fulfillmentType) {
+      p.fulfillmentType = (p.productionStatus === 'in_stock') ? 'in_stock' : 'made_to_order';
+    }
+    if (typeof p.productionEstimatedDate === 'undefined') p.productionEstimatedDate = '';
+    if (typeof p.productionNotes === 'undefined') p.productionNotes = '';
   });
 }
 if (Array.isArray(storedShipments)) {
   storedShipments.forEach(s => {
     const catInfo = getItemCategoryInfo(s);
     if (!s.category) s.category = catInfo.id;
-    if (!s.model) s.model = s.description || catInfo.models[0];
+    const parsed = formatProductDisplay(s.description || s.model);
+    if (parsed.specs) {
+      s.description = `${parsed.title} (${parsed.specs})`;
+    } else {
+      s.description = parsed.title;
+    }
+    s.model = parsed.title;
   });
 }
 
@@ -263,12 +1910,16 @@ function loadAuthVault() {
 window.state = {
   isLoggedIn: false,
   currentUser: null,
-  currentFilter: 'all', // 'all', 'active', 'completed'
+  currentFilter: 'all', // 'all', 'in_production', 'in_stock', 'completed'
+  adminPoFilter: 'all', // 'all', 'in_production', 'in_stock', 'completed'
+  adminActiveTab: 'orders', // 'orders', 'dispatches', 'scorecards', 'vendors'
   categoryFilter: 'all', // 'all', 'labels', 'tags', 'ribbons', 'cards'
   shipmentFilter: 'all', // 'all', 'shortages', 'damaged', 'today', 'transit'
   gateFilter: 'all', // 'all', 'transit', 'today', 'damaged'
   authVault: loadAuthVault(),
   vendors: JSON.parse(localStorage.getItem('labeltrack_vendors')) || DEFAULT_VENDORS,
+  annualColorConfig: JSON.parse(localStorage.getItem('labeltrack_annual_color_codes')) || DEFAULT_ANNUAL_COLOR_CONFIG,
+  sampleProofs: JSON.parse(localStorage.getItem('labeltrack_sample_proofs')) || {},
   pos: storedPos,
   shipments: storedShipments
 };
@@ -276,9 +1927,12 @@ var state = window.state;
 
 function saveState() {
   localStorage.setItem('labeltrack_vendors', JSON.stringify(state.vendors));
+  localStorage.setItem('labeltrack_annual_color_codes', JSON.stringify(state.annualColorConfig));
+  localStorage.setItem('labeltrack_sample_proofs', JSON.stringify(state.sampleProofs));
   localStorage.setItem('labeltrack_pos', JSON.stringify(state.pos));
   localStorage.setItem('labeltrack_shipments', JSON.stringify(state.shipments));
   localStorage.setItem('labeltrack_auth_vault', JSON.stringify(state.authVault));
+  updateAnnualColorUI();
   render();
 }
 
@@ -286,10 +1940,10 @@ function saveState() {
 // Supabase Cloud Configuration & Sync
 // ==========================================
 // Determine best connection endpoint: Use local/Vercel proxy to bypass ISP DNS sinkhole
-const isLocalOrProxied = (typeof window !== 'undefined') && (
+const isLocalOrProxied = (typeof window !== 'undefined' && window.location) && (
   window.location.hostname === 'localhost' || 
   window.location.hostname === '127.0.0.1' || 
-  window.location.pathname.startsWith('/')
+  (window.location.pathname && window.location.pathname.startsWith('/'))
 );
 
 const SUPABASE_CONFIG = {
@@ -374,12 +2028,29 @@ async function fetchCloudState() {
 
     if (!poErr) {
       if (poData && poData.length > 0) {
-        state.pos = poData.map(p => ({
-          id: p.id,
-          poNumber: (p.po_number || '').replace(/^PO-/, 'ORD-'),
-          vendor: p.vendor_name,
-          items: p.items || []
-        }));
+        state.pos = poData.map(p => {
+          const poNum = (p.po_number || '').replace(/^PO-/, 'ORD-');
+          const localExisting = (state.pos || []).find(lp => lp.poNumber === poNum);
+          return {
+            id: p.id,
+            poNumber: poNum,
+            vendor: p.vendor_name,
+            items: (p.items || []).map(item => {
+              const parsed = formatProductDisplay(item.description || item.model);
+              return {
+                ...item,
+                description: parsed.specs ? `${parsed.title} (${parsed.specs})` : parsed.title,
+                spec: parsed.specs || item.spec,
+                model: parsed.title
+              };
+            }),
+            fulfillmentType: p.fulfillment_type || localExisting?.fulfillmentType || 'made_to_order',
+            productionStatus: p.production_status || localExisting?.productionStatus || 'in_production',
+            productionEstimatedDate: p.production_estimated_date || localExisting?.productionEstimatedDate || '',
+            productionNotes: p.production_notes || localExisting?.productionNotes || '',
+            productionHistory: p.production_history || localExisting?.productionHistory || []
+          };
+        });
       } else {
         state.pos = [];
       }
@@ -395,11 +2066,13 @@ async function fetchCloudState() {
       if (shpData && shpData.length > 0) {
         state.shipments = shpData.map(s => {
           const localExisting = (state.shipments || []).find(ls => ls.id === s.id);
+          const parsed = formatProductDisplay(s.description || s.model);
           return {
             id: s.id,
             poNumber: (s.po_number || '').replace(/^PO-/, 'ORD-'),
             sku: s.sku,
-            description: s.description,
+            model: parsed.title,
+            description: parsed.specs ? `${parsed.title} (${parsed.specs})` : parsed.title,
             qtySent: s.qty_sent,
             receivedQty: s.received_qty,
             damagedQty: s.damaged_qty !== undefined ? s.damaged_qty : (localExisting?.damagedQty || 0),
@@ -815,11 +2488,28 @@ function handleNewPoSubmit(e) {
     return;
   }
 
+  const reqDate = document.getElementById('newPoRequiredDate')?.value || '';
+  const buyerNotes = document.getElementById('newPoBuyerNotes')?.value.trim() || '';
+
   state.pos.push({
     id: 'ord-' + (state.pos.length + 1),
     poNumber: num,
     vendor: vendor,
     items: items,
+    fulfillmentType: 'pending_supplier',
+    productionStatus: 'pending',
+    productionEstimatedDate: reqDate,
+    requiredByDate: reqDate,
+    buyerNotes: buyerNotes,
+    productionNotes: buyerNotes ? `Buyer Instruction: ${buyerNotes}` : '',
+    productionHistory: [
+      {
+        timestamp: new Date().toISOString(),
+        status: 'pending',
+        notes: buyerNotes ? `Order issued with buyer instruction: "${buyerNotes}"` : 'Order issued to supplier. Awaiting supplier stock & production readiness assessment.',
+        updatedBy: state.currentUser?.name || 'Admin'
+      }
+    ],
     status: 'Pending Dispatch'
   });
 
@@ -832,11 +2522,18 @@ function handleNewPoSubmit(e) {
     supabaseClient.from('purchase_orders').insert([{
       po_number: num,
       vendor_name: vendor,
-      items: items
+      items: items,
+      production_status: prodStatus,
+      production_estimated_date: estDate,
+      production_notes: prodNotes
     }]).then(({ error }) => {
       if (error) {
-        console.error('Supabase Order insert failed:', error.message);
-        showToast('Cloud database notice: ' + error.message, true);
+        // Fallback if production status columns don't exist yet on remote table
+        supabaseClient.from('purchase_orders').insert([{
+          po_number: num,
+          vendor_name: vendor,
+          items: items
+        }]).then(() => fetchCloudState());
       } else {
         console.log('✓ Order synced to Supabase purchase_orders table');
         fetchCloudState();
@@ -1171,6 +2868,37 @@ function openDispatchModal(poNumber) {
   const firstAvailable = itemsMetrics.findIndex(i => i.remaining > 0);
   if (firstAvailable !== -1) {
     select.selectedIndex = firstAvailable;
+  }
+
+  // Toggle single item view vs multi-item selector dropdown
+  const selectContainer = document.getElementById('modalItemSelectContainer');
+  const singleItemDisplay = document.getElementById('modalSingleItemDisplay');
+
+  if (itemsMetrics.length === 1) {
+    if (selectContainer) selectContainer.classList.add('hidden');
+    if (singleItemDisplay) {
+      singleItemDisplay.classList.remove('hidden');
+      const item = itemsMetrics[0];
+      const catInfo = getItemCategoryInfo(item);
+      const parsed = formatProductDisplay(item.description);
+      const bBadge = document.getElementById('modalSingleItemBadge');
+      const bSku = document.getElementById('modalSingleItemSku');
+      const bTitle = document.getElementById('modalSingleItemTitle');
+      if (bBadge) {
+        bBadge.className = `inline-flex items-center gap-1 font-bold text-[10px] px-2 py-0.5 rounded-md border ${catInfo.badgeClass}`;
+        bBadge.innerHTML = `<span>${catInfo.icon}</span><span>${catInfo.name}</span>`;
+      }
+      if (bSku) bSku.textContent = item.sku;
+      if (bTitle) {
+        bTitle.textContent = parsed.title;
+        if (parsed.specs) {
+          bTitle.innerHTML = `${escapeHtml(parsed.title)} <span class="text-[10px] text-slate-500 font-mono font-normal">(${escapeHtml(parsed.specs)})</span>`;
+        }
+      }
+    }
+  } else {
+    if (selectContainer) selectContainer.classList.remove('hidden');
+    if (singleItemDisplay) singleItemDisplay.classList.add('hidden');
   }
 
   document.getElementById('inputQtySent').value = '';
@@ -2141,32 +3869,25 @@ async function handleChangePasswordSubmit(e) {
 function setFilter(filter) {
   state.currentFilter = filter;
   const isAll = filter === 'all';
-  const isActive = filter === 'active';
+  const isPending = filter === 'pending';
+  const isInProd = filter === 'in_production';
+  const isInStock = filter === 'in_stock';
   const isComp = filter === 'completed';
 
   const btnAll = document.getElementById('filterBtnAll');
-  const btnAct = document.getElementById('filterBtnActive');
+  const btnPending = document.getElementById('filterBtnPending');
+  const btnInProd = document.getElementById('filterBtnInProd');
+  const btnInStock = document.getElementById('filterBtnInStock');
   const btnCmp = document.getElementById('filterBtnCompleted');
 
-  if (btnAll) btnAll.className = isAll 
-    ? "px-4 py-2 text-xs font-bold rounded-xl bg-slate-900 text-white shadow-xs transition-all duration-150 flex items-center gap-1.5 cursor-pointer"
-    : "px-4 py-2 text-xs font-semibold rounded-xl text-slate-600 hover:text-slate-900 hover:bg-slate-200/60 transition-all duration-150 flex items-center gap-1.5 cursor-pointer";
+  const activeCls = "nav-tab-btn nav-tab-btn-active-primary px-3.5 py-1.5 text-xs font-bold rounded-lg transition flex items-center gap-1.5 cursor-pointer";
+  const inactiveCls = "nav-tab-btn px-3.5 py-1.5 text-xs font-semibold rounded-lg text-slate-600 hover:text-slate-900 transition flex items-center gap-1.5 cursor-pointer";
 
-  if (btnAct) btnAct.className = isActive 
-    ? "px-4 py-2 text-xs font-bold rounded-xl bg-blue-600 text-white shadow-sm shadow-blue-500/25 transition-all duration-150 flex items-center gap-1.5 cursor-pointer"
-    : "px-4 py-2 text-xs font-semibold rounded-xl text-slate-600 hover:text-slate-900 hover:bg-slate-200/60 transition-all duration-150 flex items-center gap-1.5 cursor-pointer";
-
-  if (btnCmp) btnCmp.className = isComp 
-    ? "px-4 py-2 text-xs font-bold rounded-xl bg-emerald-600 text-white shadow-sm shadow-emerald-500/25 transition-all duration-150 flex items-center gap-1.5 cursor-pointer"
-    : "px-4 py-2 text-xs font-semibold rounded-xl text-slate-600 hover:text-slate-900 hover:bg-slate-200/60 transition-all duration-150 flex items-center gap-1.5 cursor-pointer";
-
-  const badgeAll = document.getElementById('countAll');
-  const badgeAct = document.getElementById('countActive');
-  const badgeCmp = document.getElementById('countCompleted');
-
-  if (badgeAll) badgeAll.className = isAll ? "bg-slate-800 text-slate-200 px-1.5 py-0.5 rounded-full text-[10px] font-mono" : "bg-slate-200 text-slate-600 px-1.5 py-0.5 rounded-full text-[10px] font-mono";
-  if (badgeAct) badgeAct.className = isActive ? "bg-blue-700 text-blue-100 px-1.5 py-0.5 rounded-full text-[10px] font-mono" : "bg-slate-200 text-slate-600 px-1.5 py-0.5 rounded-full text-[10px] font-mono";
-  if (badgeCmp) badgeCmp.className = isComp ? "bg-emerald-700 text-emerald-100 px-1.5 py-0.5 rounded-full text-[10px] font-mono" : "bg-slate-200 text-slate-600 px-1.5 py-0.5 rounded-full text-[10px] font-mono";
+  if (btnAll) btnAll.className = isAll ? activeCls : inactiveCls;
+  if (btnPending) btnPending.className = isPending ? activeCls : inactiveCls;
+  if (btnInProd) btnInProd.className = isInProd ? activeCls : inactiveCls;
+  if (btnInStock) btnInStock.className = isInStock ? activeCls : inactiveCls;
+  if (btnCmp) btnCmp.className = isComp ? activeCls : inactiveCls;
 
   render();
 }
@@ -2293,20 +4014,35 @@ function renderVendorScorecards() {
   const totalShortagesEl = document.getElementById('scorecardTotalShortages');
   const totalDamagedEl = document.getElementById('scorecardTotalDamaged');
 
+  const activeSuppliersElTab = document.getElementById('scorecardActiveSuppliersTab');
+  const fleetAccuracyElTab = document.getElementById('scorecardFleetAccuracyTab');
+  const totalShortagesElTab = document.getElementById('scorecardTotalShortagesTab');
+  const totalDamagedElTab = document.getElementById('scorecardTotalDamagedTab');
+
+  const fleetAcc = fleetDispatched > 0 ? Math.round((fleetReceivedGood / fleetDispatched) * 100) : 100;
+  const fleetAccStr = `${Math.min(100, fleetAcc)}%`;
+  const fleetDamStr = `${formatNumber(fleetDamaged)} units`;
+
   if (activeSuppliersEl) activeSuppliersEl.textContent = vendors.length;
-  if (fleetAccuracyEl) {
-    const fleetAcc = fleetDispatched > 0 ? Math.round((fleetReceivedGood / fleetDispatched) * 100) : 100;
-    fleetAccuracyEl.textContent = `${Math.min(100, fleetAcc)}%`;
-  }
+  if (fleetAccuracyEl) fleetAccuracyEl.textContent = fleetAccStr;
   if (totalShortagesEl) totalShortagesEl.textContent = fleetShortages;
-  if (totalDamagedEl) totalDamagedEl.textContent = `${formatNumber(fleetDamaged)} units`;
+  if (totalDamagedEl) totalDamagedEl.textContent = fleetDamStr;
+
+  if (activeSuppliersElTab) activeSuppliersElTab.textContent = vendors.length;
+  if (fleetAccuracyElTab) fleetAccuracyElTab.textContent = fleetAccStr;
+  if (totalShortagesElTab) totalShortagesElTab.textContent = fleetShortages;
+  if (totalDamagedElTab) totalDamagedElTab.textContent = fleetDamStr;
+
+  const tabContainer = document.getElementById('vendorScorecardsListTab');
 
   if (vendorStats.length === 0) {
-    container.innerHTML = `<div class="col-span-2 text-center py-8 text-slate-400 text-xs">No registered suppliers found.</div>`;
+    const emptyHtml = `<div class="col-span-2 text-center py-8 text-slate-400 text-xs">No registered suppliers found.</div>`;
+    if (container) container.innerHTML = emptyHtml;
+    if (tabContainer) tabContainer.innerHTML = emptyHtml;
     return;
   }
 
-  container.innerHTML = vendorStats.map(stat => {
+  const scorecardsHtml = vendorStats.map(stat => {
     return `
       <div class="bg-white rounded-2xl border border-slate-200/90 p-4 space-y-3.5 shadow-2xs hover:shadow-xs transition">
         <div class="flex items-start justify-between gap-2 border-b border-slate-100 pb-3">
@@ -2360,10 +4096,15 @@ function renderVendorScorecards() {
       </div>
     `;
   }).join('');
+
+  if (container) container.innerHTML = scorecardsHtml;
+  if (tabContainer) tabContainer.innerHTML = scorecardsHtml;
 }
 
 function render() {
   if (!state.isLoggedIn) return;
+
+  updateAnnualColorUI();
 
   const user = state.currentUser;
   const isAdmin = user.role === 'admin';
@@ -2376,9 +4117,7 @@ function render() {
   const gatekeeperSection = document.getElementById('gatekeeperSection');
 
   // Update Top Navigation
-  const adminSwitcher = document.getElementById('adminNavSwitcher');
   if (isAdmin) {
-    if (adminSwitcher) adminSwitcher.classList.remove('hidden');
     document.getElementById('navSubtitle').textContent = 'Operations Command';
     document.getElementById('navUserName').textContent = 'Internal Operations Team';
     document.getElementById('navUserRole').innerHTML = `<span class="badge-pill badge-indigo">👑 Ops Admin</span>`;
@@ -2387,7 +4126,6 @@ function render() {
     adminSection?.classList.remove('hidden');
     gatekeeperSection?.classList.add('hidden');
   } else if (isGatekeeper) {
-    if (adminSwitcher) adminSwitcher.classList.add('hidden');
     document.getElementById('navSubtitle').textContent = 'Gate Inward Command';
     document.getElementById('navUserName').textContent = user.name || 'Gate Security Controller';
     document.getElementById('navUserRole').innerHTML = `<span class="badge-pill badge-emerald">🛂 Gate Security</span>`;
@@ -2396,7 +4134,6 @@ function render() {
     adminSection?.classList.add('hidden');
     gatekeeperSection?.classList.remove('hidden');
   } else {
-    if (adminSwitcher) adminSwitcher.classList.add('hidden');
     document.getElementById('navSubtitle').textContent = 'Supplier Portal';
     document.getElementById('navUserName').textContent = user.vendorName;
     document.getElementById('navUserRole').innerHTML = `Vendor ID: <span class="font-mono text-slate-700 font-semibold">${user.vendorCode || 'VEN-01'}</span>`;
@@ -2410,7 +4147,8 @@ function render() {
 
   // Dropdown Sync
   const newPoVendor = document.getElementById('newPoVendor');
-  document.getElementById('vendorCountBadge').textContent = state.vendors.length;
+  const vCountBadge = document.getElementById('vendorCountBadge');
+  if (vCountBadge) vCountBadge.textContent = state.vendors.length;
 
   const vendorOptionsHtml = state.vendors.map(v => 
     `<option value="${escapeHtml(v.name)}">${escapeHtml(v.name)} (${escapeHtml(v.code)})</option>`
@@ -2418,9 +4156,8 @@ function render() {
 
   newPoVendor.innerHTML = vendorOptionsHtml;
 
-  // Render Vendors in Manage Modal
-  const vendorListBody = document.getElementById('vendorListTableBody');
-  vendorListBody.innerHTML = state.vendors.map(v => {
+  // Render Vendors in Supplier Directory Tab Table
+  const vendorRowsHtml = state.vendors.map(v => {
     const orderCount = state.pos.filter(p => p.vendor === v.name).length;
     return `
       <tr class="hover:bg-slate-50/80 transition">
@@ -2442,11 +4179,18 @@ function render() {
     `;
   }).join('');
 
+  const tabVendorBody = document.getElementById('vendorListTableBodyTab');
+  if (tabVendorBody) tabVendorBody.innerHTML = vendorRowsHtml;
+  const modalVendorBody = document.getElementById('vendorListTableBody');
+  if (modalVendorBody) modalVendorBody.innerHTML = vendorRowsHtml;
+
   // 1. Render Vendor Orders
   const vendorContainer = document.getElementById('vendorPoContainer');
   let vendorPOs = state.pos.filter(p => p.vendor === activeVendorName);
 
-  let vActiveCount = 0;
+  let vInProdCount = 0;
+  let vInStockCount = 0;
+  let vPendingCount = 0;
   let vCompletedCount = 0;
   let vPendingUnits = 0;
   let vShippedUnits = 0;
@@ -2455,21 +4199,43 @@ function render() {
     const { totalOrdered, totalShipped, totalRemaining } = getPoMetrics(po.poNumber);
     vPendingUnits += totalRemaining;
     vShippedUnits += totalShipped;
-    if (totalRemaining === 0 && totalShipped >= totalOrdered) {
+    const isCompleted = totalRemaining === 0 && totalShipped >= totalOrdered;
+    if (isCompleted) {
       vCompletedCount++;
     } else {
-      vActiveCount++;
+      const pStatus = po.productionStatus || 'pending';
+      if (pStatus === 'pending') {
+        vPendingCount++;
+      } else if (pStatus === 'in_stock' || pStatus === 'ready_to_ship') {
+        vInStockCount++;
+      } else {
+        vInProdCount++;
+      }
     }
   });
 
-  document.getElementById('vendorStatActiveCount').textContent = `${vActiveCount} Orders`;
-  document.getElementById('vendorStatCompletedCount').textContent = `${vCompletedCount} Orders`;
-  document.getElementById('vendorStatPendingUnits').textContent = formatNumber(vPendingUnits);
-  document.getElementById('vendorStatShippedUnits').textContent = formatNumber(vShippedUnits);
+  const activeCountTotal = vInProdCount + vInStockCount + vPendingCount;
+  const vStatAct = document.getElementById('vendorStatActiveCount');
+  const vStatCmp = document.getElementById('vendorStatCompletedCount');
+  const vStatPend = document.getElementById('vendorStatPendingUnits');
+  const vStatShip = document.getElementById('vendorStatShippedUnits');
 
-  document.getElementById('countAll').textContent = vendorPOs.length;
-  document.getElementById('countActive').textContent = vActiveCount;
-  document.getElementById('countCompleted').textContent = vCompletedCount;
+  if (vStatAct) vStatAct.textContent = `${activeCountTotal} Orders`;
+  if (vStatCmp) vStatCmp.textContent = `${vCompletedCount} Orders`;
+  if (vStatPend) vStatPend.textContent = formatNumber(vPendingUnits);
+  if (vStatShip) vStatShip.textContent = formatNumber(vShippedUnits);
+
+  const cAll = document.getElementById('countAll');
+  const cPending = document.getElementById('countPending');
+  const cInProd = document.getElementById('countInProd');
+  const cInStock = document.getElementById('countInStock');
+  const cComp = document.getElementById('countCompleted');
+
+  if (cAll) cAll.textContent = vendorPOs.length;
+  if (cPending) cPending.textContent = vPendingCount;
+  if (cInProd) cInProd.textContent = vInProdCount;
+  if (cInStock) cInStock.textContent = vInStockCount;
+  if (cComp) cComp.textContent = vCompletedCount;
 
   // Search Filter
   const searchVal = (document.getElementById('searchInput') ? document.getElementById('searchInput').value.trim().toLowerCase() : '');
@@ -2497,10 +4263,26 @@ function render() {
   }
 
   // Tab Filter
-  if (state.currentFilter === 'active') {
+  if (state.currentFilter === 'pending') {
     vendorPOs = vendorPOs.filter(p => {
       const { totalOrdered, totalShipped, totalRemaining } = getPoMetrics(p.poNumber);
-      return !(totalRemaining === 0 && totalShipped >= totalOrdered);
+      const isCompleted = totalRemaining === 0 && totalShipped >= totalOrdered;
+      const pStatus = p.productionStatus || 'pending';
+      return !isCompleted && pStatus === 'pending';
+    });
+  } else if (state.currentFilter === 'in_production') {
+    vendorPOs = vendorPOs.filter(p => {
+      const { totalOrdered, totalShipped, totalRemaining } = getPoMetrics(p.poNumber);
+      const isCompleted = totalRemaining === 0 && totalShipped >= totalOrdered;
+      const pStatus = p.productionStatus || '';
+      return !isCompleted && (pStatus === 'in_production' || pStatus === 'packing');
+    });
+  } else if (state.currentFilter === 'in_stock') {
+    vendorPOs = vendorPOs.filter(p => {
+      const { totalOrdered, totalShipped, totalRemaining } = getPoMetrics(p.poNumber);
+      const isCompleted = totalRemaining === 0 && totalShipped >= totalOrdered;
+      const pStatus = p.productionStatus || '';
+      return !isCompleted && (pStatus === 'in_stock' || pStatus === 'ready_to_ship');
     });
   } else if (state.currentFilter === 'completed') {
     vendorPOs = vendorPOs.filter(p => {
@@ -2533,7 +4315,7 @@ function render() {
         badgeText = "Partially Dispatched";
       }
 
-      // SKU breakdown with Category and Model
+      // SKU breakdown with Category and Model + Sample Proof Button
       const itemsHtml = itemsMetrics.map(item => {
         const itemPct = Math.min(100, Math.round((item.shipped / item.orderedQty) * 100));
         const isFulfilled = item.remaining === 0;
@@ -2550,6 +4332,9 @@ function render() {
                 <span class="font-mono text-[10px] font-bold px-1.5 py-0.5 rounded bg-slate-200 text-slate-700">${escapeHtml(item.sku)}</span>
                 <span class="font-bold text-slate-900">${escapeHtml(parsed.title)}</span>
                 ${parsed.specs ? `<span class="text-[10px] text-slate-500 font-mono hidden sm:inline">(${escapeHtml(parsed.specs)})</span>` : ''}
+                <button type="button" onclick="openSampleArtworkModal('${escapeHtml(item.model || item.description)}')" title="View Approved Technical Specimen" class="px-2 py-0.5 rounded text-[10px] font-bold bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 transition inline-flex items-center gap-1 shadow-2xs ml-1 cursor-pointer">
+                  <span>🖼️ Sample Proof</span>
+                </button>
               </div>
               <span class="font-mono text-slate-500 text-[11px] whitespace-nowrap shrink-0">Target: <strong class="text-slate-800">${formatNumber(item.orderedQty)}</strong></span>
             </div>
@@ -2576,68 +4361,64 @@ function render() {
               const damaged = Number(s.damagedQty || 0);
               const sParsed = formatProductDisplay(s.description);
               return `
-              <div class="flex items-center justify-between text-xs bg-slate-50/80 px-3 py-2 rounded-xl border border-slate-200/60 hover:bg-slate-50 transition">
+              <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-2.5 text-xs bg-slate-50/80 px-3.5 py-2.5 rounded-xl border border-slate-200/70 hover:bg-slate-50 transition">
                 <div class="flex items-center gap-2 flex-wrap">
-                  <span class="font-mono font-bold text-slate-800 text-[11px] bg-white px-2 py-0.5 rounded border border-slate-200">${escapeHtml(s.id)}</span>
-                  <span class="inline-flex items-center gap-1 font-bold text-[10px] px-1.5 py-0.2 rounded border ${sCat.badgeClass}">
+                  <span class="font-mono font-bold text-slate-800 text-[11px] bg-white px-2 py-0.5 rounded border border-slate-200 shrink-0">${escapeHtml(s.id)}</span>
+                  <span class="inline-flex items-center gap-1 font-bold text-[10px] px-2 py-0.5 rounded border ${sCat.badgeClass} shrink-0">
                     <span>${sCat.icon}</span>
                     <span>${sCat.name}</span>
                   </span>
-                  <span class="text-slate-500 text-[11px]">Invoice: <strong class="text-slate-800">${escapeHtml(s.truckLR)}</strong></span>
-                  <span class="text-slate-400 text-[10px]">(${escapeHtml(s.date)})</span>
+                  <span class="text-slate-600 text-[11px] shrink-0">Invoice: <strong class="text-slate-900">${escapeHtml(s.truckLR)}</strong></span>
+                  <span class="text-slate-400 text-[10px] shrink-0">(${escapeHtml(s.date)})</span>
                   ${s.invoice ? `
-                    <button onclick="viewInvoice('${s.id}')" class="px-2 py-0.5 rounded text-[11px] font-bold bg-blue-50 text-blue-700 hover:bg-blue-100 border border-blue-200 transition flex items-center gap-1 shadow-2xs">
-                      <span>📄 Invoice</span>
+                    <button onclick="viewInvoice('${s.id}')" class="px-2 py-0.5 rounded text-[11px] font-bold bg-blue-50 text-blue-700 hover:bg-blue-100 border border-blue-200 transition inline-flex items-center gap-1 shadow-2xs cursor-pointer shrink-0">
+                      <span>📄 Challan</span>
                     </button>
                   ` : ''}
-                  ${s.damagePhoto ? `
-                    <button onclick="viewDamagePhoto('${s.id}')" class="px-2.5 py-0.5 rounded text-[11px] font-bold bg-rose-100 text-rose-700 hover:bg-rose-200 border border-rose-300 transition flex items-center gap-1 shadow-2xs animate-pulse hover:animate-none">
-                      <span>📸 Damage Photo Proof</span>
-                    </button>
-                  ` : (damaged > 0 ? `
-                    <span class="px-2 py-0.5 rounded text-[10px] font-semibold bg-rose-50 text-rose-700 border border-rose-200">
-                      ⚠️ ${formatNumber(damaged)} Damaged (${escapeHtml(s.defectReason || 'Reported')})
-                    </span>
-                  ` : '')}
                 </div>
-                <div class="flex items-center gap-3 text-xs">
-                  <span class="text-slate-700 truncate max-w-[140px] font-semibold" title="${escapeHtml(s.description)}">${escapeHtml(sParsed.title)}:</span>
-                  <div class="text-right">
-                    <span class="font-mono font-bold text-slate-900">${formatNumber(s.qtySent)} units</span>
-                    <span class="text-[10px] text-slate-500 font-semibold block">(${s.boxCount || 1} boxes)</span>
+                <div class="flex items-center gap-3 text-xs flex-wrap lg:flex-nowrap justify-between lg:justify-end">
+                  <div class="flex items-center gap-1.5 min-w-0">
+                    <span class="text-slate-800 font-bold" title="${escapeHtml(s.description)}">${escapeHtml(sParsed.title)}</span>
+                    ${sParsed.specs ? `<span class="text-[10px] text-slate-500 font-mono hidden md:inline">(${escapeHtml(sParsed.specs)})</span>` : ''}
                   </div>
-                  ${(() => {
-                    if (s.receivedQty === null || s.receivedQty === undefined) {
-                      return '<span class="text-[11px] font-semibold px-2 py-0.5 rounded-full border bg-amber-50 text-amber-700 border-amber-200">⏳ In Transit</span>';
-                    }
-                    const variance = s.receivedQty - s.qtySent;
+                  <div class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-white border border-slate-200 shrink-0 shadow-2xs">
+                    <span class="font-mono font-bold text-slate-900 text-xs">${formatNumber(s.qtySent)} units</span>
+                    <span class="text-[10px] text-slate-500 font-semibold whitespace-nowrap">(${s.boxCount || 1} boxes)</span>
+                  </div>
+                  <div class="shrink-0">
+                    ${(() => {
+                      if (s.receivedQty === null || s.receivedQty === undefined) {
+                        return '<span class="text-[11px] font-semibold px-2.5 py-1 rounded-full border bg-amber-50 text-amber-700 border-amber-200 whitespace-nowrap inline-flex items-center gap-1">⏳ In Transit</span>';
+                      }
+                      const variance = s.receivedQty - s.qtySent;
 
-                    if (damaged > 0) {
-                      const damageBadge = s.damagePhoto
-                        ? `<button type="button" onclick="viewDamagePhoto('${s.id}')" class="text-[11px] font-bold px-2 py-0.5 rounded-full border bg-rose-50 text-rose-700 border-rose-200 inline-flex items-center gap-1 hover:bg-rose-100 transition cursor-pointer hover:border-rose-300">
-                             <span>⚠️ Verified: ${formatNumber(s.receivedQty)} Good &bull; ${formatNumber(damaged)} Damaged</span>
-                             <span class="text-xs">📸</span>
-                           </button>`
-                        : `<span class="text-[11px] font-bold px-2 py-0.5 rounded-full border bg-rose-50 text-rose-700 border-rose-200 inline-flex items-center gap-1">
-                             <span>⚠️ Verified: ${formatNumber(s.receivedQty)} Good &bull; ${formatNumber(damaged)} Damaged</span>
-                           </span>`;
-                      return `
-                        <div class="text-right">
-                          ${damageBadge}
-                          <span class="text-[10px] text-rose-600 font-semibold block mt-0.5">
-                            Defect: ${escapeHtml(s.defectReason || 'Damaged carton / piece')}
-                          </span>
-                        </div>
-                      `;
-                    } else if (variance === 0) {
-                      return `<span class="text-[11px] font-semibold px-2 py-0.5 rounded-full border bg-emerald-50 text-emerald-700 border-emerald-200">✓ Verified: ${formatNumber(s.receivedQty)} (Full Match)</span>`;
-                    } else if (variance < 0) {
-                      return `<span class="text-[11px] font-semibold px-2 py-0.5 rounded-full border bg-rose-50 text-rose-700 border-rose-200">⚠️ Verified: ${formatNumber(s.receivedQty)} (-${formatNumber(Math.abs(variance))} Shortage)</span>`;
-                    } else {
-                      return `<span class="text-[11px] font-semibold px-2 py-0.5 rounded-full border bg-purple-50 text-purple-700 border-purple-200">📦 Verified: ${formatNumber(s.receivedQty)} (+${formatNumber(variance)} Over)</span>`;
-                    }
-                  })()}
-                  <button onclick="deleteShipment('${s.id}')" title="Delete dispatch log" class="p-1 text-slate-400 hover:text-rose-600 transition text-xs">
+                      if (damaged > 0) {
+                        const damageBadge = s.damagePhoto
+                          ? `<button type="button" onclick="viewDamagePhoto('${s.id}')" class="text-[11px] font-bold px-2.5 py-1 rounded-full border bg-rose-50 text-rose-700 border-rose-200 inline-flex items-center gap-1 hover:bg-rose-100 transition cursor-pointer hover:border-rose-300 whitespace-nowrap">
+                               <span>⚠️ Verified: ${formatNumber(s.receivedQty)} Good &bull; ${formatNumber(damaged)} Damaged</span>
+                               <span class="text-xs">📸</span>
+                             </button>`
+                          : `<span class="text-[11px] font-bold px-2.5 py-1 rounded-full border bg-rose-50 text-rose-700 border-rose-200 inline-flex items-center gap-1 whitespace-nowrap">
+                               <span>⚠️ Verified: ${formatNumber(s.receivedQty)} Good &bull; ${formatNumber(damaged)} Damaged</span>
+                             </span>`;
+                        return `
+                          <div class="text-right">
+                            ${damageBadge}
+                            <span class="text-[10px] text-rose-600 font-semibold block mt-0.5 whitespace-nowrap">
+                              Defect: ${escapeHtml(s.defectReason || 'Damaged carton / piece')}
+                            </span>
+                          </div>
+                        `;
+                      } else if (variance === 0) {
+                        return `<span class="text-[11px] font-semibold px-2.5 py-1 rounded-full border bg-emerald-50 text-emerald-700 border-emerald-200 whitespace-nowrap inline-flex items-center gap-1">✓ Verified: ${formatNumber(s.receivedQty)} (Full Match)</span>`;
+                      } else if (variance < 0) {
+                        return `<span class="text-[11px] font-semibold px-2.5 py-1 rounded-full border bg-rose-50 text-rose-700 border-rose-200 whitespace-nowrap inline-flex items-center gap-1">⚠️ Verified: ${formatNumber(s.receivedQty)} (-${formatNumber(Math.abs(variance))} Shortage)</span>`;
+                      } else {
+                        return `<span class="text-[11px] font-semibold px-2.5 py-1 rounded-full border bg-purple-50 text-purple-700 border-purple-200 whitespace-nowrap inline-flex items-center gap-1">📦 Verified: ${formatNumber(s.receivedQty)} (+${formatNumber(variance)} Over)</span>`;
+                      }
+                    })()}
+                  </div>
+                  <button onclick="deleteShipment('${s.id}')" title="Delete dispatch log" class="p-1 text-slate-400 hover:text-rose-600 transition text-xs shrink-0 cursor-pointer">
                     <span>🗑️</span>
                   </button>
                 </div>
@@ -2648,27 +4429,64 @@ function render() {
         </div>
       ` : '';
 
+      const isPendingReadiness = !po.productionStatus || po.productionStatus === 'pending';
+      const prodBadge = getProductionBadgeHtml(po.productionStatus || 'pending', po.productionEstimatedDate);
+
+      let fulfillmentBadgeHtml = '';
+      if (po.productionStatus === 'in_stock') {
+        fulfillmentBadgeHtml = `<span class="text-[10px] font-bold px-2 py-0.5 rounded-full border bg-emerald-50 text-emerald-700 border-emerald-200">📦 In Stock (Ready Goods)</span>`;
+      } else if (po.productionStatus === 'in_production') {
+        fulfillmentBadgeHtml = `<span class="text-[10px] font-bold px-2 py-0.5 rounded-full border bg-indigo-50 text-indigo-700 border-indigo-200">🏭 Made to Order (In Production)</span>`;
+      } else if (po.productionStatus === 'packing') {
+        fulfillmentBadgeHtml = `<span class="text-[10px] font-bold px-2 py-0.5 rounded-full border bg-amber-50 text-amber-700 border-amber-200">🔍 Finishing & Packing</span>`;
+      } else if (po.productionStatus === 'ready_to_ship') {
+        fulfillmentBadgeHtml = `<span class="text-[10px] font-bold px-2 py-0.5 rounded-full border bg-purple-50 text-purple-700 border-purple-200">🚚 Ready to Dispatch</span>`;
+      } else {
+        fulfillmentBadgeHtml = `<span class="text-[10px] font-bold px-2 py-0.5 rounded-full border bg-amber-100 text-amber-800 border-amber-200 animate-pulse">⚡ Action Required: Confirm Readiness</span>`;
+      }
+
       return `
-        <div class="bg-white rounded-2xl border border-slate-200 shadow-xs p-5 card-hover transition">
-          <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 pb-3 mb-4">
+        <div class="bg-white rounded-2xl border ${isPendingReadiness ? 'border-amber-300 ring-2 ring-amber-400/20' : 'border-slate-200'} shadow-xs p-5 card-hover transition">
+          <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 pb-3 mb-3">
             <div>
-              <div class="flex items-center gap-2">
+              <div class="flex items-center gap-2 flex-wrap">
                 <span class="font-mono font-bold text-slate-900 text-base">${escapeHtml(po.poNumber)}</span>
                 <span class="text-[11px] px-2.5 py-0.5 rounded-full border font-semibold ${badgeClass}">${badgeText}</span>
               </div>
               <p class="text-xs text-slate-400 mt-0.5">${po.items.length} Distinct SKUs in this ticket</p>
             </div>
-            <div class="flex items-center gap-4 text-xs">
-              <div class="text-right">
-                <span class="text-slate-400 block text-[11px]">Total Order Target</span>
-                <span class="font-bold text-slate-900">${formatNumber(totalOrdered)} units</span>
-              </div>
-              <div class="text-right">
-                <span class="text-slate-400 block text-[11px]">Pending Balance</span>
-                <span class="font-extrabold ${totalRemaining === 0 ? 'text-emerald-600' : 'text-blue-600'}">${formatNumber(totalRemaining)} units</span>
-              </div>
+            <div class="flex items-center gap-3 text-xs">
+              ${prodBadge}
+              <button onclick="openUpdateProductionStatusModal('${escapeHtml(po.poNumber)}')" title="Update Manufacturing / Stock Status" class="px-2.5 py-1 text-xs font-bold ${isPendingReadiness ? 'bg-amber-500 hover:bg-amber-600 text-white' : 'text-indigo-700 hover:bg-indigo-50 border border-indigo-200/90'} rounded-xl transition inline-flex items-center gap-1 shadow-2xs cursor-pointer">
+                <span>⚡ ${isPendingReadiness ? 'Confirm Readiness' : 'Update Status'}</span>
+              </button>
             </div>
           </div>
+
+          ${isPendingReadiness ? `
+            <div class="mb-3 p-3 bg-amber-50/90 border border-amber-200 rounded-xl text-xs flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 text-amber-950 shadow-2xs">
+              <div class="flex items-center gap-2.5">
+                <span class="text-base shrink-0">⚡</span>
+                <div>
+                  <strong class="block font-bold">Action Required: Confirm Stock vs Manufacturing Readiness</strong>
+                  <span class="text-[11px] text-amber-800 leading-snug">Check your factory inventory. Confirm if goods are already In Stock or if you need to run Production.</span>
+                </div>
+              </div>
+              <button onclick="openUpdateProductionStatusModal('${escapeHtml(po.poNumber)}')" class="px-3.5 py-1.5 bg-amber-600 hover:bg-amber-700 text-white font-bold text-xs rounded-xl shadow-2xs transition shrink-0 cursor-pointer self-start sm:self-auto">
+                Set Readiness Now
+              </button>
+            </div>
+          ` : ''}
+
+          ${po.productionNotes ? `
+            <div class="mb-3 p-2.5 bg-amber-50/70 border border-amber-200/80 rounded-xl text-xs text-amber-900 flex items-start gap-2">
+              <span class="text-sm">📝</span>
+              <div class="leading-relaxed">
+                <strong class="font-bold">Manufacturing / Batch Note:</strong>
+                <span class="text-amber-800 ml-1">${escapeHtml(po.productionNotes)}</span>
+              </div>
+            </div>
+          ` : ''}
 
           <div class="space-y-2 mb-4">
             ${itemsHtml}
@@ -2710,44 +4528,114 @@ function render() {
   let totalShippedAll = 0;
   let totalReceivedAll = 0;
 
+  let adminFilteredPos = state.pos;
+  if (state.adminPoFilter === 'pending') {
+    adminFilteredPos = state.pos.filter(p => {
+      const { totalOrdered, totalShipped, totalRemaining } = getPoMetrics(p.poNumber);
+      const isCompleted = totalRemaining === 0 && totalShipped >= totalOrdered;
+      const pStatus = p.productionStatus || 'pending';
+      return !isCompleted && pStatus === 'pending';
+    });
+  } else if (state.adminPoFilter === 'in_production') {
+    adminFilteredPos = state.pos.filter(p => {
+      const { totalOrdered, totalShipped, totalRemaining } = getPoMetrics(p.poNumber);
+      const isCompleted = totalRemaining === 0 && totalShipped >= totalOrdered;
+      const pStatus = p.productionStatus || '';
+      return !isCompleted && (pStatus === 'in_production' || pStatus === 'packing');
+    });
+  } else if (state.adminPoFilter === 'in_stock') {
+    adminFilteredPos = state.pos.filter(p => {
+      const { totalOrdered, totalShipped, totalRemaining } = getPoMetrics(p.poNumber);
+      const isCompleted = totalRemaining === 0 && totalShipped >= totalOrdered;
+      const pStatus = p.productionStatus || '';
+      return !isCompleted && (pStatus === 'in_stock' || pStatus === 'ready_to_ship');
+    });
+  } else if (state.adminPoFilter === 'completed') {
+    adminFilteredPos = state.pos.filter(p => {
+      const { totalOrdered, totalShipped, totalRemaining } = getPoMetrics(p.poNumber);
+      return totalRemaining === 0 && totalShipped >= totalOrdered;
+    });
+  }
+
+  state.pos.forEach(po => {
+    const { totalOrdered, totalShipped } = getPoMetrics(po.poNumber);
+    totalOrderedAll += totalOrdered;
+    totalShippedAll += totalShipped;
+  });
+
   const adminPoBody = document.getElementById('adminPoTableBody');
-  if (state.pos.length === 0) {
-    adminPoBody.innerHTML = `<tr><td colspan="8" class="p-8 text-center text-slate-400 text-xs">No orders created yet. Click <button type="button" onclick="openNewPoModal()" class="text-blue-600 font-bold hover:underline cursor-pointer">+ Create New Order</button> above to deploy your first order ticket.</td></tr>`;
-  } else {
-    adminPoBody.innerHTML = state.pos.map(po => {
-      const { totalOrdered, totalShipped, totalRemaining } = getPoMetrics(po.poNumber);
-      totalOrderedAll += totalOrdered;
-      totalShippedAll += totalShipped;
+  if (adminPoBody) {
+    if (adminFilteredPos.length === 0) {
+      adminPoBody.innerHTML = `<tr><td colspan="9" class="p-8 text-center text-slate-400 text-xs">No orders match the selected stage filter. Click <button type="button" onclick="openNewPoModal()" class="text-blue-600 font-bold hover:underline cursor-pointer">+ Create New Order</button> above to deploy an order ticket.</td></tr>`;
+    } else {
+      adminPoBody.innerHTML = adminFilteredPos.map(po => {
+        const { totalOrdered, totalShipped, totalRemaining } = getPoMetrics(po.poNumber);
 
-    let statusTag = `<span class="badge-pill badge-amber">⏳ Pending</span>`;
-    if (totalRemaining === 0 && totalShipped >= totalOrdered) {
-      statusTag = `<span class="badge-pill badge-emerald">✓ Completed</span>`;
-    } else if (totalShipped > 0) {
-      statusTag = `<span class="badge-pill badge-blue">⚡ In Progress</span>`;
+        let statusTag = `<span class="badge-pill badge-amber">⏳ Pending</span>`;
+        if (totalRemaining === 0 && totalShipped >= totalOrdered) {
+          statusTag = `<span class="badge-pill badge-emerald">✓ Completed</span>`;
+        } else if (totalShipped > 0) {
+          statusTag = `<span class="badge-pill badge-blue">⚡ In Progress</span>`;
+        }
+
+        const hasMultipleItems = (po.items || []).length > 1;
+        const itemsSummary = (po.items || []).map(i => {
+          const parsed = formatProductDisplay(i.description);
+          const catInfo = getItemCategoryInfo(i);
+          return `
+            <div class="py-1.5 border-b border-slate-100 last:border-b-0 space-y-1">
+              <div class="flex items-center justify-between gap-1.5">
+                <div class="flex items-center gap-1.5">
+                  <span class="inline-flex items-center gap-1 font-bold text-[10px] px-2 py-0.5 rounded border ${catInfo.badgeClass}">
+                    <span>${catInfo.icon}</span><span>${catInfo.name}</span>
+                  </span>
+                  ${i.sku ? `<span class="font-mono text-[10px] font-bold text-slate-500 bg-slate-100 px-1.5 py-0.5 rounded border border-slate-200">${escapeHtml(i.sku)}</span>` : ''}
+                </div>
+                <button type="button" onclick="openSampleArtworkModal('${escapeHtml(i.model || i.description)}')" title="View Approved Technical Specimen" class="px-2 py-0.5 rounded text-[10px] font-bold bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 transition inline-flex items-center gap-1 shadow-2xs shrink-0 cursor-pointer">
+                  <span>🖼️ Sample</span>
+                </button>
+              </div>
+              <div class="flex items-center justify-between gap-2">
+                <span class="font-bold text-slate-900 text-xs block leading-snug">${escapeHtml(parsed.title)}</span>
+                ${hasMultipleItems ? `<span class="font-mono text-slate-500 font-semibold text-[10px] shrink-0">(${formatNumber(i.orderedQty)} units)</span>` : ''}
+              </div>
+            </div>
+          `;
+        }).join('');
+
+        const pStatus = po.productionStatus || 'pending';
+        const prodBadge = getProductionBadgeHtml(pStatus, po.productionEstimatedDate);
+
+        return `
+          <tr class="hover:bg-slate-50/80 transition">
+            <td class="p-3 font-mono font-bold text-blue-600 text-xs">
+              <span class="block">${escapeHtml(po.poNumber)}</span>
+              ${po.requiredByDate ? `<span class="text-[10px] text-slate-400 font-sans font-normal block mt-0.5">Due: ${po.requiredByDate}</span>` : ''}
+            </td>
+            <td class="p-3 font-semibold text-slate-800">${escapeHtml(po.vendor)}</td>
+            <td class="p-3 text-slate-600 text-xs leading-relaxed min-w-[220px]">${itemsSummary}</td>
+            <td class="p-3 text-center">
+              ${prodBadge}
+              ${po.productionNotes ? `<span class="text-[10px] text-slate-500 font-sans block mt-1 truncate max-w-[150px] mx-auto" title="${escapeHtml(po.productionNotes)}">📝 ${escapeHtml(po.productionNotes)}</span>` : ''}
+            </td>
+            <td class="p-3 text-right font-mono font-bold text-slate-900">${formatNumber(totalOrdered)}</td>
+            <td class="p-3 text-right font-mono font-bold text-blue-600">${formatNumber(totalShipped)}</td>
+            <td class="p-3 text-right font-mono font-bold ${totalRemaining === 0 ? 'text-slate-400' : 'text-amber-600'}">${formatNumber(totalRemaining)}</td>
+            <td class="p-3 text-center">${statusTag}</td>
+            <td class="p-3 text-center">
+              <div class="flex items-center justify-center gap-1.5">
+                <button onclick="openUpdateProductionStatusModal('${escapeHtml(po.poNumber)}')" title="Update Production / Stock Status" class="px-2.5 py-1 text-xs font-semibold text-indigo-700 hover:bg-indigo-50 border border-indigo-200/90 rounded-lg transition inline-flex items-center gap-1 shadow-2xs cursor-pointer">
+                  <span>⚡ Stage</span>
+                </button>
+                <button onclick="deletePo('${escapeHtml(po.poNumber)}')" class="px-2 py-1 text-xs font-semibold text-rose-600 hover:bg-rose-50 border border-rose-200/70 rounded-lg transition inline-flex items-center gap-1 shadow-2xs cursor-pointer">
+                  <span>🗑️</span>
+                </button>
+              </div>
+            </td>
+          </tr>
+        `;
+      }).join('');
     }
-
-    const itemsSummary = (po.items || []).map(i => {
-      const parsed = formatProductDisplay(i.description);
-      return `<span class="inline-block py-0.5"><span class="font-mono font-bold text-slate-700">${escapeHtml(i.sku)}</span>: <strong class="text-slate-800">${escapeHtml(parsed.title)}</strong> (<span class="font-mono text-blue-600 font-bold">${formatNumber(i.orderedQty)}</span>)</span>`;
-    }).join('<br>');
-
-    return `
-      <tr class="hover:bg-slate-50/80 transition">
-        <td class="p-3 font-mono font-bold text-blue-600 text-xs">${escapeHtml(po.poNumber)}</td>
-        <td class="p-3 font-semibold text-slate-800">${escapeHtml(po.vendor)}</td>
-        <td class="p-3 text-slate-600 text-[11px] leading-relaxed">${itemsSummary}</td>
-        <td class="p-3 text-right font-mono font-bold text-slate-900">${formatNumber(totalOrdered)}</td>
-        <td class="p-3 text-right font-mono font-bold text-blue-600">${formatNumber(totalShipped)}</td>
-        <td class="p-3 text-right font-mono font-bold ${totalRemaining === 0 ? 'text-slate-400' : 'text-amber-600'}">${formatNumber(totalRemaining)}</td>
-        <td class="p-3 text-center">${statusTag}</td>
-        <td class="p-3 text-center">
-          <button onclick="deletePo('${escapeHtml(po.poNumber)}')" class="px-2.5 py-1 text-xs font-semibold text-rose-600 hover:bg-rose-50 border border-rose-200/70 rounded-lg transition inline-flex items-center gap-1 shadow-2xs">
-            <span>🗑️ Delete</span>
-          </button>
-        </td>
-      </tr>
-    `;
-  }).join('');
   }
 
   // 3. Admin Shipments & Quick Audit Filters
@@ -2877,36 +4765,41 @@ function render() {
 
         return `
           <tr class="hover:bg-slate-50/80 transition">
-            <td class="p-3 font-mono font-bold text-slate-800 text-xs">${escapeHtml(s.id)}</td>
-            <td class="p-3 font-mono font-semibold text-blue-600 text-xs">${escapeHtml(s.poNumber)}</td>
-            <td class="p-3 text-slate-800 font-semibold">${escapeHtml(po ? po.vendor : '-')}</td>
-            <td class="p-3 text-slate-700 font-mono text-[11px] font-medium">${escapeHtml(s.truckLR)}</td>
-            <td class="p-3 text-slate-500 font-mono text-[11px]">${escapeHtml(s.date)}</td>
-            <td class="p-3">
-              <div class="flex items-center gap-1.5 mb-1">
-                <span class="inline-flex items-center gap-1 font-bold text-[10px] px-2 py-0.5 rounded border ${catInfo.badgeClass}">
-                  <span>${catInfo.icon}</span>
-                  <span>${catInfo.name}</span>
-                </span>
-                ${s.sku ? `<span class="font-mono text-[10px] font-bold text-slate-500 bg-slate-100 px-1 py-0.2 rounded border border-slate-200">${escapeHtml(s.sku)}</span>` : ''}
+            <td class="p-3 font-mono font-bold text-slate-800 text-xs whitespace-nowrap">${escapeHtml(s.id)}</td>
+            <td class="p-3 font-mono font-semibold text-blue-600 text-xs whitespace-nowrap">${escapeHtml(s.poNumber)}</td>
+            <td class="p-3 text-slate-800 font-semibold whitespace-nowrap">${escapeHtml(po ? po.vendor : '-')}</td>
+            <td class="p-3 text-slate-700 font-mono text-[11px] font-medium whitespace-nowrap">${escapeHtml(s.truckLR)}</td>
+            <td class="p-3 text-slate-500 font-mono text-[11px] whitespace-nowrap">${escapeHtml(s.date)}</td>
+            <td class="p-3 min-w-[260px]">
+              <div class="flex items-center justify-between gap-1.5 mb-1.5">
+                <div class="flex items-center gap-1.5 flex-wrap">
+                  <span class="inline-flex items-center gap-1 font-bold text-[10px] px-2 py-0.5 rounded border ${catInfo.badgeClass} whitespace-nowrap shrink-0">
+                    <span>${catInfo.icon}</span>
+                    <span>${catInfo.name}</span>
+                  </span>
+                  ${s.sku ? `<span class="font-mono text-[10px] font-bold text-slate-600 bg-slate-100 px-1.5 py-0.5 rounded border border-slate-200 whitespace-nowrap shrink-0">${escapeHtml(s.sku)}</span>` : ''}
+                </div>
+                <button type="button" onclick="openSampleArtworkModal('${escapeHtml(s.model || s.description)}')" title="View Approved Technical Specimen" class="px-2 py-0.5 rounded text-[10px] font-bold bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 transition inline-flex items-center gap-1 shadow-2xs whitespace-nowrap shrink-0 cursor-pointer">
+                  <span>🖼️ Sample</span>
+                </button>
               </div>
               <span class="font-bold text-slate-900 block leading-snug">${escapeHtml(sParsed.title)}</span>
               ${sParsed.specs ? `<span class="text-[10px] text-slate-500 font-mono block mt-0.5 leading-tight">${escapeHtml(sParsed.specs)}</span>` : ''}
             </td>
-            <td class="p-3 text-right">
-              <span class="font-mono font-bold text-blue-600 block">${formatNumber(s.qtySent)}</span>
-              <span class="text-[10px] text-slate-500 font-semibold inline-block px-1.5 py-0.2 bg-slate-100 rounded border border-slate-200 mt-0.5">${s.boxCount || 1} box(es)</span>
+            <td class="p-3 text-right whitespace-nowrap">
+              <span class="font-mono font-bold text-blue-600 block text-xs">${formatNumber(s.qtySent)}</span>
+              <span class="text-[10px] text-slate-500 font-semibold inline-block px-1.5 py-0.5 bg-slate-100 rounded border border-slate-200 mt-0.5 whitespace-nowrap">${s.boxCount || 1} box(es)</span>
             </td>
-            <td class="p-3 text-right">
+            <td class="p-3 text-right whitespace-nowrap">
               ${hasCount ? `
-                <span class="font-mono font-bold text-slate-900 block">${formatNumber(s.receivedQty)} good</span>
-                <span class="text-[10px] text-emerald-700 font-semibold inline-block px-1.5 py-0.2 bg-emerald-50 rounded border border-emerald-200 mt-0.5">${s.receivedBoxes || s.boxCount || 1} box(es)</span>
-                ${damaged > 0 ? `<span class="text-[10px] text-rose-700 bg-rose-50 border border-rose-200 px-1.5 py-0.2 rounded font-semibold block mt-0.5">⚠️ ${formatNumber(damaged)} damaged</span>` : ''}
+                <span class="font-mono font-bold text-slate-900 block text-xs">${formatNumber(s.receivedQty)} good</span>
+                <span class="text-[10px] text-emerald-700 font-semibold inline-block px-1.5 py-0.5 bg-emerald-50 rounded border border-emerald-200 mt-0.5 whitespace-nowrap">${s.receivedBoxes || s.boxCount || 1} box(es)</span>
+                ${damaged > 0 ? `<span class="text-[10px] text-rose-700 bg-rose-50 border border-rose-200 px-1.5 py-0.5 rounded font-semibold block mt-0.5 whitespace-nowrap">⚠️ ${formatNumber(damaged)} damaged</span>` : ''}
               ` : '<span class="text-slate-300 font-mono text-xs">-</span>'}
             </td>
-            <td class="p-3 text-right font-mono font-bold ${variance < 0 ? 'text-rose-600' : (variance > 0 ? 'text-purple-600' : 'text-emerald-600')}">
+            <td class="p-3 text-right font-mono font-bold whitespace-nowrap ${variance < 0 ? 'text-rose-600' : (variance > 0 ? 'text-purple-600' : 'text-emerald-600')}">
               ${hasCount ? (variance > 0 ? '+' : '') + formatNumber(variance) : '-'}
-              ${hasCount && damaged > 0 ? `<span class="text-[10px] text-slate-400 font-normal block font-sans">(${formatNumber(Number(s.receivedQty) + damaged)} total)</span>` : ''}
+              ${hasCount && damaged > 0 ? `<span class="text-[10px] text-slate-400 font-normal block font-sans whitespace-nowrap">(${formatNumber(Number(s.receivedQty) + damaged)} total)</span>` : ''}
             </td>
             <td class="p-3 text-center">
               <div class="inline-flex flex-col gap-1 items-center">
@@ -3023,32 +4916,37 @@ function render() {
 
         return `
           <tr class="hover:bg-slate-50/80 transition">
-            <td class="p-3 font-mono font-bold text-slate-800 text-xs">${escapeHtml(s.id)}</td>
-            <td class="p-3 font-mono font-semibold text-blue-600 text-xs">${escapeHtml(s.poNumber)}</td>
-            <td class="p-3 text-slate-800 font-semibold">${escapeHtml(po ? po.vendor : '-')}</td>
-            <td class="p-3 text-slate-700 font-mono text-[11px] font-medium">${escapeHtml(s.truckLR)}</td>
-            <td class="p-3 text-slate-500 font-mono text-[11px]">${escapeHtml(s.date)}</td>
-            <td class="p-3">
-              <div class="flex items-center gap-1.5 mb-1">
-                <span class="inline-flex items-center gap-1 font-bold text-[10px] px-2 py-0.5 rounded border ${catInfo.badgeClass}">
-                  <span>${catInfo.icon}</span>
-                  <span>${catInfo.name}</span>
-                </span>
-                ${s.sku ? `<span class="font-mono text-[10px] font-bold text-slate-500 bg-slate-100 px-1 py-0.2 rounded border border-slate-200">${escapeHtml(s.sku)}</span>` : ''}
+            <td class="p-3 font-mono font-bold text-slate-800 text-xs whitespace-nowrap">${escapeHtml(s.id)}</td>
+            <td class="p-3 font-mono font-semibold text-blue-600 text-xs whitespace-nowrap">${escapeHtml(s.poNumber)}</td>
+            <td class="p-3 text-slate-800 font-semibold whitespace-nowrap">${escapeHtml(po ? po.vendor : '-')}</td>
+            <td class="p-3 text-slate-700 font-mono text-[11px] font-medium whitespace-nowrap">${escapeHtml(s.truckLR)}</td>
+            <td class="p-3 text-slate-500 font-mono text-[11px] whitespace-nowrap">${escapeHtml(s.date)}</td>
+            <td class="p-3 min-w-[260px]">
+              <div class="flex items-center justify-between gap-1.5 mb-1.5">
+                <div class="flex items-center gap-1.5 flex-wrap">
+                  <span class="inline-flex items-center gap-1 font-bold text-[10px] px-2 py-0.5 rounded border ${catInfo.badgeClass} whitespace-nowrap shrink-0">
+                    <span>${catInfo.icon}</span>
+                    <span>${catInfo.name}</span>
+                  </span>
+                  ${s.sku ? `<span class="font-mono text-[10px] font-bold text-slate-600 bg-slate-100 px-1.5 py-0.5 rounded border border-slate-200 whitespace-nowrap shrink-0">${escapeHtml(s.sku)}</span>` : ''}
+                </div>
+                <button type="button" onclick="openSampleArtworkModal('${escapeHtml(s.model || s.description)}')" title="View Approved Technical Specimen" class="px-2 py-0.5 rounded text-[10px] font-bold bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 transition inline-flex items-center gap-1 shadow-2xs whitespace-nowrap shrink-0 cursor-pointer">
+                  <span>🖼️ Sample</span>
+                </button>
               </div>
               <span class="font-bold text-slate-900 block leading-snug">${escapeHtml(sParsed.title)}</span>
               ${sParsed.specs ? `<span class="text-[10px] text-slate-500 font-mono block mt-0.5 leading-tight">${escapeHtml(sParsed.specs)}</span>` : ''}
             </td>
-            <td class="p-3 text-right">
-              <span class="font-mono font-bold text-blue-600 block">${formatNumber(s.qtySent)}</span>
-              <span class="text-[10px] text-slate-500 font-semibold inline-block px-1.5 py-0.2 bg-slate-100 rounded border border-slate-200 mt-0.5">${s.boxCount || 1} box(es)</span>
+            <td class="p-3 text-right whitespace-nowrap">
+              <span class="font-mono font-bold text-blue-600 block text-xs">${formatNumber(s.qtySent)}</span>
+              <span class="text-[10px] text-slate-500 font-semibold inline-block px-1.5 py-0.5 bg-slate-100 rounded border border-slate-200 mt-0.5 whitespace-nowrap">${s.boxCount || 1} box(es)</span>
             </td>
-            <td class="p-3 text-right">
+            <td class="p-3 text-right whitespace-nowrap">
               ${hasCount ? `
-                <span class="font-mono font-bold text-emerald-700 block">${formatNumber(s.receivedQty)} good</span>
-                <span class="text-[10px] text-slate-500 font-semibold inline-block px-1.5 py-0.2 bg-slate-100 rounded border border-slate-200 mt-0.5">${s.receivedBoxes || s.boxCount || 1} box(es)</span>
-                ${damaged > 0 ? `<span class="text-[10px] text-rose-700 bg-rose-50 border border-rose-200 px-1.5 py-0.2 rounded font-semibold block mt-0.5">⚠️ ${formatNumber(damaged)} rejected</span>` : ''}
-              ` : '<span class="text-amber-600 font-semibold text-xs">⏳ Uninspected</span>'}
+                <span class="font-mono font-bold text-emerald-700 block text-xs">${formatNumber(s.receivedQty)} good</span>
+                <span class="text-[10px] text-slate-500 font-semibold inline-block px-1.5 py-0.5 bg-slate-100 rounded border border-slate-200 mt-0.5 whitespace-nowrap">${s.receivedBoxes || s.boxCount || 1} box(es)</span>
+                ${damaged > 0 ? `<span class="text-[10px] text-rose-700 bg-rose-50 border border-rose-200 px-1.5 py-0.5 rounded font-semibold block mt-0.5 whitespace-nowrap">⚠️ ${formatNumber(damaged)} rejected</span>` : ''}
+              ` : '<span class="text-amber-600 font-semibold text-xs whitespace-nowrap">⏳ Uninspected</span>'}
             </td>
             <td class="p-3 text-center">
               <div class="inline-flex flex-col gap-1 items-center">
@@ -3092,6 +4990,16 @@ function render() {
       ? "text-2xl font-black text-rose-600 font-mono mt-1" 
       : (totalVerifiedVariance > 0 ? "text-2xl font-black text-purple-600 font-mono mt-1" : "text-2xl font-black text-emerald-600 font-mono mt-1");
   }
+
+  // Update Admin Tab Badges & Content
+  const bOrd = document.getElementById('adminTabBadgeOrders');
+  const bDsp = document.getElementById('adminTabBadgeDispatches');
+  const bSc = document.getElementById('adminTabBadgeScorecards');
+  const bVnd = document.getElementById('adminTabBadgeVendors');
+  if (bOrd) bOrd.textContent = state.pos.length;
+  if (bDsp) bDsp.textContent = (state.shipments || []).length;
+  if (bSc) bSc.textContent = (state.vendors || []).length;
+  if (bVnd) bVnd.textContent = (state.vendors || []).length;
 
   // 6. Update Vendor Scorecards
   renderVendorScorecards();
@@ -3181,7 +5089,7 @@ function exportShipmentsCsv() {
 // Global accessibility: close active modals on Escape key or Backdrop click
 document.addEventListener('keydown', (e) => {
   if (e.key === 'Escape') {
-    ['dispatchModal', 'receiveModal', 'newPoModal', 'vendorManageModal', 'invoicePreviewModal', 'vendorScorecardModal', 'changePasswordModal'].forEach(id => {
+    ['dispatchModal', 'receiveModal', 'newPoModal', 'vendorManageModal', 'invoicePreviewModal', 'vendorScorecardModal', 'changePasswordModal', 'updateProductionStatusModal', 'sampleArtworkModal', 'annualColorCodeModal'].forEach(id => {
       const el = document.getElementById(id);
       if (el && !el.classList.contains('hidden')) {
         closeModal(id);
@@ -3201,9 +5109,11 @@ if (typeof window !== 'undefined') {
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', () => {
       initSupabase();
+      updateAnnualColorUI();
     });
   } else {
     initSupabase();
+    updateAnnualColorUI();
   }
 
   // Global Window API Exposure for Template Handlers
@@ -3243,7 +5153,36 @@ if (typeof window !== 'undefined') {
   window.generateRandomNewPassword = generateRandomNewPassword;
   window.toggleChangePassVisibility = toggleChangePassVisibility;
   window.handleChangePasswordSubmit = handleChangePasswordSubmit;
+  window.switchAdminTab = switchAdminTab;
+  window.setAdminPoFilter = setAdminPoFilter;
+  window.openSampleArtworkModal = openSampleArtworkModal;
+  window.switchSampleModalYear = switchSampleModalYear;
+  window.handleSampleProofFileChange = handleSampleProofFileChange;
+  window.deleteSampleProof = deleteSampleProof;
+  window.openReceiveModalSample = openReceiveModalSample;
+  window.openAnnualColorManagerModal = openAnnualColorManagerModal;
+  window.switchAnnualManagerTab = switchAnnualManagerTab;
+  window.toggleNewYearForm = toggleNewYearForm;
+  window.handleSaveYearColor = handleSaveYearColor;
+  window.setActiveOperationalYear = setActiveOperationalYear;
+  window.deleteAnnualColorYear = deleteAnnualColorYear;
+  window.handleMatrixYearChange = handleMatrixYearChange;
+  window.handleMatrixCatChange = handleMatrixCatChange;
+  window.handleMatrixQuickUpload = handleMatrixQuickUpload;
+  window.updateAnnualColorUI = updateAnnualColorUI;
+  window.openUpdateProductionStatusModal = openUpdateProductionStatusModal;
+  window.handleProductionStatusSubmit = handleProductionStatusSubmit;
   window.render = render;
+  Object.defineProperty(window, 'currentDispatchInvoice', {
+    get: () => currentDispatchInvoice,
+    set: (val) => { currentDispatchInvoice = val; },
+    configurable: true
+  });
+  Object.defineProperty(window, 'currentDamagePhoto', {
+    get: () => currentDamagePhoto,
+    set: (val) => { currentDamagePhoto = val; },
+    configurable: true
+  });
 }
 
 
