@@ -60,10 +60,6 @@ labeltrack-app/
 | :--- | :--- | :--- | :--- |
 | **Operations Admin** | `admin@labeltrack.com` | `AdminOps2026!` *(or `admin123`)* | Salted SHA-256 Vault |
 | **Gate Security** | `gate@labeltrack.com` | `GateSecurity2026!` *(or `gate123`)* | Salted SHA-256 Vault |
-| **Supplier (SVL)** | `svl@gmail.com` | `SVL@123` | Salted SHA-256 Vault |
-| **Supplier (Apex Print)** | `dispatch@apexprint.com` | `vendor123` | Salted SHA-256 Vault |
-| **Supplier (Royal Roll)** | `dispatch@royalprinters.com` | `vendor123` | Salted SHA-256 Vault |
-| **Supplier (pavan)** | `ch.saipavan@rsbrothers.net` | Set via Admin | Salted SHA-256 Vault |
 
 *Passwords can be updated or rotated directly from the top navigation bar or the **Manage Suppliers** panel.*
 
