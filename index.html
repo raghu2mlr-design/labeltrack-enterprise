@@ -183,19 +183,27 @@
           </div>
         </div>
 
-        <!-- Filter & Search Toolbar -->
+        <!-- Filter & Search Toolbar (Professional Segmented Controls) -->
         <div class="flex flex-col sm:flex-row items-center justify-between gap-3 bg-white p-2.5 rounded-2xl border border-slate-200 shadow-xs">
-          <div class="inline-flex p-1 bg-slate-100 rounded-xl border border-slate-200/70 w-full sm:w-auto">
-            <button onclick="setFilter('all')" id="filterBtnAll" class="px-4 py-2 text-xs font-bold rounded-xl bg-slate-900 text-white shadow-xs transition flex items-center gap-1.5">
+          <div class="nav-tab-container inline-flex p-1 bg-slate-100 rounded-xl border border-slate-200/70 w-full sm:w-auto overflow-x-auto">
+            <button onclick="setFilter('all')" id="filterBtnAll" class="nav-tab-btn nav-tab-btn-active-primary px-3.5 py-1.5 text-xs font-bold rounded-lg transition flex items-center gap-1.5">
               <span>All Orders</span>
               <span class="bg-slate-800 text-slate-200 px-1.5 py-0.5 rounded-full text-[10px] font-mono" id="countAll">0</span>
             </button>
-            <button onclick="setFilter('active')" id="filterBtnActive" class="px-4 py-2 text-xs font-semibold rounded-xl text-slate-600 hover:text-slate-900 hover:bg-slate-200/60 transition flex items-center gap-1.5">
-              <span>In Production</span>
-              <span class="bg-slate-200 text-slate-600 px-1.5 py-0.5 rounded-full text-[10px] font-mono" id="countActive">0</span>
+            <button onclick="setFilter('pending')" id="filterBtnPending" class="nav-tab-btn px-3.5 py-1.5 text-xs font-semibold rounded-lg text-slate-600 hover:text-slate-900 transition flex items-center gap-1.5">
+              <span>⚡ Action Needed</span>
+              <span class="bg-amber-100 text-amber-800 px-1.5 py-0.5 rounded-full text-[10px] font-mono font-bold" id="countPending">0</span>
             </button>
-            <button onclick="setFilter('completed')" id="filterBtnCompleted" class="px-4 py-2 text-xs font-semibold rounded-xl text-slate-600 hover:text-slate-900 hover:bg-slate-200/60 transition flex items-center gap-1.5">
-              <span>Completed</span>
+            <button onclick="setFilter('in_stock')" id="filterBtnInStock" class="nav-tab-btn px-3.5 py-1.5 text-xs font-semibold rounded-lg text-slate-600 hover:text-slate-900 transition flex items-center gap-1.5">
+              <span>📦 Ready in Stock</span>
+              <span class="bg-emerald-100 text-emerald-700 px-1.5 py-0.5 rounded-full text-[10px] font-mono font-bold" id="countInStock">0</span>
+            </button>
+            <button onclick="setFilter('in_production')" id="filterBtnInProd" class="nav-tab-btn px-3.5 py-1.5 text-xs font-semibold rounded-lg text-slate-600 hover:text-slate-900 transition flex items-center gap-1.5">
+              <span>🏭 In Production</span>
+              <span class="bg-indigo-100 text-indigo-700 px-1.5 py-0.5 rounded-full text-[10px] font-mono font-bold" id="countInProd">0</span>
+            </button>
+            <button onclick="setFilter('completed')" id="filterBtnCompleted" class="nav-tab-btn px-3.5 py-1.5 text-xs font-semibold rounded-lg text-slate-600 hover:text-slate-900 transition flex items-center gap-1.5">
+              <span>✅ Completed</span>
               <span class="bg-slate-200 text-slate-600 px-1.5 py-0.5 rounded-full text-[10px] font-mono" id="countCompleted">0</span>
             </button>
           </div>
@@ -246,12 +254,12 @@
               <span>Internal Operations Command</span>
             </span>
             <h1 class="text-2xl font-black text-slate-900 tracking-tight mt-1.5">Multi-Vendor Order & Reconciliation Hub</h1>
-            <p class="text-xs text-slate-500 mt-0.5">Manage split order allocations across suppliers and reconcile physical warehouse receipts against vendor invoices.</p>
+            <p class="text-xs text-slate-500 mt-0.5">Manage split order allocations across suppliers, monitor live production readiness, and reconcile physical warehouse receipts.</p>
           </div>
-          <div class="flex items-center gap-2.5">
-            <button onclick="openModal('vendorManageModal')" class="px-4 py-2.5 bg-slate-900 hover:bg-slate-800 active:bg-slate-950 text-white text-xs font-bold rounded-xl shadow-xs transition flex items-center gap-2 cursor-pointer">
-              <span>👥 Manage Vendors</span>
-              <span class="bg-blue-600 text-white text-[10px] px-1.5 py-0.2 rounded-full font-mono font-bold" id="vendorCountBadge">2</span>
+          <div class="flex items-center gap-2.5 flex-wrap">
+            <button onclick="openAnnualColorManagerModal()" class="px-3.5 py-2.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-900 border border-indigo-200 text-xs font-bold rounded-xl shadow-xs transition flex items-center gap-2 cursor-pointer">
+              <span class="w-3 h-3 rounded-full border border-indigo-400 shrink-0" id="adminActiveYearColorDot" style="background-color: #0284c7;"></span>
+              <span id="adminActiveYearColorBadgeText">🎨 Annual Color Proofs (2026)</span>
             </button>
             <button onclick="openNewPoModal()" class="px-5 py-2.5 btn-gradient-primary text-xs font-bold rounded-xl transition flex items-center gap-1.5 cursor-pointer">
               <span>+ Create New Order</span>
@@ -259,168 +267,306 @@
           </div>
         </div>
 
-        <!-- 4 KPI Cards for Internal Operations -->
-        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          <div class="bg-gradient-to-br from-blue-500/5 via-white to-white rounded-2xl p-5 border border-blue-100 shadow-xs card-hover transition">
-            <div class="flex items-center justify-between text-slate-400 mb-2">
-              <span class="text-xs font-bold uppercase tracking-wider text-slate-500">Total Units Contracted</span>
-              <span class="w-9 h-9 bg-blue-50 text-blue-600 rounded-xl flex items-center justify-center text-sm shadow-2xs border border-blue-100">📦</span>
-            </div>
-            <p class="text-2xl font-black text-slate-900 font-mono tracking-tight mt-1" id="adminStatOrdered">0</p>
-            <p class="text-[11px] text-slate-400 mt-1 font-medium">Sum of all multi-item order quotas</p>
-          </div>
-          <div class="bg-gradient-to-br from-indigo-500/5 via-white to-white rounded-2xl p-5 border border-indigo-100 shadow-xs card-hover transition">
-            <div class="flex items-center justify-between text-slate-400 mb-2">
-              <span class="text-xs font-bold uppercase tracking-wider text-slate-500">Total Units Shipped</span>
-              <span class="w-9 h-9 bg-indigo-50 text-indigo-600 rounded-xl flex items-center justify-center text-sm shadow-2xs border border-indigo-100">🚚</span>
-            </div>
-            <p class="text-2xl font-black text-blue-600 font-mono tracking-tight mt-1" id="adminStatShipped">0</p>
-            <p class="text-[11px] text-slate-400 mt-1 font-medium">Dispatched from all printing factories</p>
-          </div>
-          <div class="bg-gradient-to-br from-emerald-500/5 via-white to-white rounded-2xl p-5 border border-emerald-100 shadow-xs card-hover transition">
-            <div class="flex items-center justify-between text-slate-400 mb-2">
-              <span class="text-xs font-bold uppercase tracking-wider text-slate-500">Total Physical Receipts</span>
-              <span class="w-9 h-9 bg-emerald-50 text-emerald-600 rounded-xl flex items-center justify-center text-sm shadow-2xs border border-emerald-100">🏢</span>
-            </div>
-            <p class="text-2xl font-black text-emerald-600 font-mono tracking-tight mt-1" id="adminStatReceived">0</p>
-            <p class="text-[11px] text-slate-400 mt-1 font-medium">Physically verified at gate receiving</p>
-          </div>
-          <div class="bg-gradient-to-br from-rose-500/5 via-white to-white rounded-2xl p-5 border border-rose-100 shadow-xs card-hover transition">
-            <div class="flex items-center justify-between text-slate-400 mb-2">
-              <span class="text-xs font-bold uppercase tracking-wider text-slate-500">Total Physical Variance</span>
-              <span class="w-9 h-9 bg-rose-50 text-rose-600 rounded-xl flex items-center justify-center text-sm shadow-2xs border border-rose-100">⚖️</span>
-            </div>
-            <p class="text-2xl font-black text-rose-600 font-mono tracking-tight mt-1" id="adminStatVariance">0</p>
-            <p class="text-[11px] text-slate-400 mt-1 font-medium">Reconciliation across audited dispatches</p>
-          </div>
+        <!-- Professional Executive Tab Bar (Apple / Linear-style segmented control) -->
+        <div class="nav-tab-container p-1 bg-slate-200/70 rounded-2xl flex items-center gap-1 overflow-x-auto border border-slate-200/90 shadow-2xs">
+          <button type="button" onclick="switchAdminTab('orders')" id="adminTabBtnOrders" class="nav-tab-btn nav-tab-btn-active px-4 py-2.5 rounded-xl text-xs font-bold transition flex items-center gap-2">
+            <span>📋 Purchase Orders & Production</span>
+            <span id="adminTabBadgeOrders" class="px-2 py-0.5 rounded-full text-[10px] font-mono font-bold bg-blue-100 text-blue-700">0</span>
+          </button>
+          <button type="button" onclick="switchAdminTab('dispatches')" id="adminTabBtnDispatches" class="nav-tab-btn px-4 py-2.5 rounded-xl text-xs font-bold transition flex items-center gap-2">
+            <span>🚚 Inward Deliveries & Gate Audit</span>
+            <span id="adminTabBadgeDispatches" class="px-2 py-0.5 rounded-full text-[10px] font-mono font-bold bg-slate-200 text-slate-700">0</span>
+          </button>
+          <button type="button" onclick="switchAdminTab('scorecards')" id="adminTabBtnScorecards" class="nav-tab-btn px-4 py-2.5 rounded-xl text-xs font-bold transition flex items-center gap-2">
+            <span>📊 Quality Scorecards</span>
+            <span id="adminTabBadgeScorecards" class="px-2 py-0.5 rounded-full text-[10px] font-mono font-bold bg-purple-100 text-purple-700">0</span>
+          </button>
+          <button type="button" onclick="switchAdminTab('vendors')" id="adminTabBtnVendors" class="nav-tab-btn px-4 py-2.5 rounded-xl text-xs font-bold transition flex items-center gap-2">
+            <span>👥 Supplier Directory</span>
+            <span id="adminTabBadgeVendors" class="px-2 py-0.5 rounded-full text-[10px] font-mono font-bold bg-slate-200 text-slate-700">0</span>
+          </button>
         </div>
 
-        <!-- All Orders Overview Table -->
-        <div class="bg-white rounded-2xl border border-slate-200 shadow-xs overflow-hidden">
-          <div class="p-4 border-b border-slate-100 flex items-center justify-between">
-            <h2 class="text-sm font-bold text-slate-900">All Orders & Line Item Allocations</h2>
-            <span class="text-xs text-slate-500">Live multi-vendor tracker</span>
-          </div>
-          <div class="overflow-x-auto">
-            <table class="w-full text-left text-xs">
-              <thead class="bg-slate-50/90 text-slate-500 font-bold uppercase tracking-wider text-[11px] border-b border-slate-200/80">
-                <tr>
-                  <th class="p-3">Order Number</th>
-                  <th class="p-3">Assigned Supplier</th>
-                  <th class="p-3">SKUs & Line Items</th>
-                  <th class="p-3 text-right">Total Ordered</th>
-                  <th class="p-3 text-right">Shipped Units</th>
-                  <th class="p-3 text-right">Remaining Quota</th>
-                  <th class="p-3 text-center">Status</th>
-                  <th class="p-3 text-center">Action</th>
-                </tr>
-              </thead>
-              <tbody id="adminPoTableBody" class="divide-y divide-slate-100">
-                <!-- Dynamically populated via JS -->
-              </tbody>
-            </table>
-          </div>
-        </div>
+        <!-- ============================================== -->
+        <!-- TAB PANE 1: PURCHASE ORDERS & PRODUCTION STAGE -->
+        <!-- ============================================== -->
+        <div id="adminPaneOrders" class="space-y-6">
 
-        <!-- Gate Receiving & Invoice Verification Table -->
-        <div class="bg-white rounded-2xl border border-slate-200 shadow-xs overflow-hidden">
-          <div class="p-4 border-b border-slate-100 flex flex-col md:flex-row md:items-center justify-between gap-3">
-            <div>
-              <div class="flex items-center gap-2">
-                <h2 class="text-sm font-bold text-slate-900">Warehouse Receiving, Invoices & Discrepancy Log</h2>
-                <span class="badge-pill badge-emerald text-[10px]">Audit Engine</span>
+          <!-- 4 KPI Cards for Internal Operations -->
+          <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            <div class="bg-gradient-to-br from-blue-500/5 via-white to-white rounded-2xl p-5 border border-blue-100 shadow-xs card-hover transition">
+              <div class="flex items-center justify-between text-slate-400 mb-2">
+                <span class="text-xs font-bold uppercase tracking-wider text-slate-500">Total Units Contracted</span>
+                <span class="w-9 h-9 bg-blue-50 text-blue-600 rounded-xl flex items-center justify-center text-sm shadow-2xs border border-blue-100">📦</span>
               </div>
-              <p class="text-xs text-slate-500 mt-0.5">Filter discrepancies, cross-verify invoices, record damaged cartons, and reconcile stock.</p>
+              <p class="text-2xl font-black text-slate-900 font-mono tracking-tight mt-1" id="adminStatOrdered">0</p>
+              <p class="text-[11px] text-slate-400 mt-1 font-medium">Sum of all multi-item order quotas</p>
             </div>
-            <div class="flex flex-wrap items-center gap-2">
-              <button type="button" onclick="openModal('vendorScorecardModal')" class="px-3 py-1.5 bg-blue-50 hover:bg-blue-100 text-blue-700 text-xs font-bold rounded-xl border border-blue-200 transition flex items-center gap-1.5 shadow-2xs">
-                <span>📊 Vendor Scorecards</span>
-              </button>
-              <button onclick="clearAllShipments()" class="px-3 py-1.5 bg-rose-50 hover:bg-rose-100 text-rose-700 text-xs font-bold rounded-xl border border-rose-200 transition flex items-center gap-1 shadow-2xs">
-                <span>🗑️ Clear Logs</span>
-              </button>
-              <button onclick="exportShipmentsCsv()" class="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold rounded-xl border border-slate-200 transition flex items-center gap-1.5 shadow-2xs">
-                <svg class="w-3.5 h-3.5 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
-                <span>Export CSV</span>
-              </button>
+            <div class="bg-gradient-to-br from-indigo-500/5 via-white to-white rounded-2xl p-5 border border-indigo-100 shadow-xs card-hover transition">
+              <div class="flex items-center justify-between text-slate-400 mb-2">
+                <span class="text-xs font-bold uppercase tracking-wider text-slate-500">Total Units Shipped</span>
+                <span class="w-9 h-9 bg-indigo-50 text-indigo-600 rounded-xl flex items-center justify-center text-sm shadow-2xs border border-indigo-100">🚚</span>
+              </div>
+              <p class="text-2xl font-black text-blue-600 font-mono tracking-tight mt-1" id="adminStatShipped">0</p>
+              <p class="text-[11px] text-slate-400 mt-1 font-medium">Dispatched from all printing factories</p>
+            </div>
+            <div class="bg-gradient-to-br from-emerald-500/5 via-white to-white rounded-2xl p-5 border border-emerald-100 shadow-xs card-hover transition">
+              <div class="flex items-center justify-between text-slate-400 mb-2">
+                <span class="text-xs font-bold uppercase tracking-wider text-slate-500">Total Physical Receipts</span>
+                <span class="w-9 h-9 bg-emerald-50 text-emerald-600 rounded-xl flex items-center justify-center text-sm shadow-2xs border border-emerald-100">🏢</span>
+              </div>
+              <p class="text-2xl font-black text-emerald-600 font-mono tracking-tight mt-1" id="adminStatReceived">0</p>
+              <p class="text-[11px] text-slate-400 mt-1 font-medium">Physically verified at gate receiving</p>
+            </div>
+            <div class="bg-gradient-to-br from-rose-500/5 via-white to-white rounded-2xl p-5 border border-rose-100 shadow-xs card-hover transition">
+              <div class="flex items-center justify-between text-slate-400 mb-2">
+                <span class="text-xs font-bold uppercase tracking-wider text-slate-500">Total Physical Variance</span>
+                <span class="w-9 h-9 bg-rose-50 text-rose-600 rounded-xl flex items-center justify-center text-sm shadow-2xs border border-rose-100">⚖️</span>
+              </div>
+              <p class="text-2xl font-black text-rose-600 font-mono tracking-tight mt-1" id="adminStatVariance">0</p>
+              <p class="text-[11px] text-slate-400 mt-1 font-medium">Reconciliation across audited dispatches</p>
             </div>
           </div>
 
-          <!-- Quick Audit Filters Bar -->
-          <div class="px-4 py-2.5 bg-slate-50/70 border-b border-slate-100 flex flex-wrap items-center justify-between gap-2 text-xs">
-            <div class="flex flex-wrap items-center gap-1.5">
-              <span class="text-[11px] font-bold text-slate-400 uppercase tracking-wider mr-1">Quick Filters:</span>
-              <button type="button" onclick="setShipmentFilter('all')" id="filterShipAll" class="px-3 py-1 rounded-xl text-xs font-bold bg-slate-900 text-white shadow-2xs transition flex items-center gap-1.5">
-                <span>All Dispatches</span>
-                <span id="badgeShipAll" class="bg-slate-800 text-slate-200 px-1.5 py-0.2 rounded-full text-[10px] font-mono">0</span>
+          <!-- All Orders Overview Table with Manufacturing Stage & Sample Proofs -->
+          <div class="bg-white rounded-2xl border border-slate-200 shadow-xs overflow-hidden">
+            <div class="p-4 border-b border-slate-100 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              <div>
+                <h2 class="text-sm font-bold text-slate-900">Purchase Orders, Line Allocations & Manufacturing Stages</h2>
+                <span class="text-xs text-slate-500">Live multi-vendor tracker with production readiness & approved sample proofs</span>
+              </div>
+              <!-- Production Stage Filter Toolbar -->
+              <div class="flex items-center gap-2 overflow-x-auto text-xs">
+                <span class="text-[11px] font-bold text-slate-400 uppercase tracking-wider whitespace-nowrap">Stage:</span>
+                <div class="nav-tab-container p-0.5 bg-slate-100 rounded-xl flex items-center gap-1 border border-slate-200/80">
+                  <button type="button" onclick="setAdminPoFilter('all')" id="adminPoFilterAll" class="nav-tab-btn nav-tab-btn-active-primary px-3 py-1 rounded-lg text-xs font-bold transition cursor-pointer">All</button>
+                  <button type="button" onclick="setAdminPoFilter('pending')" id="adminPoFilterPending" class="nav-tab-btn px-3 py-1 rounded-lg text-xs font-semibold text-slate-600 hover:text-slate-900 transition cursor-pointer">⏳ Awaiting Supplier</button>
+                  <button type="button" onclick="setAdminPoFilter('in_stock')" id="adminPoFilterStock" class="nav-tab-btn px-3 py-1 rounded-lg text-xs font-semibold text-slate-600 hover:text-slate-900 transition cursor-pointer">📦 In Stock</button>
+                  <button type="button" onclick="setAdminPoFilter('in_production')" id="adminPoFilterProd" class="nav-tab-btn px-3 py-1 rounded-lg text-xs font-semibold text-slate-600 hover:text-slate-900 transition cursor-pointer">🏭 In Production</button>
+                  <button type="button" onclick="setAdminPoFilter('completed')" id="adminPoFilterComp" class="nav-tab-btn px-3 py-1 rounded-lg text-xs font-semibold text-slate-600 hover:text-slate-900 transition cursor-pointer">✅ Fulfilled</button>
+                </div>
+              </div>
+            </div>
+            <div class="overflow-x-auto">
+              <table class="w-full text-left text-xs">
+                <thead class="bg-slate-50/90 text-slate-500 font-bold uppercase tracking-wider text-[11px] border-b border-slate-200/80">
+                  <tr>
+                    <th class="p-3">Order Number</th>
+                    <th class="p-3">Assigned Supplier</th>
+                    <th class="p-3">SKUs & Approved Samples</th>
+                    <th class="p-3 text-center">Manufacturing Readiness</th>
+                    <th class="p-3 text-right">Total Ordered</th>
+                    <th class="p-3 text-right">Shipped Units</th>
+                    <th class="p-3 text-right">Remaining Quota</th>
+                    <th class="p-3 text-center">Fulfillment</th>
+                    <th class="p-3 text-center">Action</th>
+                  </tr>
+                </thead>
+                <tbody id="adminPoTableBody" class="divide-y divide-slate-100">
+                  <!-- Dynamically populated via JS -->
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+        </div>
+
+        <!-- ============================================== -->
+        <!-- TAB PANE 2: WAREHOUSE RECEIVING & GATE AUDIT   -->
+        <!-- ============================================== -->
+        <div id="adminPaneDispatches" class="space-y-6 hidden">
+
+          <!-- Gate Receiving & Invoice Verification Table -->
+          <div class="bg-white rounded-2xl border border-slate-200 shadow-xs overflow-hidden">
+            <div class="p-4 border-b border-slate-100 flex flex-col md:flex-row md:items-center justify-between gap-3">
+              <div>
+                <div class="flex items-center gap-2">
+                  <h2 class="text-sm font-bold text-slate-900">Warehouse Receiving, Invoices & Discrepancy Log</h2>
+                  <span class="badge-pill badge-emerald text-[10px]">Audit Engine</span>
+                </div>
+                <p class="text-xs text-slate-500 mt-0.5">Filter discrepancies, cross-verify invoices, record damaged cartons, and reconcile physical inventory.</p>
+              </div>
+              <div class="flex flex-wrap items-center gap-2">
+                <button onclick="clearAllShipments()" class="px-3 py-1.5 bg-rose-50 hover:bg-rose-100 text-rose-700 text-xs font-bold rounded-xl border border-rose-200 transition flex items-center gap-1 shadow-2xs">
+                  <span>🗑️ Clear Logs</span>
+                </button>
+                <button onclick="exportShipmentsCsv()" class="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold rounded-xl border border-slate-200 transition flex items-center gap-1.5 shadow-2xs">
+                  <svg class="w-3.5 h-3.5 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
+                  <span>Export CSV</span>
+                </button>
+              </div>
+            </div>
+
+            <!-- Quick Audit Filters Bar -->
+            <div class="px-4 py-2.5 bg-slate-50/70 border-b border-slate-100 flex flex-wrap items-center justify-between gap-2 text-xs">
+              <div class="flex flex-wrap items-center gap-1.5">
+                <span class="text-[11px] font-bold text-slate-400 uppercase tracking-wider mr-1">Quick Filters:</span>
+                <button type="button" onclick="setShipmentFilter('all')" id="filterShipAll" class="px-3 py-1 rounded-xl text-xs font-bold bg-slate-900 text-white shadow-2xs transition flex items-center gap-1.5">
+                  <span>All Dispatches</span>
+                  <span id="badgeShipAll" class="bg-slate-800 text-slate-200 px-1.5 py-0.2 rounded-full text-[10px] font-mono">0</span>
+                </button>
+                <button type="button" onclick="setShipmentFilter('shortages')" id="filterShipShortages" class="px-3 py-1 rounded-xl text-xs font-semibold text-slate-600 hover:text-slate-900 hover:bg-slate-200/60 transition flex items-center gap-1.5">
+                  <span>⚠️ Shortages Only</span>
+                  <span id="badgeShipShortages" class="bg-rose-100 text-rose-700 px-1.5 py-0.2 rounded-full text-[10px] font-mono font-bold">0</span>
+                </button>
+                <button type="button" onclick="setShipmentFilter('damaged')" id="filterShipDamaged" class="px-3 py-1 rounded-xl text-xs font-semibold text-slate-600 hover:text-slate-900 hover:bg-slate-200/60 transition flex items-center gap-1.5">
+                  <span>📦 Damaged / Rejected</span>
+                  <span id="badgeShipDamaged" class="bg-amber-100 text-amber-700 px-1.5 py-0.2 rounded-full text-[10px] font-mono font-bold">0</span>
+                </button>
+                <button type="button" onclick="setShipmentFilter('today')" id="filterShipToday" class="px-3 py-1 rounded-xl text-xs font-semibold text-slate-600 hover:text-slate-900 hover:bg-slate-200/60 transition flex items-center gap-1.5">
+                  <span>📅 Today's Deliveries</span>
+                  <span id="badgeShipToday" class="bg-slate-200 text-slate-600 px-1.5 py-0.2 rounded-full text-[10px] font-mono">0</span>
+                </button>
+                <button type="button" onclick="setShipmentFilter('transit')" id="filterShipTransit" class="px-3 py-1 rounded-xl text-xs font-semibold text-slate-600 hover:text-slate-900 hover:bg-slate-200/60 transition flex items-center gap-1.5">
+                  <span>⏳ In Transit</span>
+                  <span id="badgeShipTransit" class="bg-slate-200 text-slate-600 px-1.5 py-0.2 rounded-full text-[10px] font-mono">0</span>
+                </button>
+              </div>
+              <div class="text-[11px] text-slate-400 font-mono" id="shipmentsFilterStatusLabel">Showing all records</div>
+            </div>
+
+            <!-- Category Quick Filter Bar for Dispatches -->
+            <div class="px-4 py-2 bg-slate-50/40 border-b border-slate-100 flex flex-wrap items-center gap-2 text-xs">
+              <span class="text-[11px] font-bold text-slate-400 uppercase tracking-wider whitespace-nowrap">Filter By Category:</span>
+              <button type="button" onclick="setCategoryFilter('all')" class="cat-filter-btn-all px-3 py-1 rounded-xl text-xs font-bold transition flex items-center gap-1.5 bg-slate-900 text-white shadow-2xs">
+                <span>All Categories</span>
               </button>
-              <button type="button" onclick="setShipmentFilter('shortages')" id="filterShipShortages" class="px-3 py-1 rounded-xl text-xs font-semibold text-slate-600 hover:text-slate-900 hover:bg-slate-200/60 transition flex items-center gap-1.5">
-                <span>⚠️ Shortages Only</span>
-                <span id="badgeShipShortages" class="bg-rose-100 text-rose-700 px-1.5 py-0.2 rounded-full text-[10px] font-mono font-bold">0</span>
+              <button type="button" onclick="setCategoryFilter('labels')" class="cat-filter-btn-labels px-3 py-1 rounded-xl text-xs font-semibold text-slate-600 hover:bg-slate-100 transition flex items-center gap-1.5 border border-slate-200 bg-white">
+                <span>🏷️ Labels</span>
               </button>
-              <button type="button" onclick="setShipmentFilter('damaged')" id="filterShipDamaged" class="px-3 py-1 rounded-xl text-xs font-semibold text-slate-600 hover:text-slate-900 hover:bg-slate-200/60 transition flex items-center gap-1.5">
-                <span>📦 Damaged / Rejected</span>
-                <span id="badgeShipDamaged" class="bg-amber-100 text-amber-700 px-1.5 py-0.2 rounded-full text-[10px] font-mono font-bold">0</span>
+              <button type="button" onclick="setCategoryFilter('tags')" class="cat-filter-btn-tags px-3 py-1 rounded-xl text-xs font-semibold text-slate-600 hover:bg-slate-100 transition flex items-center gap-1.5 border border-slate-200 bg-white">
+                <span>🔖 Tags</span>
               </button>
-              <button type="button" onclick="setShipmentFilter('today')" id="filterShipToday" class="px-3 py-1 rounded-xl text-xs font-semibold text-slate-600 hover:text-slate-900 hover:bg-slate-200/60 transition flex items-center gap-1.5">
-                <span>📅 Today's Deliveries</span>
-                <span id="badgeShipToday" class="bg-slate-200 text-slate-600 px-1.5 py-0.2 rounded-full text-[10px] font-mono">0</span>
+              <button type="button" onclick="setCategoryFilter('ribbons')" class="cat-filter-btn-ribbons px-3 py-1 rounded-xl text-xs font-semibold text-slate-600 hover:bg-slate-100 transition flex items-center gap-1.5 border border-slate-200 bg-white">
+                <span>🎗️ Ribbons</span>
               </button>
-              <button type="button" onclick="setShipmentFilter('transit')" id="filterShipTransit" class="px-3 py-1 rounded-xl text-xs font-semibold text-slate-600 hover:text-slate-900 hover:bg-slate-200/60 transition flex items-center gap-1.5">
-                <span>⏳ In Transit</span>
-                <span id="badgeShipTransit" class="bg-slate-200 text-slate-600 px-1.5 py-0.2 rounded-full text-[10px] font-mono">0</span>
+              <button type="button" onclick="setCategoryFilter('cards')" class="cat-filter-btn-cards px-3 py-1 rounded-xl text-xs font-semibold text-slate-600 hover:bg-slate-100 transition flex items-center gap-1.5 border border-slate-200 bg-white">
+                <span>💳 Cards</span>
               </button>
             </div>
-            <div class="text-[11px] text-slate-400 font-mono" id="shipmentsFilterStatusLabel">Showing all records</div>
+
+            <div class="mobile-scroll-hint">
+              <span>👈 Swipe sideways for all columns</span>
+              <span class="text-blue-600 font-bold">Actions pinned 👉</span>
+            </div>
+            <div class="overflow-x-auto">
+              <table class="w-full text-left text-xs table-sticky-actions">
+                <thead class="bg-slate-50/90 text-slate-500 font-bold uppercase tracking-wider text-[11px] border-b border-slate-200/80">
+                  <tr>
+                    <th class="p-3">Shipment Ref</th>
+                    <th class="p-3">Order #</th>
+                    <th class="p-3">Vendor</th>
+                    <th class="p-3">Invoice #</th>
+                    <th class="p-3">Dispatch Date</th>
+                    <th class="p-3 min-w-[260px]">Item / SKU Shipped</th>
+                    <th class="p-3 text-right">Claimed Shipped</th>
+                    <th class="p-3 text-right">Warehouse Count</th>
+                    <th class="p-3 text-right">Variance</th>
+                    <th class="p-3 text-center">Invoice / Challan</th>
+                    <th class="p-3 text-center">Audit Status</th>
+                    <th class="p-3 text-center">Action</th>
+                  </tr>
+                </thead>
+                <tbody id="adminShipmentsTableBody" class="divide-y divide-slate-100">
+                  <!-- Dynamically populated via JS -->
+                </tbody>
+              </table>
+            </div>
           </div>
 
-          <!-- Category Quick Filter Bar for Dispatches -->
-          <div class="px-4 py-2 bg-slate-50/40 border-b border-slate-100 flex flex-wrap items-center gap-2 text-xs">
-            <span class="text-[11px] font-bold text-slate-400 uppercase tracking-wider whitespace-nowrap">Filter By Category:</span>
-            <button type="button" onclick="setCategoryFilter('all')" class="cat-filter-btn-all px-3 py-1 rounded-xl text-xs font-bold transition flex items-center gap-1.5 bg-slate-900 text-white shadow-2xs">
-              <span>All Categories</span>
-            </button>
-            <button type="button" onclick="setCategoryFilter('labels')" class="cat-filter-btn-labels px-3 py-1 rounded-xl text-xs font-semibold text-slate-600 hover:bg-slate-100 transition flex items-center gap-1.5 border border-slate-200 bg-white">
-              <span>🏷️ Labels</span>
-            </button>
-            <button type="button" onclick="setCategoryFilter('tags')" class="cat-filter-btn-tags px-3 py-1 rounded-xl text-xs font-semibold text-slate-600 hover:bg-slate-100 transition flex items-center gap-1.5 border border-slate-200 bg-white">
-              <span>🔖 Tags</span>
-            </button>
-            <button type="button" onclick="setCategoryFilter('ribbons')" class="cat-filter-btn-ribbons px-3 py-1 rounded-xl text-xs font-semibold text-slate-600 hover:bg-slate-100 transition flex items-center gap-1.5 border border-slate-200 bg-white">
-              <span>🎗️ Ribbons</span>
-            </button>
-            <button type="button" onclick="setCategoryFilter('cards')" class="cat-filter-btn-cards px-3 py-1 rounded-xl text-xs font-semibold text-slate-600 hover:bg-slate-100 transition flex items-center gap-1.5 border border-slate-200 bg-white">
-              <span>💳 Cards</span>
-            </button>
-          </div>
+        </div>
 
-          <div class="mobile-scroll-hint">
-            <span>👈 Swipe sideways for all columns</span>
-            <span class="text-blue-600 font-bold">Actions pinned 👉</span>
-          </div>
-          <div class="overflow-x-auto">
-            <table class="w-full text-left text-xs table-sticky-actions">
-              <thead class="bg-slate-50/90 text-slate-500 font-bold uppercase tracking-wider text-[11px] border-b border-slate-200/80">
-                <tr>
-                  <th class="p-3">Shipment Ref</th>
-                  <th class="p-3">Order #</th>
-                  <th class="p-3">Vendor</th>
-                  <th class="p-3">Invoice #</th>
-                  <th class="p-3">Dispatch Date</th>
-                  <th class="p-3">Item / SKU Shipped</th>
-                  <th class="p-3 text-right">Claimed Shipped</th>
-                  <th class="p-3 text-right">Warehouse Count</th>
-                  <th class="p-3 text-right">Variance</th>
-                  <th class="p-3 text-center">Invoice / Challan</th>
-                  <th class="p-3 text-center">Audit Status</th>
-                  <th class="p-3 text-center">Action</th>
-                </tr>
-              </thead>
-              <tbody id="adminShipmentsTableBody" class="divide-y divide-slate-100">
+        <!-- ============================================== -->
+        <!-- TAB PANE 3: QUALITY SCORECARDS & FLEET STATS   -->
+        <!-- ============================================== -->
+        <div id="adminPaneScorecards" class="space-y-6 hidden">
+          
+          <div class="bg-white rounded-3xl border border-slate-200 shadow-xs p-6 space-y-6">
+            <div class="flex items-center justify-between border-b border-slate-100 pb-4">
+              <div>
+                <span class="text-xs text-purple-600 font-bold uppercase tracking-wider block">Vendor Intelligence & Analytics</span>
+                <h3 class="text-lg font-black text-slate-900 mt-0.5">Supplier Quality Scorecards & Reliability Ratings</h3>
+                <p class="text-xs text-slate-500 mt-0.5">Automated vendor performance analytics calculated from verified warehouse gate receipts.</p>
+              </div>
+              <span class="badge-pill badge-purple">Live Audited</span>
+            </div>
+
+            <!-- High-level Fleet Stats -->
+            <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
+              <div class="bg-slate-50 p-4 rounded-2xl border border-slate-200">
+                <span class="text-slate-500 block text-[11px] font-semibold">Active Suppliers</span>
+                <span id="scorecardActiveSuppliersTab" class="text-2xl font-black text-slate-900 font-mono mt-1 block">0</span>
+              </div>
+              <div class="bg-slate-50 p-4 rounded-2xl border border-slate-200">
+                <span class="text-slate-500 block text-[11px] font-semibold">Fleet Accuracy</span>
+                <span id="scorecardFleetAccuracyTab" class="text-2xl font-black text-emerald-600 font-mono mt-1 block">0%</span>
+              </div>
+              <div class="bg-slate-50 p-4 rounded-2xl border border-slate-200">
+                <span class="text-slate-500 block text-[11px] font-semibold">Shortage Incidents</span>
+                <span id="scorecardTotalShortagesTab" class="text-2xl font-black text-rose-600 font-mono mt-1 block">0</span>
+              </div>
+              <div class="bg-slate-50 p-4 rounded-2xl border border-slate-200">
+                <span class="text-slate-500 block text-[11px] font-semibold">Damaged Goods Reported</span>
+                <span id="scorecardTotalDamagedTab" class="text-2xl font-black text-amber-600 font-mono mt-1 block">0 units</span>
+              </div>
+            </div>
+
+            <!-- Supplier Scorecards Grid -->
+            <div class="space-y-3">
+              <div class="flex items-center justify-between">
+                <span class="text-xs font-bold uppercase tracking-wider text-slate-700 block">Performance Cards by Supplier</span>
+                <span class="text-[11px] text-slate-400">Objective verification data</span>
+              </div>
+              <div id="vendorScorecardsListTab" class="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <!-- Dynamically populated via JS -->
-              </tbody>
-            </table>
+              </div>
+            </div>
           </div>
+
+        </div>
+
+        <!-- ============================================== -->
+        <!-- TAB PANE 4: SUPPLIER DIRECTORY & CREDENTIALS   -->
+        <!-- ============================================== -->
+        <div id="adminPaneVendors" class="space-y-6 hidden">
+
+          <div class="bg-white rounded-3xl border border-slate-200 shadow-xs p-6 space-y-6">
+            <div class="flex items-center justify-between border-b border-slate-100 pb-4">
+              <div>
+                <span class="text-xs text-blue-600 font-bold uppercase tracking-wider block">Supplier Management</span>
+                <h3 class="text-lg font-black text-slate-900 mt-0.5">Authorized Suppliers & Login Credentials</h3>
+                <p class="text-xs text-slate-500 mt-0.5">Provision secure portal accounts and manage supplier access.</p>
+              </div>
+              <button onclick="exportEncryptedVault()" class="text-xs px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold rounded-xl border border-slate-300 transition flex items-center gap-1.5 cursor-pointer shadow-2xs">
+                <svg class="w-3.5 h-3.5 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
+                <span>Backup User Registry</span>
+              </button>
+            </div>
+
+            <div class="border border-slate-200 rounded-2xl overflow-hidden shadow-xs">
+              <table class="w-full text-left text-xs">
+                <thead class="bg-slate-100 text-slate-600 font-semibold border-b border-slate-200">
+                  <tr>
+                    <th class="p-3">Vendor Code</th>
+                    <th class="p-3">Company Name</th>
+                    <th class="p-3">Login Email</th>
+                    <th class="p-3 text-center">Active Orders</th>
+                    <th class="p-3 text-center">Action</th>
+                  </tr>
+                </thead>
+                <tbody id="vendorListTableBodyTab" class="divide-y divide-slate-100 bg-white">
+                  <!-- Dynamically populated via JS -->
+                </tbody>
+              </table>
+            </div>
+
+            <div class="pt-2">
+              <button onclick="openModal('vendorManageModal')" class="px-4 py-2.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-bold text-xs rounded-xl border border-indigo-200 transition flex items-center gap-2">
+                <span>+ Add / Authorize New Supplier</span>
+              </button>
+            </div>
+          </div>
+
         </div>
 
       </section>
@@ -498,7 +644,7 @@
                   <th class="p-3">Vendor</th>
                   <th class="p-3">Invoice #</th>
                   <th class="p-3">Dispatch Date</th>
-                  <th class="p-3">Item / SKU Description</th>
+                  <th class="p-3 min-w-[260px]">Item / SKU Description</th>
                   <th class="p-3 text-right">Vendor Claimed</th>
                   <th class="p-3 text-right">Physical Count</th>
                   <th class="p-3 text-center">Invoice Proof</th>
@@ -535,11 +681,25 @@
         <input type="hidden" id="modalPoId">
 
         <div class="p-6 space-y-4 overflow-y-auto flex-1">
-          <div>
+          <!-- If multi-item: show selector dropdown -->
+          <div id="modalItemSelectContainer">
             <label class="block text-xs font-semibold text-slate-700 mb-1">Select Item / SKU Being Shipped *</label>
             <select id="modalItemSelect" onchange="updateModalItemBalance()" required class="w-full text-xs px-3.5 py-2.5 border border-slate-300 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none bg-white font-medium">
               <!-- Dynamically populated -->
             </select>
+          </div>
+
+          <!-- If single-item: display clean fixed item card (No redundant dropdown) -->
+          <div id="modalSingleItemDisplay" class="hidden p-3.5 bg-slate-50 border border-slate-200/90 rounded-2xl flex items-center justify-between gap-3">
+            <div>
+              <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-1">Allocated Item / SKU</span>
+              <div class="flex items-center gap-1.5 flex-wrap">
+                <span id="modalSingleItemBadge" class="inline-flex items-center gap-1 font-bold text-[10px] px-2 py-0.5 rounded-md border"></span>
+                <span id="modalSingleItemSku" class="font-mono text-[10px] font-bold px-1.5 py-0.5 rounded bg-slate-200 text-slate-700"></span>
+                <span id="modalSingleItemTitle" class="font-bold text-slate-900 text-xs"></span>
+              </div>
+            </div>
+            <span class="text-[10px] font-semibold text-slate-500 bg-white border border-slate-200 px-2 py-0.5 rounded-full shrink-0">Single SKU</span>
           </div>
 
           <div class="bg-slate-50 rounded-xl p-3 border border-slate-200 flex justify-between items-center text-xs">
@@ -660,6 +820,12 @@
             <div class="flex justify-between">
               <span class="text-slate-500">Vendor Claimed Dispatch:</span>
               <span id="receiveModalClaimed" class="font-extrabold text-blue-600 text-sm"></span>
+            </div>
+            <div class="pt-2 border-t border-slate-200/80 flex items-center justify-between">
+              <span class="text-[11px] text-slate-500 font-medium">Verify physical labels against proof:</span>
+              <button type="button" id="btnReceiveViewSample" onclick="openReceiveModalSample()" class="px-2.5 py-1 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 text-xs font-bold rounded-lg border border-indigo-200 transition flex items-center gap-1.5 shadow-2xs cursor-pointer">
+                <span>🖼️ View Approved Sample Proof</span>
+              </button>
             </div>
           </div>
 
@@ -794,6 +960,28 @@
             </div>
           </div>
 
+          <!-- Delivery Deadline & Buyer Instructions (Supplier will report In-Stock vs Production Readiness) -->
+          <div class="bg-slate-50/90 p-4 rounded-2xl border border-slate-200 space-y-3">
+            <div class="flex items-center justify-between">
+              <span class="text-xs font-bold uppercase tracking-wider text-slate-800 block">Delivery Deadline & Buyer Instructions</span>
+              <span class="text-[10px] text-slate-500 font-medium bg-white border border-slate-200 px-2 py-0.5 rounded-full">Supplier confirms readiness</span>
+            </div>
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div>
+                <label class="block text-[11px] font-bold text-slate-700 mb-1">Target Delivery Deadline (Required By) <span class="text-slate-400 font-normal">(Optional)</span></label>
+                <input type="date" id="newPoRequiredDate" class="w-full text-xs px-3.5 py-2.5 border border-slate-300 rounded-xl outline-none focus:ring-2 focus:ring-blue-500 bg-white font-medium">
+              </div>
+              <div>
+                <label class="block text-[11px] font-bold text-slate-700 mb-1">Buyer Notes / Special Instructions <span class="text-slate-400 font-normal">(Optional)</span></label>
+                <input type="text" id="newPoBuyerNotes" placeholder="e.g. Urgent run for festive sale; adhere to 2026 color standard" class="w-full text-xs px-3.5 py-2.5 border border-slate-300 rounded-xl outline-none focus:ring-2 focus:ring-blue-500 bg-white">
+              </div>
+            </div>
+            <div class="p-2.5 bg-blue-50/70 border border-blue-200/80 rounded-xl flex items-center gap-2 text-[11px] text-blue-900 font-medium">
+              <span class="text-sm">ℹ️</span>
+              <span><strong>Supplier Workflow:</strong> The assigned supplier will inspect their warehouse and update whether they already have goods <strong>In Stock</strong> or will put them <strong>In Production</strong>.</span>
+            </div>
+          </div>
+
           <div>
             <div class="flex items-center justify-between mb-2.5">
               <div>
@@ -825,96 +1013,57 @@
   </div>
 
   <!-- ========================================== -->
-  <!-- MODAL 4: VENDOR USER MANAGEMENT            -->
+  <!-- MODAL 4: ADD & AUTHORIZE NEW SUPPLIER      -->
   <!-- ========================================== -->
   <div id="vendorManageModal" class="fixed inset-0 z-50 overflow-y-auto p-4 sm:p-6 flex min-h-full justify-center items-start sm:items-center modal-backdrop hidden">
-    <div class="bg-white rounded-3xl shadow-2xl max-w-2xl w-full border border-slate-200 overflow-hidden transform transition-all flex flex-col max-h-[88vh] my-auto">
+    <div class="bg-white rounded-3xl shadow-2xl max-w-lg w-full border border-slate-200 overflow-hidden transform transition-all flex flex-col my-auto">
       
       <!-- Docked Header -->
       <div class="bg-gradient-to-r from-slate-950 via-slate-900 to-slate-950 border-b border-slate-800 p-5 px-6 text-white flex justify-between items-center flex-shrink-0">
         <div>
           <span class="text-xs text-blue-400 font-semibold uppercase tracking-wider block">Supplier Management</span>
-          <h3 class="text-base font-bold text-white mt-0.5">Authorized Vendors & Login Credentials</h3>
+          <h3 class="text-base font-bold text-white mt-0.5">Add & Authorize New Supplier</h3>
         </div>
         <button onclick="closeModal('vendorManageModal')" class="text-slate-400 hover:text-white text-2xl p-1 font-bold leading-none cursor-pointer">&times;</button>
       </div>
 
-      <!-- Scrollable Main Content -->
-      <div class="p-6 space-y-6 overflow-y-auto flex-1">
-        
-        <!-- Add Vendor Form -->
-        <form id="newVendorForm" onsubmit="handleNewVendorSubmit(event)" class="bg-slate-50 p-4 rounded-2xl border border-slate-200 space-y-3">
-          <span class="text-xs font-bold uppercase tracking-wider text-slate-700 block">+ Add & Authorize New Vendor User</span>
-          <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+      <!-- Main Content Form -->
+      <div class="p-6">
+        <form id="newVendorForm" onsubmit="handleNewVendorSubmit(event)" class="space-y-4">
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
             <div>
-              <label class="block text-[11px] font-semibold text-slate-600 mb-1">Company / Vendor Name *</label>
-              <input type="text" id="newVendorName" required placeholder="Enter supplier company name" class="w-full text-xs px-3 py-2 border border-slate-300 rounded-xl outline-none focus:ring-1 focus:ring-blue-500 bg-white">
+              <label class="block text-xs font-semibold text-slate-700 mb-1">Company / Vendor Name *</label>
+              <input type="text" id="newVendorName" required placeholder="Enter supplier company name" class="w-full text-xs px-3.5 py-2.5 border border-slate-300 rounded-xl outline-none focus:ring-2 focus:ring-blue-500 bg-white">
             </div>
             <div>
-              <label class="block text-[11px] font-semibold text-slate-600 mb-1">Vendor Code / ID *</label>
-              <input type="text" id="newVendorCode" required placeholder="Enter vendor code" class="w-full text-xs px-3 py-2 border border-slate-300 rounded-xl outline-none focus:ring-1 focus:ring-blue-500 bg-white">
+              <label class="block text-xs font-semibold text-slate-700 mb-1">Vendor Code / ID *</label>
+              <input type="text" id="newVendorCode" required placeholder="Enter vendor code" class="w-full text-xs px-3.5 py-2.5 border border-slate-300 rounded-xl outline-none focus:ring-2 focus:ring-blue-500 bg-white">
             </div>
             <div>
-              <label class="block text-[11px] font-semibold text-slate-600 mb-1">Login Email Address *</label>
-              <input type="email" id="newVendorEmail" required placeholder="Enter login email address" class="w-full text-xs px-3 py-2 border border-slate-300 rounded-xl outline-none focus:ring-1 focus:ring-blue-500 bg-white">
+              <label class="block text-xs font-semibold text-slate-700 mb-1">Login Email Address *</label>
+              <input type="email" id="newVendorEmail" required placeholder="Enter login email address" class="w-full text-xs px-3.5 py-2.5 border border-slate-300 rounded-xl outline-none focus:ring-2 focus:ring-blue-500 bg-white">
             </div>
             <div>
               <div class="flex justify-between items-center mb-1">
-                <label class="block text-[11px] font-semibold text-slate-600">Initial Password *</label>
-                <button type="button" onclick="generateRandomPassword()" class="text-[10px] text-blue-600 hover:underline font-semibold cursor-pointer">Generate Strong</button>
+                <label class="block text-xs font-semibold text-slate-700">Initial Password *</label>
+                <button type="button" onclick="generateRandomPassword()" class="text-[11px] text-blue-600 hover:underline font-semibold cursor-pointer">Generate Strong</button>
               </div>
-              <input type="text" id="newVendorPassword" required placeholder="Enter or generate password" class="w-full text-xs px-3 py-2 border border-slate-300 rounded-xl outline-none focus:ring-1 focus:ring-blue-500 bg-white font-mono">
+              <input type="text" id="newVendorPassword" required placeholder="Enter or generate password" class="w-full text-xs px-3.5 py-2.5 border border-slate-300 rounded-xl outline-none focus:ring-2 focus:ring-blue-500 bg-white font-mono">
             </div>
           </div>
-          <div class="p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-[11px] text-slate-600 flex items-start gap-2">
-            <svg class="w-4 h-4 text-slate-500 shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 00-2 2zm10-10V7a4 4 0 00-8 0v4h8z"/></svg>
-            <span>Supplier accounts are provisioned with secure role-based access to their allocated orders.</span>
+          <div class="p-3 bg-blue-50/70 border border-blue-200/80 rounded-xl text-xs text-blue-800 flex items-start gap-2.5">
+            <svg class="w-4 h-4 text-blue-600 shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 00-2 2zm10-10V7a4 4 0 00-8 0v4h8z"/></svg>
+            <span>Supplier accounts are provisioned with secure salted SHA-256 credentials for role-based access to their allocated orders.</span>
           </div>
-          <div class="text-right">
+          <div class="flex justify-end items-center gap-2 pt-3 border-t border-slate-200">
+            <button type="button" onclick="closeModal('vendorManageModal')" class="px-4 py-2.5 text-xs font-semibold text-slate-600 hover:bg-slate-100 rounded-xl transition cursor-pointer">
+              Cancel
+            </button>
             <button type="submit" class="btn-gradient-primary px-5 py-2.5 text-white text-xs font-bold rounded-xl shadow-xs transition cursor-pointer">
               Create & Authorize Vendor
             </button>
           </div>
         </form>
-
-        <!-- Vendors Table -->
-        <div>
-          <div class="flex items-center justify-between mb-2">
-            <span class="text-xs font-bold uppercase tracking-wider text-slate-700 block">Registered Vendors List</span>
-            <button onclick="exportEncryptedVault()" class="text-xs px-2.5 py-1 bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold rounded-lg border border-slate-300 transition flex items-center gap-1.5 cursor-pointer shadow-2xs">
-              <svg class="w-3.5 h-3.5 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
-              <span>Backup User Registry</span>
-            </button>
-          </div>
-          <div class="border border-slate-200 rounded-2xl overflow-hidden max-h-52 overflow-y-auto shadow-xs">
-            <table class="w-full text-left text-xs">
-              <thead class="bg-slate-100 text-slate-600 font-semibold border-b border-slate-200 sticky top-0">
-                <tr>
-                  <th class="p-3">Vendor Code</th>
-                  <th class="p-3">Company Name</th>
-                  <th class="p-3">Login Email</th>
-                  <th class="p-3 text-center">Active Orders</th>
-                  <th class="p-3 text-center">Action</th>
-                </tr>
-              </thead>
-              <tbody id="vendorListTableBody" class="divide-y divide-slate-100 bg-white">
-                <!-- Dynamically populated -->
-              </tbody>
-            </table>
-          </div>
-        </div>
-
-      </div>
-
-      <!-- Docked Footer (Always fully visible, never cut off!) -->
-      <div class="flex justify-between items-center border-t border-slate-200 bg-slate-50 px-6 py-3.5 flex-shrink-0">
-        <button onclick="exportEncryptedVault()" class="text-xs text-slate-600 hover:text-slate-800 font-semibold flex items-center gap-1.5 transition cursor-pointer">
-          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
-          <span>Backup User Registry</span>
-        </button>
-        <button onclick="closeModal('vendorManageModal')" class="px-5 py-2 bg-slate-900 hover:bg-slate-800 active:bg-slate-950 text-white text-xs font-bold rounded-xl shadow-xs transition cursor-pointer">
-          Close
-        </button>
       </div>
 
     </div>
@@ -1075,6 +1224,335 @@
 
       </form>
 
+    </div>
+  </div>
+
+  <!-- ========================================== -->
+  <!-- MODAL 8: PRODUCTION & MANUFACTURING STATUS -->
+  <!-- ========================================== -->
+  <div id="updateProductionStatusModal" class="fixed inset-0 z-50 overflow-y-auto p-4 sm:p-6 flex min-h-full justify-center items-start sm:items-center modal-backdrop hidden">
+    <div class="bg-white rounded-3xl shadow-2xl max-w-lg w-full border border-slate-200 overflow-hidden transform transition-all flex flex-col my-auto">
+      <div class="bg-gradient-to-r from-slate-950 via-indigo-950 to-slate-900 border-b border-indigo-900/30 p-5 px-6 text-white flex justify-between items-center flex-shrink-0">
+        <div>
+          <span class="text-xs text-indigo-400 font-semibold uppercase tracking-wider block">Supplier Operations Update</span>
+          <h3 class="text-base font-bold text-white mt-0.5" id="updateProdModalTitle">Supplier Production & Stock Readiness</h3>
+        </div>
+        <button onclick="closeModal('updateProductionStatusModal')" class="text-slate-400 hover:text-white text-2xl p-1 font-bold leading-none cursor-pointer">&times;</button>
+      </div>
+
+      <form id="updateProductionStatusForm" onsubmit="handleProductionStatusSubmit(event)" class="p-6 space-y-4">
+        <input type="hidden" id="updateProdPoNumber">
+
+        <div class="p-3.5 bg-slate-50 border border-slate-200 rounded-2xl flex items-center justify-between text-xs">
+          <div>
+            <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Order Reference</span>
+            <span class="font-bold text-slate-900 text-sm font-mono block" id="updateProdPoDisplay">—</span>
+            <span class="text-slate-500 font-medium text-[11px]" id="updateProdVendorDisplay">—</span>
+          </div>
+          <div id="updateProdCurrentBadge"></div>
+        </div>
+
+        <!-- Buyer Deadline & Special Instructions (From Admin) -->
+        <div id="updateProdBuyerInstructionBox" class="p-3 bg-blue-50/70 border border-blue-200 rounded-xl text-xs text-blue-900 hidden">
+          <span class="font-bold block text-[11px] uppercase tracking-wider text-blue-800">Buyer Instructions & Target Deadline:</span>
+          <p class="mt-0.5 text-blue-950 font-medium leading-relaxed" id="updateProdBuyerInstructionText"></p>
+        </div>
+
+        <div>
+          <label class="block text-xs font-bold text-slate-700 mb-1.5">Supplier Stock & Production Readiness Confirmation *</label>
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+            <label class="flex items-center gap-2 p-2.5 border rounded-xl cursor-pointer hover:border-emerald-400 transition bg-white" id="radioWrapInStock">
+              <input type="radio" name="prodStatusRadio" value="in_stock" class="text-emerald-600 focus:ring-emerald-500">
+              <span class="text-xs font-bold text-emerald-800">📦 In Stock (Ready Goods)</span>
+            </label>
+            <label class="flex items-center gap-2 p-2.5 border rounded-xl cursor-pointer hover:border-indigo-400 transition bg-white" id="radioWrapInProd">
+              <input type="radio" name="prodStatusRadio" value="in_production" class="text-indigo-600 focus:ring-indigo-500">
+              <span class="text-xs font-bold text-indigo-800">🏭 In Production / Printing</span>
+            </label>
+            <label class="flex items-center gap-2 p-2.5 border rounded-xl cursor-pointer hover:border-amber-400 transition bg-white" id="radioWrapPacking">
+              <input type="radio" name="prodStatusRadio" value="packing" class="text-amber-600 focus:ring-amber-500">
+              <span class="text-xs font-bold text-amber-800">🔍 Finishing & Packing</span>
+            </label>
+            <label class="flex items-center gap-2 p-2.5 border rounded-xl cursor-pointer hover:border-purple-400 transition bg-white" id="radioWrapReady">
+              <input type="radio" name="prodStatusRadio" value="ready_to_ship" class="text-purple-600 focus:ring-purple-500">
+              <span class="text-xs font-bold text-purple-800">🚚 Ready for Dispatch</span>
+            </label>
+          </div>
+        </div>
+
+        <div>
+          <label class="block text-xs font-bold text-slate-700 mb-1">Estimated Dispatch / Ready Date</label>
+          <input type="date" id="updateProdEstimatedDate" class="w-full text-xs px-3.5 py-2.5 border border-slate-300 rounded-xl outline-none focus:ring-2 focus:ring-indigo-500 bg-white font-medium">
+        </div>
+
+        <div>
+          <label class="block text-xs font-bold text-slate-700 mb-1">Production Progress Notes / Batch Comments</label>
+          <textarea id="updateProdNotes" rows="3" placeholder="e.g. Raw Chromo paper rolls received; 10,000 rolls currently running on flexographic press 2..." class="w-full text-xs px-3.5 py-2.5 border border-slate-300 rounded-xl outline-none focus:ring-2 focus:ring-indigo-500 bg-white font-medium"></textarea>
+        </div>
+
+        <div class="pt-3 flex justify-end gap-2.5 border-t border-slate-100">
+          <button type="button" onclick="closeModal('updateProductionStatusModal')" class="px-4 py-2 border border-slate-300 text-slate-700 hover:bg-slate-100 rounded-xl text-xs font-bold transition cursor-pointer">
+            Cancel
+          </button>
+          <button type="submit" class="btn-gradient-primary px-5 py-2 text-white text-xs font-bold rounded-xl shadow-xs transition cursor-pointer">
+            Save Status Update
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- ========================================== -->
+  <!-- MODAL 9: APPROVED SAMPLE ARTWORK SPECIMEN  -->
+  <!-- ========================================== -->
+  <div id="sampleArtworkModal" class="fixed inset-0 z-50 overflow-y-auto p-4 sm:p-6 flex min-h-full justify-center items-start sm:items-center modal-backdrop hidden">
+    <div class="bg-white rounded-3xl shadow-2xl max-w-3xl w-full border border-slate-200 overflow-hidden transform transition-all flex flex-col max-h-[92vh] my-auto">
+      <div class="bg-gradient-to-r from-slate-950 via-slate-900 to-indigo-950 border-b border-slate-800 p-5 px-6 text-white flex justify-between items-center flex-shrink-0">
+        <div>
+          <div class="flex items-center gap-2">
+            <span class="text-[11px] text-indigo-400 font-bold uppercase tracking-wider block">Official Artwork Proof & Technical Specimen</span>
+            <span class="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-400/30" id="sampleMasterBadge">✓ Approved Master Proof</span>
+            <span class="text-[10px] font-bold px-2 py-0.5 rounded-full bg-blue-500/20 text-blue-300 border border-blue-400/30 font-mono" id="sampleYearHeaderBadge">FY 2026</span>
+          </div>
+          <h3 class="text-base font-bold text-white mt-0.5" id="sampleArtworkTitle">Item Sample Proof</h3>
+        </div>
+        <button onclick="closeModal('sampleArtworkModal')" class="text-slate-400 hover:text-white text-2xl p-1 font-bold leading-none cursor-pointer">&times;</button>
+      </div>
+
+      <div class="p-6 space-y-5 overflow-y-auto flex-1">
+        <!-- Annual Financial Year Selector Tabs -->
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 pb-2 border-b border-slate-100">
+          <div class="flex items-center gap-1.5 overflow-x-auto pb-1 sm:pb-0" id="sampleModalYearTabs">
+            <!-- Dynamically populated via JS: 2025, 2026, 2027 tabs -->
+          </div>
+          <div id="sampleModalYearManageBtnContainer" class="shrink-0">
+            <!-- Populated for Admin -->
+          </div>
+        </div>
+
+        <!-- Annual Master Color Code Notification Banner -->
+        <div id="sampleModalColorBanner" class="p-3.5 rounded-2xl border transition-all">
+          <!-- Dynamically populated with annual color swatches, active status, and quality mandate -->
+        </div>
+
+        <!-- Technical Artwork Visual Frame (Uploaded Photo Proof or Dynamic SVG) -->
+        <div class="artwork-frame relative shadow-inner overflow-hidden min-h-[240px]" id="sampleArtworkVisualContainer">
+          <!-- Dynamically populated with Photo Proof or SVG blueprint -->
+        </div>
+
+        <!-- Admin Photo Proof Upload Box (Visible to Operations / Store Admin) -->
+        <div id="sampleProofAdminUploadBox" class="p-4 bg-slate-50/90 border border-slate-200 rounded-2xl space-y-3">
+          <div class="flex items-center justify-between">
+            <div class="flex items-center gap-2">
+              <span class="w-6 h-6 rounded-lg bg-indigo-100 text-indigo-700 flex items-center justify-center text-xs font-bold">📸</span>
+              <span class="text-xs font-bold text-slate-800" id="sampleUploadBoxTitle">Upload Approved Physical Sample Proof Photo</span>
+            </div>
+            <span class="text-[10px] text-slate-400 font-medium">Auto-compressed & secured in database</span>
+          </div>
+
+          <div class="grid grid-cols-1 sm:grid-cols-12 gap-3 items-center">
+            <div class="sm:col-span-7">
+              <label class="block text-[10px] font-bold uppercase tracking-wider text-slate-500 mb-1">Batch / Cylinder Run Notes</label>
+              <input type="text" id="sampleProofNotesInput" placeholder="e.g. 2026 Flexo Cylinder Run Approved by Operations Head" class="w-full text-xs px-3 py-2 border border-slate-300 rounded-xl bg-white outline-none focus:ring-2 focus:ring-indigo-500 font-medium">
+            </div>
+            <div class="sm:col-span-5 flex items-center gap-2 sm:pt-4">
+              <input type="file" id="sampleProofCameraInput" accept="image/*" capture="environment" class="hidden" onchange="handleSampleProofFileChange(event)">
+              <button type="button" onclick="document.getElementById('sampleProofCameraInput').click()" class="flex-1 py-2 px-3 bg-white hover:bg-slate-100 border border-slate-300 rounded-xl text-xs font-bold text-slate-700 transition flex items-center justify-center gap-1.5 shadow-2xs cursor-pointer">
+                <span>📷 Camera</span>
+              </button>
+              <input type="file" id="sampleProofGalleryInput" accept="image/*" class="hidden" onchange="handleSampleProofFileChange(event)">
+              <button type="button" onclick="document.getElementById('sampleProofGalleryInput').click()" class="flex-1 py-2 px-3 btn-gradient-primary text-white rounded-xl text-xs font-bold transition flex items-center justify-center gap-1.5 shadow-2xs cursor-pointer">
+                <span>📁 Upload Photo</span>
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Technical Specification Grid -->
+        <div>
+          <div class="flex items-center justify-between mb-2">
+            <span class="text-xs font-bold uppercase tracking-wider text-slate-700 block">Manufacturing & Physical Specifications</span>
+            <span class="text-[11px] text-slate-400">Universal standard for suppliers & gate security</span>
+          </div>
+          <div class="grid grid-cols-2 sm:grid-cols-4 gap-2.5 text-xs" id="sampleSpecsGrid">
+            <!-- Dynamically populated via JS -->
+          </div>
+        </div>
+
+        <!-- Gate Inspection & Supplier Compliance Notice -->
+        <div class="p-3.5 bg-blue-50/70 border border-blue-200 rounded-2xl flex items-start gap-3 text-xs text-blue-900">
+          <div class="w-8 h-8 rounded-xl bg-blue-100 border border-blue-200 text-blue-700 flex items-center justify-center font-bold text-sm shrink-0">
+            🔍
+          </div>
+          <div class="space-y-0.5 leading-relaxed">
+            <span class="font-bold block">Production & Receiving Quality Check:</span>
+            <p class="text-[11px] text-blue-800 font-medium">
+              Suppliers must print according to the core size, labels-across (UPS), and barcode dimensions shown above. Warehouse Gate Security verifies incoming rolls against this master sample before signing the receipt pass.
+            </p>
+          </div>
+        </div>
+      </div>
+
+      <div class="p-4 px-6 bg-slate-50 border-t border-slate-200 flex justify-between items-center text-xs flex-shrink-0">
+        <span class="text-slate-500 font-mono text-[11px]" id="sampleSpecimenCode">REF: LT-STD-2026</span>
+        <button onclick="closeModal('sampleArtworkModal')" class="px-5 py-2.5 bg-slate-900 hover:bg-slate-800 text-white font-bold rounded-xl transition shadow-xs cursor-pointer">
+          Close Specimen
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============================================================ -->
+  <!-- MODAL 10: ANNUAL MASTER COLOR CODES & PROOFS GALLERY MANAGER -->
+  <!-- ============================================================ -->
+  <div id="annualColorCodeModal" class="fixed inset-0 z-50 overflow-y-auto p-4 sm:p-6 flex min-h-full justify-center items-start sm:items-center modal-backdrop hidden">
+    <div class="bg-white rounded-3xl shadow-2xl max-w-5xl w-full border border-slate-200 overflow-hidden transform transition-all flex flex-col max-h-[92vh] my-auto">
+      <div class="bg-gradient-to-r from-slate-950 via-slate-900 to-indigo-950 border-b border-slate-800 p-5 px-6 text-white flex justify-between items-center flex-shrink-0">
+        <div>
+          <div class="flex items-center gap-2">
+            <span class="text-[11px] text-indigo-400 font-bold uppercase tracking-wider block">Centralized Operations Standard</span>
+            <span class="text-[10px] font-bold px-2 py-0.5 rounded-full bg-indigo-500/20 text-indigo-300 border border-indigo-400/30">🎨 Universal Color & Proof Registry</span>
+          </div>
+          <h3 class="text-base font-bold text-white mt-0.5">Annual Master Color Codes & Physical Sample Proofs</h3>
+        </div>
+        <button onclick="closeModal('annualColorCodeModal')" class="text-slate-400 hover:text-white text-2xl p-1 font-bold leading-none cursor-pointer">&times;</button>
+      </div>
+
+      <!-- Navigation Sub-Tabs -->
+      <div class="px-6 pt-4 pb-2 bg-slate-50/80 border-b border-slate-200 flex items-center justify-between gap-4 flex-shrink-0">
+        <div class="nav-tab-container p-1 bg-slate-200/80 rounded-xl flex items-center gap-1">
+          <button type="button" onclick="switchAnnualManagerTab('mandates')" id="annualTabBtnMandates" class="nav-tab-btn nav-tab-btn-active px-3.5 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1.5">
+            <span>🎨 Annual Color Mandates</span>
+          </button>
+          <button type="button" onclick="switchAnnualManagerTab('matrix')" id="annualTabBtnMatrix" class="nav-tab-btn px-3.5 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1.5">
+            <span>🖼️ Master Proofs Gallery</span>
+          </button>
+        </div>
+        <div class="text-xs font-semibold text-slate-600 flex items-center gap-2">
+          <span>Active Fiscal Mandate:</span>
+          <span class="px-2.5 py-1 rounded-full text-[11px] font-bold font-mono text-white" id="annualActiveYearPill" style="background-color: #0284c7;">2026</span>
+        </div>
+      </div>
+
+      <div class="p-6 space-y-6 overflow-y-auto flex-1">
+        <!-- SUB-PANE 1: ANNUAL COLOR MANDATES -->
+        <div id="annualPaneMandates" class="space-y-6">
+          <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div>
+              <h4 class="text-sm font-bold text-slate-900">Configured Financial Years & Master Color Codes</h4>
+              <p class="text-xs text-slate-500">Every year has a unique master color band to identify inventory age and prevent cross-year counterfeiting.</p>
+            </div>
+            <button type="button" onclick="toggleNewYearForm()" class="btn-gradient-primary px-3.5 py-2 text-white text-xs font-bold rounded-xl shadow-2xs transition flex items-center gap-1.5 self-start sm:self-auto cursor-pointer">
+              <span>+ Add New Financial Year</span>
+            </button>
+          </div>
+
+          <!-- Add / Edit Year Form (Collapsible) -->
+          <div id="newYearColorFormCard" class="hidden p-5 bg-gradient-to-br from-indigo-50/50 via-white to-white border border-indigo-200 rounded-2xl shadow-xs transition-all">
+            <div class="flex items-center justify-between pb-3 border-b border-indigo-100 mb-4">
+              <span class="text-xs font-bold uppercase tracking-wider text-indigo-900 flex items-center gap-1.5">
+                <span>➕</span>
+                <span id="yearFormHeading">Register New Financial Year Color Standard</span>
+              </span>
+              <button type="button" onclick="toggleNewYearForm(false)" class="text-slate-400 hover:text-slate-700 text-lg leading-none cursor-pointer">&times;</button>
+            </div>
+            <form id="newYearColorForm" onsubmit="handleSaveYearColor(event)" class="space-y-4">
+              <input type="hidden" id="editYearOriginalYear" value="">
+              <div class="grid grid-cols-1 sm:grid-cols-4 gap-3">
+                <div>
+                  <label class="block text-[11px] font-bold text-slate-700 mb-1">Financial Year *</label>
+                  <input type="number" id="inputYearNumber" required min="2020" max="2040" placeholder="e.g. 2028" class="w-full text-xs px-3 py-2 border border-slate-300 rounded-xl bg-white font-mono font-bold outline-none focus:ring-2 focus:ring-indigo-500">
+                </div>
+                <div class="sm:col-span-3">
+                  <label class="block text-[11px] font-bold text-slate-700 mb-1">Color Scheme Title *</label>
+                  <input type="text" id="inputYearColorName" required placeholder="e.g. Amber Gold & Midnight Navy" class="w-full text-xs px-3 py-2 border border-slate-300 rounded-xl bg-white font-medium outline-none focus:ring-2 focus:ring-indigo-500">
+                </div>
+              </div>
+
+              <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                <div>
+                  <label class="block text-[11px] font-bold text-slate-700 mb-1">Primary Color Hex *</label>
+                  <div class="flex items-center gap-2">
+                    <input type="color" id="inputYearPrimaryPicker" value="#0284c7" onchange="document.getElementById('inputYearPrimaryHex').value = this.value" class="w-9 h-9 p-0.5 rounded-lg border border-slate-300 cursor-pointer">
+                    <input type="text" id="inputYearPrimaryHex" value="#0284c7" required onchange="document.getElementById('inputYearPrimaryPicker').value = this.value" class="w-full text-xs px-2.5 py-2 border border-slate-300 rounded-xl font-mono uppercase bg-white">
+                  </div>
+                </div>
+                <div>
+                  <label class="block text-[11px] font-bold text-slate-700 mb-1">Accent / Secondary Hex (Optional)</label>
+                  <div class="flex items-center gap-2">
+                    <input type="color" id="inputYearSecondaryPicker" value="#facc15" onchange="document.getElementById('inputYearSecondaryHex').value = this.value" class="w-9 h-9 p-0.5 rounded-lg border border-slate-300 cursor-pointer">
+                    <input type="text" id="inputYearSecondaryHex" value="#facc15" onchange="document.getElementById('inputYearSecondaryPicker').value = this.value" class="w-full text-xs px-2.5 py-2 border border-slate-300 rounded-xl font-mono uppercase bg-white">
+                  </div>
+                </div>
+                <div>
+                  <label class="block text-[11px] font-bold text-slate-700 mb-1">Operational Mandate Status *</label>
+                  <select id="inputYearStatus" class="w-full text-xs px-3 py-2 border border-slate-300 rounded-xl bg-white font-semibold">
+                    <option value="active">Active Mandate (Current Year)</option>
+                    <option value="upcoming">Upcoming Year (Advance Prep)</option>
+                    <option value="archived">Archived / Historical Year</option>
+                  </select>
+                </div>
+              </div>
+
+              <div>
+                <label class="block text-[11px] font-bold text-slate-700 mb-1">Roll Core & Packaging Guidelines</label>
+                <input type="text" id="inputYearGuidelines" placeholder="e.g. Core band must feature this primary color with secondary color lot stamp." class="w-full text-xs px-3 py-2 border border-slate-300 rounded-xl bg-white outline-none focus:ring-2 focus:ring-indigo-500 font-medium">
+              </div>
+
+              <div class="flex items-center justify-end gap-2 pt-2 border-t border-indigo-100">
+                <button type="button" onclick="toggleNewYearForm(false)" class="px-4 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-100 rounded-xl transition cursor-pointer">Cancel</button>
+                <button type="submit" class="btn-gradient-primary px-5 py-2 text-white text-xs font-bold rounded-xl shadow-2xs transition cursor-pointer">Save Color Standard</button>
+              </div>
+            </form>
+          </div>
+
+          <!-- Cards Grid for Years -->
+          <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4" id="annualYearsGrid">
+            <!-- Dynamically populated via JS -->
+          </div>
+        </div>
+
+        <!-- SUB-PANE 2: MASTER PROOFS GALLERY MATRIX -->
+        <div id="annualPaneMatrix" class="space-y-5 hidden">
+          <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-slate-50 p-4 rounded-2xl border border-slate-200">
+            <div>
+              <h4 class="text-sm font-bold text-slate-900">Master Product Proofs Matrix</h4>
+              <p class="text-xs text-slate-500">View and upload approved physical roll photographs across all catalog SKUs for the selected year.</p>
+            </div>
+            <!-- Year Selector & Category Filter -->
+            <div class="flex items-center gap-2 flex-wrap">
+              <div class="flex items-center gap-1.5">
+                <label class="text-[11px] font-bold text-slate-500 uppercase">Year:</label>
+                <select id="matrixYearSelect" onchange="handleMatrixYearChange(this.value)" class="text-xs font-bold px-3 py-1.5 border border-slate-300 rounded-xl bg-white shadow-2xs">
+                  <!-- Populated dynamically -->
+                </select>
+              </div>
+              <div class="flex items-center gap-1.5">
+                <label class="text-[11px] font-bold text-slate-500 uppercase">Cat:</label>
+                <select id="matrixCategorySelect" onchange="handleMatrixCatChange(this.value)" class="text-xs font-semibold px-3 py-1.5 border border-slate-300 rounded-xl bg-white shadow-2xs">
+                  <option value="all">All Categories</option>
+                  <option value="labels">🏷️ Labels</option>
+                  <option value="tags">🏷️ Tags</option>
+                  <option value="ribbons">🎗️ Ribbons</option>
+                  <option value="cards">💳 Cards</option>
+                </select>
+              </div>
+            </div>
+          </div>
+
+          <!-- Proofs Grid -->
+          <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4" id="annualProofsMatrixGrid">
+            <!-- Dynamically populated with all models, showing thumbnail or upload prompt -->
+          </div>
+        </div>
+      </div>
+
+      <div class="p-4 px-6 bg-slate-50 border-t border-slate-200 flex justify-between items-center text-xs flex-shrink-0">
+        <span class="text-slate-500 text-[11px]">Any approved sample photo uploaded here is universally visible to Admins, Suppliers, and Gate Security.</span>
+        <button onclick="closeModal('annualColorCodeModal')" class="px-5 py-2.5 bg-slate-900 hover:bg-slate-800 text-white font-bold rounded-xl transition shadow-xs cursor-pointer">
+          Done
+        </button>
+      </div>
     </div>
   </div>
 
