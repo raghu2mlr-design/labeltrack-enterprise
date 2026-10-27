@@ -18,6 +18,24 @@
   <script src="js/vault.js"></script>
   <script src="js/app.js"></script>
   <script src="js/auth.js"></script>
+  <!-- Anti-Flash Authentication State Evaluator -->
+  <script>
+    (function() {
+      try {
+        var saved = sessionStorage.getItem('labeltrack_session') || localStorage.getItem('labeltrack_session');
+        if (saved) {
+          var u = JSON.parse(saved);
+          if (u && u.email) {
+            document.documentElement.classList.add('has-active-session');
+          }
+        }
+      } catch(e) {}
+    })();
+  </script>
+  <style>
+    html.has-active-session #loginScreen { display: none !important; }
+    html.has-active-session #appScreen { display: flex !important; }
+  </style>
 </head>
 <body class="bg-slate-50/70 text-slate-800 antialiased min-h-screen flex flex-col font-sans selection:bg-blue-600 selection:text-white">
 
@@ -87,41 +105,41 @@
 
     <!-- Top Navigation Bar (Clean Enterprise Theme) -->
     <header class="glass-nav sticky top-0 z-40 shadow-xs">
-      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+      <div class="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
         
         <!-- Brand & Vendor Badge -->
-        <div class="flex items-center gap-3">
-          <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-blue-600 via-indigo-600 to-violet-500 flex items-center justify-center text-white font-black text-lg shadow-md shadow-indigo-500/25">
+        <div class="flex items-center gap-2.5 sm:gap-3 min-w-0">
+          <div class="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-gradient-to-tr from-blue-600 via-indigo-600 to-violet-500 flex items-center justify-center text-white font-black text-base sm:text-lg shadow-md shadow-indigo-500/25 shrink-0">
             LT
           </div>
-          <div>
-            <div class="flex items-center gap-2">
-              <span class="text-xs uppercase tracking-wider font-bold text-slate-400 block" id="navSubtitle">Supplier Portal</span>
-              <span id="cloudSyncBadge" class="hidden sm:inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200">
+          <div class="min-w-0">
+            <div class="flex items-center gap-1.5 sm:gap-2">
+              <span class="text-[10px] sm:text-xs uppercase tracking-wider font-bold text-slate-400 block truncate" id="navSubtitle">Supplier Portal</span>
+              <span id="cloudSyncBadge" class="hidden md:inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200">
                 <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span> Cloud Synced
               </span>
             </div>
-            <span class="text-base font-extrabold text-slate-900 tracking-tight">LabelTrack Network</span>
+            <span class="text-sm sm:text-base font-extrabold text-slate-900 tracking-tight block truncate">LabelTrack Network</span>
           </div>
         </div>
 
         <!-- Role Toggle / Admin View Switcher / User Badge / Logout -->
-        <div class="flex items-center gap-3">
+        <div class="flex items-center gap-1.5 sm:gap-3 shrink-0">
 
-          <div class="hidden sm:block text-right">
+          <div class="hidden md:block text-right">
             <p class="text-xs font-bold text-slate-900" id="navUserName">—</p>
             <p class="text-[11px] text-slate-500" id="navUserRole"><span class="font-mono text-slate-700 font-semibold" id="navUserCode"></span></p>
           </div>
-          <div class="w-9 h-9 rounded-xl bg-gradient-to-tr from-blue-100 to-indigo-100 border border-blue-200/80 text-blue-800 flex items-center justify-center font-bold text-xs shadow-2xs" id="navUserAvatar">
+          <div class="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-gradient-to-tr from-blue-100 to-indigo-100 border border-blue-200/80 text-blue-800 flex items-center justify-center font-bold text-xs shadow-2xs shrink-0" id="navUserAvatar">
             —
           </div>
-          <button onclick="openChangePasswordModal(state.currentUser?.email, state.currentUser?.name, state.currentUser?.role)" title="Change Password" class="px-2.5 py-1.5 text-xs text-slate-700 hover:text-indigo-700 bg-white hover:bg-indigo-50 rounded-xl border border-slate-200/90 hover:border-indigo-200 font-bold transition flex items-center gap-1.5 shadow-2xs cursor-pointer">
+          <button onclick="openChangePasswordModal(state.currentUser?.email, state.currentUser?.name, state.currentUser?.role)" title="Change Password" class="px-2 sm:px-2.5 py-1.5 text-xs text-slate-700 hover:text-indigo-700 bg-white hover:bg-indigo-50 rounded-xl border border-slate-200/90 hover:border-indigo-200 font-bold transition flex items-center gap-1.5 shadow-2xs cursor-pointer shrink-0">
             <span>🔑</span>
             <span class="hidden md:inline">Password</span>
           </button>
-          <button onclick="logout()" class="px-3 py-1.5 text-xs text-rose-600 hover:bg-rose-50 rounded-xl border border-rose-200/80 font-bold transition flex items-center gap-1.5 shadow-2xs cursor-pointer">
+          <button onclick="logout()" class="px-2.5 sm:px-3 py-1.5 text-xs text-rose-600 hover:bg-rose-50 rounded-xl border border-rose-200/80 font-bold transition flex items-center gap-1.5 shadow-2xs cursor-pointer shrink-0" title="Sign Out">
             <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/></svg>
-            <span>Sign Out</span>
+            <span class="hidden sm:inline">Sign Out</span>
           </button>
         </div>
 
@@ -129,7 +147,7 @@
     </header>
 
     <!-- Main Workspace -->
-    <main class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
+    <main class="flex-1 max-w-7xl w-full mx-auto px-3 sm:px-6 lg:px-8 py-5 sm:py-8 space-y-6 sm:space-y-8">
 
       <!-- ======================================== -->
       <!-- VIEW 1: VENDOR SELF-SERVICE DASHBOARD    -->
@@ -186,23 +204,23 @@
         <!-- Filter & Search Toolbar (Professional Segmented Controls) -->
         <div class="flex flex-col sm:flex-row items-center justify-between gap-3 bg-white p-2.5 rounded-2xl border border-slate-200 shadow-xs">
           <div class="nav-tab-container inline-flex p-1 bg-slate-100 rounded-xl border border-slate-200/70 w-full sm:w-auto overflow-x-auto">
-            <button onclick="setFilter('all')" id="filterBtnAll" class="nav-tab-btn nav-tab-btn-active-primary px-3.5 py-1.5 text-xs font-bold rounded-lg transition flex items-center gap-1.5">
+            <button onclick="setFilter('all')" id="filterBtnAll" class="nav-tab-btn nav-tab-btn-active-primary px-3.5 py-1.5 text-xs font-bold rounded-lg transition flex items-center gap-1.5 flex-shrink-0 cursor-pointer">
               <span>All Orders</span>
               <span class="bg-slate-800 text-slate-200 px-1.5 py-0.5 rounded-full text-[10px] font-mono" id="countAll">0</span>
             </button>
-            <button onclick="setFilter('pending')" id="filterBtnPending" class="nav-tab-btn px-3.5 py-1.5 text-xs font-semibold rounded-lg text-slate-600 hover:text-slate-900 transition flex items-center gap-1.5">
+            <button onclick="setFilter('pending')" id="filterBtnPending" class="nav-tab-btn px-3.5 py-1.5 text-xs font-semibold rounded-lg text-slate-600 hover:text-slate-900 transition flex items-center gap-1.5 flex-shrink-0 cursor-pointer">
               <span>⚡ Action Needed</span>
               <span class="bg-amber-100 text-amber-800 px-1.5 py-0.5 rounded-full text-[10px] font-mono font-bold" id="countPending">0</span>
             </button>
-            <button onclick="setFilter('in_stock')" id="filterBtnInStock" class="nav-tab-btn px-3.5 py-1.5 text-xs font-semibold rounded-lg text-slate-600 hover:text-slate-900 transition flex items-center gap-1.5">
+            <button onclick="setFilter('in_stock')" id="filterBtnInStock" class="nav-tab-btn px-3.5 py-1.5 text-xs font-semibold rounded-lg text-slate-600 hover:text-slate-900 transition flex items-center gap-1.5 flex-shrink-0 cursor-pointer">
               <span>📦 Ready in Stock</span>
               <span class="bg-emerald-100 text-emerald-700 px-1.5 py-0.5 rounded-full text-[10px] font-mono font-bold" id="countInStock">0</span>
             </button>
-            <button onclick="setFilter('in_production')" id="filterBtnInProd" class="nav-tab-btn px-3.5 py-1.5 text-xs font-semibold rounded-lg text-slate-600 hover:text-slate-900 transition flex items-center gap-1.5">
+            <button onclick="setFilter('in_production')" id="filterBtnInProd" class="nav-tab-btn px-3.5 py-1.5 text-xs font-semibold rounded-lg text-slate-600 hover:text-slate-900 transition flex items-center gap-1.5 flex-shrink-0 cursor-pointer">
               <span>🏭 In Production</span>
               <span class="bg-indigo-100 text-indigo-700 px-1.5 py-0.5 rounded-full text-[10px] font-mono font-bold" id="countInProd">0</span>
             </button>
-            <button onclick="setFilter('completed')" id="filterBtnCompleted" class="nav-tab-btn px-3.5 py-1.5 text-xs font-semibold rounded-lg text-slate-600 hover:text-slate-900 transition flex items-center gap-1.5">
+            <button onclick="setFilter('completed')" id="filterBtnCompleted" class="nav-tab-btn px-3.5 py-1.5 text-xs font-semibold rounded-lg text-slate-600 hover:text-slate-900 transition flex items-center gap-1.5 flex-shrink-0 cursor-pointer">
               <span>✅ Completed</span>
               <span class="bg-slate-200 text-slate-600 px-1.5 py-0.5 rounded-full text-[10px] font-mono" id="countCompleted">0</span>
             </button>
@@ -215,21 +233,21 @@
         </div>
 
         <!-- Product Category Filter Bar -->
-        <div class="flex items-center gap-2 overflow-x-auto pb-1 text-xs">
+        <div class="flex items-center gap-2 overflow-x-auto pb-1 text-xs no-scrollbar">
           <span class="text-[11px] font-bold text-slate-400 uppercase tracking-wider whitespace-nowrap">Category:</span>
-          <button type="button" onclick="setCategoryFilter('all')" class="cat-filter-btn-all px-3 py-1.5 rounded-xl font-bold transition flex items-center gap-1.5 bg-slate-900 text-white shadow-2xs">
+          <button type="button" onclick="setCategoryFilter('all')" class="cat-filter-btn-all px-3 py-1.5 rounded-xl font-bold transition flex items-center gap-1.5 bg-slate-900 text-white shadow-2xs flex-shrink-0 cursor-pointer">
             <span>All Categories</span>
           </button>
-          <button type="button" onclick="setCategoryFilter('labels')" class="cat-filter-btn-labels px-3 py-1.5 rounded-xl font-semibold text-slate-600 hover:bg-slate-100 transition flex items-center gap-1.5 border border-slate-200 bg-white">
+          <button type="button" onclick="setCategoryFilter('labels')" class="cat-filter-btn-labels px-3 py-1.5 rounded-xl font-semibold text-slate-600 hover:bg-slate-100 transition flex items-center gap-1.5 border border-slate-200 bg-white flex-shrink-0 cursor-pointer">
             <span>🏷️ Labels</span>
           </button>
-          <button type="button" onclick="setCategoryFilter('tags')" class="cat-filter-btn-tags px-3 py-1.5 rounded-xl font-semibold text-slate-600 hover:bg-slate-100 transition flex items-center gap-1.5 border border-slate-200 bg-white">
+          <button type="button" onclick="setCategoryFilter('tags')" class="cat-filter-btn-tags px-3 py-1.5 rounded-xl font-semibold text-slate-600 hover:bg-slate-100 transition flex items-center gap-1.5 border border-slate-200 bg-white flex-shrink-0 cursor-pointer">
             <span>🔖 Tags</span>
           </button>
-          <button type="button" onclick="setCategoryFilter('ribbons')" class="cat-filter-btn-ribbons px-3 py-1.5 rounded-xl font-semibold text-slate-600 hover:bg-slate-100 transition flex items-center gap-1.5 border border-slate-200 bg-white">
+          <button type="button" onclick="setCategoryFilter('ribbons')" class="cat-filter-btn-ribbons px-3 py-1.5 rounded-xl font-semibold text-slate-600 hover:bg-slate-100 transition flex items-center gap-1.5 border border-slate-200 bg-white flex-shrink-0 cursor-pointer">
             <span>🎗️ Ribbons</span>
           </button>
-          <button type="button" onclick="setCategoryFilter('cards')" class="cat-filter-btn-cards px-3 py-1.5 rounded-xl font-semibold text-slate-600 hover:bg-slate-100 transition flex items-center gap-1.5 border border-slate-200 bg-white">
+          <button type="button" onclick="setCategoryFilter('cards')" class="cat-filter-btn-cards px-3 py-1.5 rounded-xl font-semibold text-slate-600 hover:bg-slate-100 transition flex items-center gap-1.5 border border-slate-200 bg-white flex-shrink-0 cursor-pointer">
             <span>💳 Cards</span>
           </button>
         </div>
@@ -247,50 +265,54 @@
       <section id="adminSection" class="space-y-6 hidden">
 
         <!-- Top Header & Primary Action Buttons -->
-        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4">
           <div>
             <span class="text-xs font-bold uppercase tracking-wider text-indigo-700 bg-indigo-50 px-3 py-1 rounded-full border border-indigo-200/80 inline-flex items-center gap-1.5 shadow-2xs">
               <span class="w-1.5 h-1.5 rounded-full bg-indigo-600 animate-pulse"></span>
               <span>Internal Operations Command</span>
             </span>
-            <h1 class="text-2xl font-black text-slate-900 tracking-tight mt-1.5">Multi-Vendor Order & Reconciliation Hub</h1>
+            <h1 class="text-xl sm:text-2xl font-black text-slate-900 tracking-tight mt-1.5">Multi-Vendor Order & Reconciliation Hub</h1>
             <p class="text-xs text-slate-500 mt-0.5">Manage split order allocations across suppliers, monitor live production readiness, and reconcile physical warehouse receipts.</p>
           </div>
-          <div class="flex items-center gap-2.5 flex-wrap">
-            <button onclick="openAnnualColorManagerModal()" class="px-3.5 py-2.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-900 border border-indigo-200 text-xs font-bold rounded-xl shadow-xs transition flex items-center gap-2 cursor-pointer">
+          <div class="flex items-center gap-2 flex-wrap sm:flex-nowrap w-full sm:w-auto">
+            <button onclick="openAnnualColorManagerModal()" class="flex-1 sm:flex-initial justify-center px-3.5 py-2.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-900 border border-indigo-200 text-xs font-bold rounded-xl shadow-xs transition flex items-center gap-2 cursor-pointer whitespace-nowrap">
               <span class="w-3 h-3 rounded-full border border-indigo-400 shrink-0" id="adminActiveYearColorDot" style="background-color: #0284c7;"></span>
               <span id="adminActiveYearColorBadgeText">🎨 Annual Color Proofs (2026)</span>
             </button>
-            <button onclick="openNewPoModal()" class="px-5 py-2.5 btn-gradient-primary text-xs font-bold rounded-xl transition flex items-center gap-1.5 cursor-pointer">
+            <button onclick="openNewPoModal()" class="flex-1 sm:flex-initial justify-center px-5 py-2.5 btn-gradient-primary text-xs font-bold rounded-xl transition flex items-center gap-1.5 cursor-pointer whitespace-nowrap shadow-xs">
               <span>+ Create New Order</span>
             </button>
           </div>
         </div>
 
         <!-- Professional Executive Tab Bar (Apple / Linear-style segmented control) -->
-        <div class="nav-tab-container p-1 bg-slate-200/70 rounded-2xl flex items-center gap-1 overflow-x-auto border border-slate-200/90 shadow-2xs">
-          <button type="button" onclick="switchAdminTab('orders')" id="adminTabBtnOrders" class="nav-tab-btn nav-tab-btn-active px-4 py-2.5 rounded-xl text-xs font-bold transition flex items-center gap-2">
+        <div class="nav-tab-container p-1 bg-slate-200/70 rounded-2xl flex items-center gap-1 overflow-x-auto border border-slate-200/90 shadow-2xs no-scrollbar">
+          <button type="button" onclick="switchAdminTab('dashboard')" id="adminTabBtnDashboard" class="nav-tab-btn nav-tab-btn-active px-4 py-2.5 rounded-xl text-xs font-bold transition flex items-center gap-2 flex-shrink-0 cursor-pointer">
+            <span>📊 Executive Dashboard</span>
+            <span id="adminTabBadgeDashboard" class="px-2 py-0.5 rounded-full text-[10px] font-mono font-bold bg-slate-900 text-white shadow-2xs transition-colors">Overview</span>
+          </button>
+          <button type="button" onclick="switchAdminTab('orders')" id="adminTabBtnOrders" class="nav-tab-btn px-4 py-2.5 rounded-xl text-xs font-bold transition flex items-center gap-2 flex-shrink-0 cursor-pointer">
             <span>📋 Purchase Orders & Production</span>
-            <span id="adminTabBadgeOrders" class="px-2 py-0.5 rounded-full text-[10px] font-mono font-bold bg-blue-100 text-blue-700">0</span>
+            <span id="adminTabBadgeOrders" class="px-2 py-0.5 rounded-full text-[10px] font-mono font-bold bg-slate-200/90 text-slate-600 transition-colors">0</span>
           </button>
-          <button type="button" onclick="switchAdminTab('dispatches')" id="adminTabBtnDispatches" class="nav-tab-btn px-4 py-2.5 rounded-xl text-xs font-bold transition flex items-center gap-2">
+          <button type="button" onclick="switchAdminTab('dispatches')" id="adminTabBtnDispatches" class="nav-tab-btn px-4 py-2.5 rounded-xl text-xs font-bold transition flex items-center gap-2 flex-shrink-0 cursor-pointer">
             <span>🚚 Inward Deliveries & Gate Audit</span>
-            <span id="adminTabBadgeDispatches" class="px-2 py-0.5 rounded-full text-[10px] font-mono font-bold bg-slate-200 text-slate-700">0</span>
+            <span id="adminTabBadgeDispatches" class="px-2 py-0.5 rounded-full text-[10px] font-mono font-bold bg-slate-200/90 text-slate-600 transition-colors">0</span>
           </button>
-          <button type="button" onclick="switchAdminTab('scorecards')" id="adminTabBtnScorecards" class="nav-tab-btn px-4 py-2.5 rounded-xl text-xs font-bold transition flex items-center gap-2">
+          <button type="button" onclick="switchAdminTab('scorecards')" id="adminTabBtnScorecards" class="nav-tab-btn px-4 py-2.5 rounded-xl text-xs font-bold transition flex items-center gap-2 flex-shrink-0 cursor-pointer">
             <span>📊 Quality Scorecards</span>
-            <span id="adminTabBadgeScorecards" class="px-2 py-0.5 rounded-full text-[10px] font-mono font-bold bg-purple-100 text-purple-700">0</span>
+            <span id="adminTabBadgeScorecards" class="px-2 py-0.5 rounded-full text-[10px] font-mono font-bold bg-slate-200/90 text-slate-600 transition-colors">0</span>
           </button>
-          <button type="button" onclick="switchAdminTab('vendors')" id="adminTabBtnVendors" class="nav-tab-btn px-4 py-2.5 rounded-xl text-xs font-bold transition flex items-center gap-2">
+          <button type="button" onclick="switchAdminTab('vendors')" id="adminTabBtnVendors" class="nav-tab-btn px-4 py-2.5 rounded-xl text-xs font-bold transition flex items-center gap-2 flex-shrink-0 cursor-pointer">
             <span>👥 Supplier Directory</span>
-            <span id="adminTabBadgeVendors" class="px-2 py-0.5 rounded-full text-[10px] font-mono font-bold bg-slate-200 text-slate-700">0</span>
+            <span id="adminTabBadgeVendors" class="px-2 py-0.5 rounded-full text-[10px] font-mono font-bold bg-slate-200/90 text-slate-600 transition-colors">0</span>
           </button>
         </div>
 
         <!-- ============================================== -->
-        <!-- TAB PANE 1: PURCHASE ORDERS & PRODUCTION STAGE -->
+        <!-- TAB PANE 1: EXECUTIVE DASHBOARD & OVERVIEW     -->
         <!-- ============================================== -->
-        <div id="adminPaneOrders" class="space-y-6">
+        <div id="adminPaneDashboard" class="space-y-6">
 
           <!-- 4 KPI Cards for Internal Operations -->
           <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -328,6 +350,212 @@
             </div>
           </div>
 
+          <!-- Monthly Executive Analytics Summary & Comprehensive Date-Range Excel / CSV Exporter -->
+          <div class="bg-white rounded-2xl border border-slate-200 shadow-xs p-4 sm:p-5 space-y-4">
+            <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-3 border-b border-slate-100 pb-3.5">
+              <div>
+                <div class="flex items-center gap-2">
+                  <h3 class="text-sm font-bold text-slate-900 flex items-center gap-1.5">
+                    <span>📊 Monthly Executive Dashboard</span>
+                  </h3>
+                  <span class="px-2.5 py-0.5 rounded-full text-[10px] font-mono font-bold bg-indigo-50 text-indigo-700 border border-indigo-200" id="adminCurrentMonthBadge">This Month</span>
+                </div>
+                <p class="text-xs text-slate-500 mt-0.5">Automated monthly procurement volume, factory dispatches, gate receipts and delivery accuracy.</p>
+              </div>
+              <!-- Comprehensive Date-Range Excel / CSV Exporter -->
+              <div class="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 w-full lg:w-auto">
+                <div class="grid grid-cols-2 gap-2 w-full sm:w-auto">
+                  <div class="flex items-center gap-1.5 bg-slate-50 border border-slate-200/90 rounded-xl px-2.5 py-1.5 shadow-2xs flex-1 min-w-0">
+                    <span class="text-slate-400 font-bold uppercase text-[10px] shrink-0">From</span>
+                    <input type="date" id="exportDateFrom" onchange="render()" oninput="render()" class="bg-transparent text-xs text-slate-800 font-medium font-mono outline-none cursor-pointer w-full min-w-0">
+                  </div>
+                  <div class="flex items-center gap-1.5 bg-slate-50 border border-slate-200/90 rounded-xl px-2.5 py-1.5 shadow-2xs flex-1 min-w-0">
+                    <span class="text-slate-400 font-bold uppercase text-[10px] shrink-0">To</span>
+                    <input type="date" id="exportDateTo" onchange="render()" oninput="render()" class="bg-transparent text-xs text-slate-800 font-medium font-mono outline-none cursor-pointer w-full min-w-0">
+                  </div>
+                </div>
+                <button type="button" onclick="exportDateRangeOrdersCsv()" class="btn-gradient-emerald px-3.5 py-2 rounded-xl text-xs font-bold transition flex items-center justify-center gap-1.5 cursor-pointer shadow-xs w-full sm:w-auto shrink-0">
+                  <svg class="w-3.5 h-3.5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+                  <span>Export Report</span>
+                </button>
+              </div>
+            </div>
+
+            <!-- Monthly Metrics Cards -->
+            <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
+              <div class="bg-slate-50/80 p-3.5 rounded-xl border border-slate-200/90">
+                <span class="text-[11px] font-bold text-slate-500 uppercase tracking-wider block">Monthly Orders</span>
+                <span id="monthlyStatOrdersCount" class="text-xl font-black text-slate-900 font-mono mt-0.5 block">0 Orders</span>
+                <span class="text-[10px] text-slate-400 block mt-0.5">Created this calendar month</span>
+              </div>
+              <div class="bg-slate-50/80 p-3.5 rounded-xl border border-slate-200/90">
+                <span class="text-[11px] font-bold text-slate-500 uppercase tracking-wider block">Monthly Contracted</span>
+                <span id="monthlyStatContractedUnits" class="text-xl font-black text-blue-600 font-mono mt-0.5 block">0</span>
+                <span class="text-[10px] text-slate-400 block mt-0.5">Quota allocated to vendors</span>
+              </div>
+              <div class="bg-slate-50/80 p-3.5 rounded-xl border border-slate-200/90">
+                <span class="text-[11px] font-bold text-slate-500 uppercase tracking-wider block">Dispatched This Month</span>
+                <span id="monthlyStatShippedUnits" class="text-xl font-black text-emerald-600 font-mono mt-0.5 block">0</span>
+                <span class="text-[10px] text-slate-400 block mt-0.5">Shipped from factories</span>
+              </div>
+              <div class="bg-slate-50/80 p-3.5 rounded-xl border border-slate-200/90">
+                <span class="text-[11px] font-bold text-slate-500 uppercase tracking-wider block">Fulfillment Efficiency</span>
+                <span id="monthlyStatFulfillmentRate" class="text-xl font-black text-purple-600 font-mono mt-0.5 block">0%</span>
+                <span class="text-[10px] text-slate-400 block mt-0.5">Shipped vs contracted ratio</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Executive Operations Navigation Hub (Live Drill-Down Tiles) -->
+          <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+            <!-- Pipeline Quick Access -->
+            <div class="bg-white rounded-2xl border border-slate-200/90 shadow-2xs p-4 sm:p-5 space-y-3.5">
+              <div class="flex items-center justify-between pb-2.5 border-b border-slate-100">
+                <div class="flex items-center gap-2.5">
+                  <span class="w-7 h-7 rounded-lg bg-indigo-50 border border-indigo-100/80 flex items-center justify-center text-sm shrink-0">🏭</span>
+                  <div>
+                    <h4 class="text-xs font-bold uppercase tracking-wider text-slate-800">Manufacturing & Order Pipeline</h4>
+                    <p class="text-[11px] text-slate-400 font-medium">Stage-by-stage factory workflow tracking</p>
+                  </div>
+                </div>
+                <button type="button" onclick="switchAdminTab('orders'); window.scrollTo({ top: 0, behavior: 'smooth' });" class="px-2.5 py-1 rounded-lg text-xs font-bold text-blue-600 hover:text-blue-800 hover:bg-blue-50 transition border border-transparent hover:border-blue-100 flex items-center gap-1 cursor-pointer shrink-0">
+                  <span>View All Orders &rarr;</span>
+                </button>
+              </div>
+              <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                <button type="button" onclick="drilldownPo('pending')" class="group p-3.5 rounded-xl bg-amber-50/70 hover:bg-amber-100/80 border border-amber-200/80 text-left transition shadow-2xs hover:shadow-xs cursor-pointer flex flex-col justify-between min-h-[84px]">
+                  <div class="flex items-center justify-between gap-1">
+                    <span class="text-xs font-bold text-amber-900 flex items-center gap-1.5">
+                      <span>⏳</span>
+                      <span>Awaiting Supplier</span>
+                    </span>
+                    <span class="text-[10px] font-bold text-amber-700 bg-amber-200/60 group-hover:bg-amber-200 px-1.5 py-0.5 rounded transition shrink-0">&rarr;</span>
+                  </div>
+                  <div class="flex items-baseline justify-between gap-1 mt-2">
+                    <span id="dashPipelinePending" class="text-2xl font-black text-amber-950 font-mono tracking-tight leading-none">0</span>
+                    <span class="text-[10px] text-amber-700/90 font-medium">Click to review</span>
+                  </div>
+                </button>
+                <button type="button" onclick="drilldownPo('in_production')" class="group p-3.5 rounded-xl bg-indigo-50/70 hover:bg-indigo-100/80 border border-indigo-200/80 text-left transition shadow-2xs hover:shadow-xs cursor-pointer flex flex-col justify-between min-h-[84px]">
+                  <div class="flex items-center justify-between gap-1">
+                    <span class="text-xs font-bold text-indigo-900 flex items-center gap-1.5">
+                      <span>🏭</span>
+                      <span>In Production</span>
+                    </span>
+                    <span class="text-[10px] font-bold text-indigo-700 bg-indigo-200/60 group-hover:bg-indigo-200 px-1.5 py-0.5 rounded transition shrink-0">&rarr;</span>
+                  </div>
+                  <div class="flex items-baseline justify-between gap-1 mt-2">
+                    <span id="dashPipelineProd" class="text-2xl font-black text-indigo-950 font-mono tracking-tight leading-none">0</span>
+                    <span class="text-[10px] text-indigo-700/90 font-medium">Click to inspect</span>
+                  </div>
+                </button>
+                <button type="button" onclick="drilldownPo('in_stock')" class="group p-3.5 rounded-xl bg-emerald-50/70 hover:bg-emerald-100/80 border border-emerald-200/80 text-left transition shadow-2xs hover:shadow-xs cursor-pointer flex flex-col justify-between min-h-[84px]">
+                  <div class="flex items-center justify-between gap-1">
+                    <span class="text-xs font-bold text-emerald-900 flex items-center gap-1.5">
+                      <span>📦</span>
+                      <span>Ready in Stock</span>
+                    </span>
+                    <span class="text-[10px] font-bold text-emerald-700 bg-emerald-200/60 group-hover:bg-emerald-200 px-1.5 py-0.5 rounded transition shrink-0">&rarr;</span>
+                  </div>
+                  <div class="flex items-baseline justify-between gap-1 mt-2">
+                    <span id="dashPipelineStock" class="text-2xl font-black text-emerald-950 font-mono tracking-tight leading-none">0</span>
+                    <span class="text-[10px] text-emerald-700/90 font-medium">Click to dispatch</span>
+                  </div>
+                </button>
+                <button type="button" onclick="drilldownPo('completed')" class="group p-3.5 rounded-xl bg-slate-50 hover:bg-slate-100/90 border border-slate-200/90 text-left transition shadow-2xs hover:shadow-xs cursor-pointer flex flex-col justify-between min-h-[84px]">
+                  <div class="flex items-center justify-between gap-1">
+                    <span class="text-xs font-bold text-slate-800 flex items-center gap-1.5">
+                      <span>✅</span>
+                      <span>Fulfilled Orders</span>
+                    </span>
+                    <span class="text-[10px] font-bold text-slate-600 bg-slate-200/80 group-hover:bg-slate-200 px-1.5 py-0.5 rounded transition shrink-0">&rarr;</span>
+                  </div>
+                  <div class="flex items-baseline justify-between gap-1 mt-2">
+                    <span id="dashPipelineComp" class="text-2xl font-black text-slate-900 font-mono tracking-tight leading-none">0</span>
+                    <span class="text-[10px] text-slate-500 font-medium">Click for archive</span>
+                  </div>
+                </button>
+              </div>
+            </div>
+
+            <!-- Inward Deliveries & Quality Quick Access -->
+            <div class="bg-white rounded-2xl border border-slate-200/90 shadow-2xs p-4 sm:p-5 space-y-3.5">
+              <div class="flex items-center justify-between pb-2.5 border-b border-slate-100">
+                <div class="flex items-center gap-2.5">
+                  <span class="w-7 h-7 rounded-lg bg-blue-50 border border-blue-100/80 flex items-center justify-center text-sm shrink-0">🚚</span>
+                  <div>
+                    <h4 class="text-xs font-bold uppercase tracking-wider text-slate-800">Gate Receipts & Reconciliation</h4>
+                    <p class="text-[11px] text-slate-400 font-medium">Inward verification, shortages & quality logs</p>
+                  </div>
+                </div>
+                <button type="button" onclick="switchAdminTab('dispatches'); window.scrollTo({ top: 0, behavior: 'smooth' });" class="px-2.5 py-1 rounded-lg text-xs font-bold text-blue-600 hover:text-blue-800 hover:bg-blue-50 transition border border-transparent hover:border-blue-100 flex items-center gap-1 cursor-pointer shrink-0">
+                  <span>View All Dispatches &rarr;</span>
+                </button>
+              </div>
+              <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                <button type="button" onclick="drilldownShipment('transit')" class="group p-3.5 rounded-xl bg-blue-50/70 hover:bg-blue-100/80 border border-blue-200/80 text-left transition shadow-2xs hover:shadow-xs cursor-pointer flex flex-col justify-between min-h-[84px]">
+                  <div class="flex items-center justify-between gap-1">
+                    <span class="text-xs font-bold text-blue-900 flex items-center gap-1.5">
+                      <span>🚚</span>
+                      <span>In Transit Shipments</span>
+                    </span>
+                    <span class="text-[10px] font-bold text-blue-700 bg-blue-200/60 group-hover:bg-blue-200 px-1.5 py-0.5 rounded transition shrink-0">&rarr;</span>
+                  </div>
+                  <div class="flex items-baseline justify-between gap-1 mt-2">
+                    <span id="dashAuditTransit" class="text-2xl font-black text-blue-950 font-mono tracking-tight leading-none">0</span>
+                    <span class="text-[10px] text-blue-700/90 font-medium">Awaiting gate count</span>
+                  </div>
+                </button>
+                <button type="button" onclick="drilldownShipment('shortages')" class="group p-3.5 rounded-xl bg-rose-50/70 hover:bg-rose-100/80 border border-rose-200/80 text-left transition shadow-2xs hover:shadow-xs cursor-pointer flex flex-col justify-between min-h-[84px]">
+                  <div class="flex items-center justify-between gap-1">
+                    <span class="text-xs font-bold text-rose-900 flex items-center gap-1.5">
+                      <span>⚠️</span>
+                      <span>Shortage Discrepancies</span>
+                    </span>
+                    <span class="text-[10px] font-bold text-rose-700 bg-rose-200/60 group-hover:bg-rose-200 px-1.5 py-0.5 rounded transition shrink-0">&rarr;</span>
+                  </div>
+                  <div class="flex items-baseline justify-between gap-1 mt-2">
+                    <span id="dashAuditShortages" class="text-2xl font-black text-rose-950 font-mono tracking-tight leading-none">0</span>
+                    <span class="text-[10px] text-rose-700/90 font-medium">Shortfall detected</span>
+                  </div>
+                </button>
+                <button type="button" onclick="drilldownShipment('damaged')" class="group p-3.5 rounded-xl bg-amber-50/70 hover:bg-amber-100/80 border border-amber-200/80 text-left transition shadow-2xs hover:shadow-xs cursor-pointer flex flex-col justify-between min-h-[84px]">
+                  <div class="flex items-center justify-between gap-1">
+                    <span class="text-xs font-bold text-amber-900 flex items-center gap-1.5">
+                      <span>📦</span>
+                      <span>Damaged / Rejected</span>
+                    </span>
+                    <span class="text-[10px] font-bold text-amber-700 bg-amber-200/60 group-hover:bg-amber-200 px-1.5 py-0.5 rounded transition shrink-0">&rarr;</span>
+                  </div>
+                  <div class="flex items-baseline justify-between gap-1 mt-2">
+                    <span id="dashAuditDamaged" class="text-2xl font-black text-amber-950 font-mono tracking-tight leading-none">0</span>
+                    <span class="text-[10px] text-amber-700/90 font-medium">Quality reject logs</span>
+                  </div>
+                </button>
+                <button type="button" onclick="switchAdminTab('scorecards'); window.scrollTo({ top: 0, behavior: 'smooth' });" class="group p-3.5 rounded-xl bg-purple-50/70 hover:bg-purple-100/80 border border-purple-200/80 text-left transition shadow-2xs hover:shadow-xs cursor-pointer flex flex-col justify-between min-h-[84px]">
+                  <div class="flex items-center justify-between gap-1">
+                    <span class="text-xs font-bold text-purple-900 flex items-center gap-1.5">
+                      <span>📊</span>
+                      <span>Supplier Scorecards</span>
+                    </span>
+                    <span class="text-[10px] font-bold text-purple-700 bg-purple-200/60 group-hover:bg-purple-200 px-1.5 py-0.5 rounded transition shrink-0">&rarr;</span>
+                  </div>
+                  <div class="flex items-baseline justify-between gap-1 mt-2">
+                    <span id="dashAuditVendors" class="text-2xl font-black text-purple-950 font-mono tracking-tight leading-none">0</span>
+                    <span class="text-[10px] text-purple-700/90 font-medium">Performance audits</span>
+                  </div>
+                </button>
+              </div>
+            </div>
+          </div>
+
+        </div>
+
+        <!-- ============================================== -->
+        <!-- TAB PANE 2: PURCHASE ORDERS & PRODUCTION STAGE -->
+        <!-- ============================================== -->
+        <div id="adminPaneOrders" class="space-y-6 hidden">
+
           <!-- All Orders Overview Table with Manufacturing Stage & Sample Proofs -->
           <div class="bg-white rounded-2xl border border-slate-200 shadow-xs overflow-hidden">
             <div class="p-4 border-b border-slate-100 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
@@ -336,19 +564,58 @@
                 <span class="text-xs text-slate-500">Live multi-vendor tracker with production readiness & approved sample proofs</span>
               </div>
               <!-- Production Stage Filter Toolbar -->
-              <div class="flex items-center gap-2 overflow-x-auto text-xs">
+              <div class="flex items-center gap-2 overflow-x-auto text-xs w-full sm:w-auto no-scrollbar">
                 <span class="text-[11px] font-bold text-slate-400 uppercase tracking-wider whitespace-nowrap">Stage:</span>
-                <div class="nav-tab-container p-0.5 bg-slate-100 rounded-xl flex items-center gap-1 border border-slate-200/80">
-                  <button type="button" onclick="setAdminPoFilter('all')" id="adminPoFilterAll" class="nav-tab-btn nav-tab-btn-active-primary px-3 py-1 rounded-lg text-xs font-bold transition cursor-pointer">All</button>
-                  <button type="button" onclick="setAdminPoFilter('pending')" id="adminPoFilterPending" class="nav-tab-btn px-3 py-1 rounded-lg text-xs font-semibold text-slate-600 hover:text-slate-900 transition cursor-pointer">⏳ Awaiting Supplier</button>
-                  <button type="button" onclick="setAdminPoFilter('in_stock')" id="adminPoFilterStock" class="nav-tab-btn px-3 py-1 rounded-lg text-xs font-semibold text-slate-600 hover:text-slate-900 transition cursor-pointer">📦 In Stock</button>
-                  <button type="button" onclick="setAdminPoFilter('in_production')" id="adminPoFilterProd" class="nav-tab-btn px-3 py-1 rounded-lg text-xs font-semibold text-slate-600 hover:text-slate-900 transition cursor-pointer">🏭 In Production</button>
-                  <button type="button" onclick="setAdminPoFilter('completed')" id="adminPoFilterComp" class="nav-tab-btn px-3 py-1 rounded-lg text-xs font-semibold text-slate-600 hover:text-slate-900 transition cursor-pointer">✅ Fulfilled</button>
+                <div class="nav-tab-container p-0.5 bg-slate-100 rounded-xl flex items-center gap-1 border border-slate-200/80 overflow-x-auto w-full sm:w-auto no-scrollbar">
+                  <button type="button" onclick="setAdminPoFilter('all')" id="adminPoFilterAll" class="nav-tab-btn nav-tab-btn-active-primary px-3 py-1 rounded-lg text-xs font-bold transition flex items-center gap-1.5 cursor-pointer flex-shrink-0">
+                    <span>All</span>
+                    <span id="adminPoCountAll" class="bg-slate-800 text-slate-200 px-1.5 py-0.2 rounded-full text-[10px] font-mono">0</span>
+                  </button>
+                  <button type="button" onclick="setAdminPoFilter('pending')" id="adminPoFilterPending" class="nav-tab-btn px-3 py-1 rounded-lg text-xs font-semibold text-slate-600 hover:text-slate-900 transition flex items-center gap-1.5 cursor-pointer flex-shrink-0">
+                    <span>⏳ Awaiting Supplier</span>
+                    <span id="adminPoCountPending" class="bg-amber-100 text-amber-800 px-1.5 py-0.2 rounded-full text-[10px] font-mono font-bold">0</span>
+                  </button>
+                  <button type="button" onclick="setAdminPoFilter('in_stock')" id="adminPoFilterStock" class="nav-tab-btn px-3 py-1 rounded-lg text-xs font-semibold text-slate-600 hover:text-slate-900 transition flex items-center gap-1.5 cursor-pointer flex-shrink-0">
+                    <span>📦 In Stock</span>
+                    <span id="adminPoCountStock" class="bg-emerald-100 text-emerald-800 px-1.5 py-0.2 rounded-full text-[10px] font-mono font-bold">0</span>
+                  </button>
+                  <button type="button" onclick="setAdminPoFilter('in_production')" id="adminPoFilterProd" class="nav-tab-btn px-3 py-1 rounded-lg text-xs font-semibold text-slate-600 hover:text-slate-900 transition flex items-center gap-1.5 cursor-pointer flex-shrink-0">
+                    <span>🏭 In Production</span>
+                    <span id="adminPoCountProd" class="bg-indigo-100 text-indigo-800 px-1.5 py-0.2 rounded-full text-[10px] font-mono font-bold">0</span>
+                  </button>
+                  <button type="button" onclick="setAdminPoFilter('completed')" id="adminPoFilterComp" class="nav-tab-btn px-3 py-1 rounded-lg text-xs font-semibold text-slate-600 hover:text-slate-900 transition flex items-center gap-1.5 cursor-pointer flex-shrink-0">
+                    <span>✅ Fulfilled</span>
+                    <span id="adminPoCountComp" class="bg-slate-200 text-slate-600 px-1.5 py-0.2 rounded-full text-[10px] font-mono">0</span>
+                  </button>
                 </div>
               </div>
             </div>
+
+            <!-- Category Quick Filter Bar for Admin Purchase Orders -->
+            <div class="px-4 sm:px-5 py-2 bg-slate-50/40 border-b border-slate-100 flex items-center gap-2 overflow-x-auto text-xs no-scrollbar">
+              <span class="text-[11px] font-bold text-slate-400 uppercase tracking-wider whitespace-nowrap">Filter By Category:</span>
+              <button type="button" onclick="setCategoryFilter('all')" class="cat-filter-btn-all px-3 py-1 rounded-xl text-xs font-bold transition flex items-center gap-1.5 bg-slate-900 text-white shadow-2xs flex-shrink-0">
+                <span>All Categories</span>
+              </button>
+              <button type="button" onclick="setCategoryFilter('labels')" class="cat-filter-btn-labels px-3 py-1 rounded-xl text-xs font-semibold text-slate-600 hover:bg-slate-100 transition flex items-center gap-1.5 border border-slate-200 bg-white flex-shrink-0">
+                <span>🏷️ Labels</span>
+              </button>
+              <button type="button" onclick="setCategoryFilter('tags')" class="cat-filter-btn-tags px-3 py-1 rounded-xl text-xs font-semibold text-slate-600 hover:bg-slate-100 transition flex items-center gap-1.5 border border-slate-200 bg-white flex-shrink-0">
+                <span>🔖 Tags</span>
+              </button>
+              <button type="button" onclick="setCategoryFilter('ribbons')" class="cat-filter-btn-ribbons px-3 py-1 rounded-xl text-xs font-semibold text-slate-600 hover:bg-slate-100 transition flex items-center gap-1.5 border border-slate-200 bg-white flex-shrink-0">
+                <span>🎗️ Ribbons</span>
+              </button>
+              <button type="button" onclick="setCategoryFilter('cards')" class="cat-filter-btn-cards px-3 py-1 rounded-xl text-xs font-semibold text-slate-600 hover:bg-slate-100 transition flex items-center gap-1.5 border border-slate-200 bg-white flex-shrink-0">
+                <span>💳 Cards</span>
+              </button>
+            </div>
+            <div class="mobile-scroll-hint">
+              <span>👈 Swipe table sideways for all columns</span>
+              <span class="text-blue-600 font-bold">Actions pinned 👉</span>
+            </div>
             <div class="overflow-x-auto">
-              <table class="w-full text-left text-xs">
+              <table class="w-full text-left text-xs table-sticky-actions">
                 <thead class="bg-slate-50/90 text-slate-500 font-bold uppercase tracking-wider text-[11px] border-b border-slate-200/80">
                   <tr>
                     <th class="p-3">Order Number</th>
@@ -426,21 +693,21 @@
             </div>
 
             <!-- Category Quick Filter Bar for Dispatches -->
-            <div class="px-4 py-2 bg-slate-50/40 border-b border-slate-100 flex flex-wrap items-center gap-2 text-xs">
+            <div class="px-4 py-2 bg-slate-50/40 border-b border-slate-100 flex items-center gap-2 overflow-x-auto text-xs no-scrollbar">
               <span class="text-[11px] font-bold text-slate-400 uppercase tracking-wider whitespace-nowrap">Filter By Category:</span>
-              <button type="button" onclick="setCategoryFilter('all')" class="cat-filter-btn-all px-3 py-1 rounded-xl text-xs font-bold transition flex items-center gap-1.5 bg-slate-900 text-white shadow-2xs">
+              <button type="button" onclick="setCategoryFilter('all')" class="cat-filter-btn-all px-3 py-1 rounded-xl text-xs font-bold transition flex items-center gap-1.5 bg-slate-900 text-white shadow-2xs flex-shrink-0 cursor-pointer">
                 <span>All Categories</span>
               </button>
-              <button type="button" onclick="setCategoryFilter('labels')" class="cat-filter-btn-labels px-3 py-1 rounded-xl text-xs font-semibold text-slate-600 hover:bg-slate-100 transition flex items-center gap-1.5 border border-slate-200 bg-white">
+              <button type="button" onclick="setCategoryFilter('labels')" class="cat-filter-btn-labels px-3 py-1 rounded-xl text-xs font-semibold text-slate-600 hover:bg-slate-100 transition flex items-center gap-1.5 border border-slate-200 bg-white flex-shrink-0 cursor-pointer">
                 <span>🏷️ Labels</span>
               </button>
-              <button type="button" onclick="setCategoryFilter('tags')" class="cat-filter-btn-tags px-3 py-1 rounded-xl text-xs font-semibold text-slate-600 hover:bg-slate-100 transition flex items-center gap-1.5 border border-slate-200 bg-white">
+              <button type="button" onclick="setCategoryFilter('tags')" class="cat-filter-btn-tags px-3 py-1 rounded-xl text-xs font-semibold text-slate-600 hover:bg-slate-100 transition flex items-center gap-1.5 border border-slate-200 bg-white flex-shrink-0 cursor-pointer">
                 <span>🔖 Tags</span>
               </button>
-              <button type="button" onclick="setCategoryFilter('ribbons')" class="cat-filter-btn-ribbons px-3 py-1 rounded-xl text-xs font-semibold text-slate-600 hover:bg-slate-100 transition flex items-center gap-1.5 border border-slate-200 bg-white">
+              <button type="button" onclick="setCategoryFilter('ribbons')" class="cat-filter-btn-ribbons px-3 py-1 rounded-xl text-xs font-semibold text-slate-600 hover:bg-slate-100 transition flex items-center gap-1.5 border border-slate-200 bg-white flex-shrink-0 cursor-pointer">
                 <span>🎗️ Ribbons</span>
               </button>
-              <button type="button" onclick="setCategoryFilter('cards')" class="cat-filter-btn-cards px-3 py-1 rounded-xl text-xs font-semibold text-slate-600 hover:bg-slate-100 transition flex items-center gap-1.5 border border-slate-200 bg-white">
+              <button type="button" onclick="setCategoryFilter('cards')" class="cat-filter-btn-cards px-3 py-1 rounded-xl text-xs font-semibold text-slate-600 hover:bg-slate-100 transition flex items-center gap-1.5 border border-slate-200 bg-white flex-shrink-0 cursor-pointer">
                 <span>💳 Cards</span>
               </button>
             </div>
@@ -543,8 +810,8 @@
               </button>
             </div>
 
-            <div class="border border-slate-200 rounded-2xl overflow-hidden shadow-xs">
-              <table class="w-full text-left text-xs">
+            <div class="border border-slate-200 rounded-2xl overflow-x-auto shadow-xs">
+              <table class="w-full text-left text-xs min-w-[560px] sm:min-w-0">
                 <thead class="bg-slate-100 text-slate-600 font-semibold border-b border-slate-200">
                   <tr>
                     <th class="p-3">Vendor Code</th>
@@ -604,29 +871,41 @@
             </div>
             <div class="flex flex-wrap items-center gap-1.5 text-xs">
               <span class="text-[11px] font-bold text-slate-400 uppercase tracking-wider mr-1">Filter:</span>
-              <button type="button" onclick="setGateFilter('all')" class="px-3 py-1.5 rounded-xl font-bold text-xs transition bg-slate-900 text-white shadow-2xs" id="gateFilterAll">All Inward</button>
-              <button type="button" onclick="setGateFilter('transit')" class="px-3 py-1.5 rounded-xl font-medium text-xs text-slate-600 hover:bg-slate-100 transition" id="gateFilterTransit">⏳ Awaiting Count</button>
-              <button type="button" onclick="setGateFilter('today')" class="px-3 py-1.5 rounded-xl font-medium text-xs text-slate-600 hover:bg-slate-100 transition" id="gateFilterToday">📅 Today</button>
-              <button type="button" onclick="setGateFilter('damaged')" class="px-3 py-1.5 rounded-xl font-medium text-xs text-slate-600 hover:bg-slate-100 transition" id="gateFilterDamaged">⚠️ Damage / Rejections</button>
+              <button type="button" onclick="setGateFilter('all')" class="px-3.5 py-1.5 rounded-xl font-bold text-xs transition bg-slate-900 text-white shadow-2xs flex items-center gap-1.5 flex-shrink-0 cursor-pointer" id="gateFilterAll">
+                <span>All Inward</span>
+                <span id="gateCountAll" class="bg-slate-800 text-slate-200 px-1.5 py-0.2 rounded-full text-[10px] font-mono">0</span>
+              </button>
+              <button type="button" onclick="setGateFilter('transit')" class="px-3.5 py-1.5 rounded-xl font-semibold text-xs text-slate-600 hover:bg-slate-100 transition flex items-center gap-1.5 border border-slate-200 bg-white flex-shrink-0 cursor-pointer" id="gateFilterTransit">
+                <span>⏳ Awaiting Count</span>
+                <span id="gateCountTransit" class="bg-indigo-100 text-indigo-700 px-1.5 py-0.2 rounded-full text-[10px] font-mono font-bold">0</span>
+              </button>
+              <button type="button" onclick="setGateFilter('today')" class="px-3.5 py-1.5 rounded-xl font-semibold text-xs text-slate-600 hover:bg-slate-100 transition flex items-center gap-1.5 border border-slate-200 bg-white flex-shrink-0 cursor-pointer" id="gateFilterToday">
+                <span>📅 Today</span>
+                <span id="gateCountToday" class="bg-slate-200 text-slate-700 px-1.5 py-0.2 rounded-full text-[10px] font-mono font-bold">0</span>
+              </button>
+              <button type="button" onclick="setGateFilter('damaged')" class="px-3.5 py-1.5 rounded-xl font-semibold text-xs text-slate-600 hover:bg-slate-100 transition flex items-center gap-1.5 border border-slate-200 bg-white flex-shrink-0 cursor-pointer" id="gateFilterDamaged">
+                <span>⚠️ Damage / Rejections</span>
+                <span id="gateCountDamaged" class="bg-amber-100 text-amber-800 px-1.5 py-0.2 rounded-full text-[10px] font-mono font-bold">0</span>
+              </button>
             </div>
           </div>
 
           <!-- Category Quick Filter Bar for Gatekeeper -->
-          <div class="px-4 py-2 bg-slate-50/50 border-b border-slate-100 flex flex-wrap items-center gap-2 text-xs">
+          <div class="px-4 py-2 bg-slate-50/50 border-b border-slate-100 flex items-center gap-2 overflow-x-auto text-xs no-scrollbar">
             <span class="text-[11px] font-bold text-slate-400 uppercase tracking-wider whitespace-nowrap">Category:</span>
-            <button type="button" onclick="setCategoryFilter('all')" class="cat-filter-btn-all px-3 py-1 rounded-xl text-xs font-bold transition flex items-center gap-1.5 bg-slate-900 text-white shadow-2xs">
+            <button type="button" onclick="setCategoryFilter('all')" class="cat-filter-btn-all px-3 py-1 rounded-xl text-xs font-bold transition flex items-center gap-1.5 bg-slate-900 text-white shadow-2xs flex-shrink-0 cursor-pointer">
               <span>All Categories</span>
             </button>
-            <button type="button" onclick="setCategoryFilter('labels')" class="cat-filter-btn-labels px-3 py-1 rounded-xl text-xs font-semibold text-slate-600 hover:bg-slate-100 transition flex items-center gap-1.5 border border-slate-200 bg-white">
+            <button type="button" onclick="setCategoryFilter('labels')" class="cat-filter-btn-labels px-3 py-1 rounded-xl text-xs font-semibold text-slate-600 hover:bg-slate-100 transition flex items-center gap-1.5 border border-slate-200 bg-white flex-shrink-0 cursor-pointer">
               <span>🏷️ Labels</span>
             </button>
-            <button type="button" onclick="setCategoryFilter('tags')" class="cat-filter-btn-tags px-3 py-1 rounded-xl text-xs font-semibold text-slate-600 hover:bg-slate-100 transition flex items-center gap-1.5 border border-slate-200 bg-white">
+            <button type="button" onclick="setCategoryFilter('tags')" class="cat-filter-btn-tags px-3 py-1 rounded-xl text-xs font-semibold text-slate-600 hover:bg-slate-100 transition flex items-center gap-1.5 border border-slate-200 bg-white flex-shrink-0 cursor-pointer">
               <span>🔖 Tags</span>
             </button>
-            <button type="button" onclick="setCategoryFilter('ribbons')" class="cat-filter-btn-ribbons px-3 py-1 rounded-xl text-xs font-semibold text-slate-600 hover:bg-slate-100 transition flex items-center gap-1.5 border border-slate-200 bg-white">
+            <button type="button" onclick="setCategoryFilter('ribbons')" class="cat-filter-btn-ribbons px-3 py-1 rounded-xl text-xs font-semibold text-slate-600 hover:bg-slate-100 transition flex items-center gap-1.5 border border-slate-200 bg-white flex-shrink-0 cursor-pointer">
               <span>🎗️ Ribbons</span>
             </button>
-            <button type="button" onclick="setCategoryFilter('cards')" class="cat-filter-btn-cards px-3 py-1 rounded-xl text-xs font-semibold text-slate-600 hover:bg-slate-100 transition flex items-center gap-1.5 border border-slate-200 bg-white">
+            <button type="button" onclick="setCategoryFilter('cards')" class="cat-filter-btn-cards px-3 py-1 rounded-xl text-xs font-semibold text-slate-600 hover:bg-slate-100 transition flex items-center gap-1.5 border border-slate-200 bg-white flex-shrink-0 cursor-pointer">
               <span>💳 Cards</span>
             </button>
           </div>
@@ -713,7 +992,7 @@
             </div>
           </div>
 
-          <div class="grid grid-cols-2 gap-3">
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
               <label class="block text-xs font-semibold text-slate-700 mb-1">Quantity Dispatched (Units) *</label>
               <input type="number" id="inputQtySent" required min="1" placeholder="e.g. 10000" class="w-full text-sm px-3.5 py-2.5 border border-slate-300 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none">
@@ -725,7 +1004,34 @@
             </div>
           </div>
 
-          <div class="grid grid-cols-2 gap-3">
+          <!-- Ribbon Consignment Tracking (Rolls & Boxes) -->
+          <div class="bg-indigo-50/70 border border-indigo-200/80 rounded-2xl p-3.5 space-y-2">
+            <div class="flex items-center justify-between">
+              <span class="text-xs font-bold text-indigo-950 flex items-center gap-1.5">
+                <span>🎗️ Ribbon Consignment Details</span>
+              </span>
+              <div class="flex items-center gap-1.5">
+                <button type="button" onclick="clearRibbonConsignment()" class="text-[10px] text-slate-600 hover:text-rose-700 font-semibold bg-white hover:bg-rose-50 px-2 py-0.5 rounded-full border border-slate-200 hover:border-rose-300 transition cursor-pointer flex items-center gap-1" title="Clear and keep empty">
+                  <span>✕ Keep Empty</span>
+                </button>
+                <span class="text-[10px] text-indigo-600 font-semibold bg-white px-2 py-0.5 rounded-full border border-indigo-200">Optional / If Included</span>
+              </div>
+            </div>
+            <p class="text-[11px] text-indigo-800 leading-snug">Track thermal transfer ribbon rolls shipped with labels (or sent independently on separate days). Kept empty by default unless values are provided.</p>
+            <div id="modalRibbonPoBalance" class="hidden text-[11px] p-2 bg-white/90 border border-indigo-200 rounded-xl flex items-center justify-between font-mono text-indigo-950"></div>
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
+              <div>
+                <label class="block text-[11px] font-bold text-indigo-900 mb-1">Ribbon Rolls Dispatched</label>
+                <input type="number" id="inputRibbonQty" min="0" value="" placeholder="Leave empty if none (rolls)" class="w-full text-xs px-3 py-2 border border-indigo-200 rounded-xl bg-white focus:ring-2 focus:ring-indigo-500 font-mono font-bold">
+              </div>
+              <div>
+                <label class="block text-[11px] font-bold text-indigo-900 mb-1">Ribbon Boxes / Cartons</label>
+                <input type="number" id="inputRibbonBoxes" min="0" value="" placeholder="Leave empty if none (boxes)" class="w-full text-xs px-3 py-2 border border-indigo-200 rounded-xl bg-white focus:ring-2 focus:ring-indigo-500 font-mono font-bold">
+              </div>
+            </div>
+          </div>
+
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
               <label class="block text-xs font-semibold text-slate-700 mb-1">Invoice Number *</label>
               <input type="text" id="inputTruckLR" required placeholder="e.g. INV-2026-001" class="w-full text-sm px-3.5 py-2.5 border border-slate-300 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none">
@@ -776,7 +1082,7 @@
           </div>
         </div>
 
-        <div class="flex items-center justify-end gap-3 p-4 px-6 bg-slate-50 border-t border-slate-200 flex-shrink-0">
+        <div class="flex items-center justify-end gap-3 p-3.5 sm:p-4 px-4 sm:px-6 bg-slate-50 border-t border-slate-200 flex-shrink-0">
           <button type="button" onclick="closeModal('dispatchModal')" class="px-4 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-200 rounded-xl transition cursor-pointer">Cancel</button>
           <button type="submit" class="btn-gradient-primary px-5 py-2.5 text-white text-xs font-bold rounded-xl shadow transition flex items-center gap-2 cursor-pointer">
             <span>Confirm & Record Dispatch</span>
@@ -921,12 +1227,157 @@
             <div id="receiveComparisonBadge" class="p-2.5 rounded-xl text-xs flex items-center justify-between font-medium">
               <!-- Dynamically updated by updateReceiveComparison() -->
             </div>
+
+            <!-- GATE RIBBON INWARD CONFIRMATION (Rolls & Damaged) -->
+            <div class="bg-indigo-50/70 p-3.5 rounded-xl border border-indigo-200/90 space-y-2">
+              <div class="flex items-center justify-between">
+                <span class="text-xs font-bold text-indigo-950 flex items-center gap-1.5">
+                  <span>🎗️ Gate Ribbon Roll Inward Verification</span>
+                </span>
+                <span id="gateRibbonClaimedBadge" class="text-[10px] text-indigo-600 font-semibold bg-white px-2 py-0.5 rounded-full border border-indigo-200">Inspect & Confirm</span>
+              </div>
+              <div id="gateRibbonAuditComparison" class="text-xs p-2.5 rounded-xl bg-white/90 border border-indigo-200/80 font-medium hidden">
+                <!-- Live Ribbon audit summary -->
+              </div>
+              <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label class="block text-[11px] font-bold text-indigo-900 mb-1">Ribbon Rolls Accepted</label>
+                  <input type="number" id="inputReceivedRibbons" min="0" value="" placeholder="Leave empty if none" oninput="updateReceiveComparison()" class="w-full text-xs px-3 py-2 border border-indigo-300 rounded-xl bg-white font-mono font-bold text-indigo-900">
+                  <span class="text-[10px] text-indigo-600 block mt-0.5">Good condition rolls</span>
+                </div>
+                <div>
+                  <label class="block text-[11px] font-bold text-rose-800 mb-1">Damaged Ribbon Rolls</label>
+                  <input type="number" id="inputDamagedRibbons" min="0" value="" placeholder="Leave empty if none" oninput="updateReceiveComparison()" class="w-full text-xs px-3 py-2 border border-rose-300 rounded-xl bg-white font-mono font-bold text-rose-700">
+                  <span class="text-[10px] text-rose-500 block mt-0.5">Defective / crushed rolls</span>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
 
-        <div class="flex items-center justify-end gap-3 p-4 px-6 bg-slate-50 border-t border-slate-200 flex-shrink-0">
+        <div class="flex items-center justify-end gap-3 p-3.5 sm:p-4 px-4 sm:px-6 bg-slate-50 border-t border-slate-200 flex-shrink-0">
           <button type="button" onclick="closeModal('receiveModal')" class="px-4 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-200 rounded-xl transition cursor-pointer">Cancel</button>
           <button type="submit" class="btn-gradient-emerald px-5 py-2.5 text-white text-xs font-bold rounded-xl shadow transition cursor-pointer">Save Receipt & Verify</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- ========================================== -->
+  <!-- MODAL: VENDOR EDIT DISPATCH LOG MODAL      -->
+  <!-- ========================================== -->
+  <div id="editDispatchModal" class="fixed inset-0 z-50 overflow-y-auto p-4 sm:p-6 flex min-h-full justify-center items-start sm:items-center modal-backdrop hidden">
+    <div class="bg-white rounded-3xl shadow-2xl max-w-lg w-full border border-slate-200 overflow-hidden transform transition-all flex flex-col max-h-[88vh] my-auto">
+      <div class="bg-gradient-to-r from-slate-950 via-amber-950 to-slate-900 border-b border-amber-900/30 p-5 px-6 text-white flex justify-between items-center flex-shrink-0">
+        <div>
+          <span class="text-xs text-amber-400 font-semibold uppercase tracking-wider block">Vendor Dispatch Correction</span>
+          <h3 class="text-base font-bold text-white mt-0.5">Edit Dispatch Quantities & Information</h3>
+        </div>
+        <button onclick="closeModal('editDispatchModal')" class="text-slate-400 hover:text-white text-2xl p-1 font-bold leading-none cursor-pointer">&times;</button>
+      </div>
+
+      <form id="editDispatchForm" onsubmit="handleEditDispatchSubmit(event)" class="flex flex-col flex-1 overflow-hidden">
+        <input type="hidden" id="editDispatchShipmentId">
+
+        <div class="p-6 space-y-4 overflow-y-auto flex-1">
+          <div class="bg-slate-50 p-3.5 rounded-xl border border-slate-200 text-xs space-y-1.5">
+            <div class="flex justify-between">
+              <span class="text-slate-500 font-medium">Order Number:</span>
+              <span id="editDispatchPoNumber" class="font-bold text-slate-800 font-mono"></span>
+            </div>
+            <div class="flex justify-between">
+              <span class="text-slate-500 font-medium">Item / SKU:</span>
+              <span id="editDispatchItemTitle" class="font-bold text-blue-700"></span>
+            </div>
+          </div>
+
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div>
+              <label class="block text-xs font-semibold text-slate-700 mb-1">Corrected Units Shipped *</label>
+              <input type="number" id="editQtySent" required min="1" class="w-full text-sm px-3.5 py-2.5 border border-slate-300 rounded-xl focus:ring-2 focus:ring-amber-500 outline-none font-mono font-bold">
+            </div>
+            <div>
+              <label class="block text-xs font-semibold text-slate-700 mb-1">Number of Boxes / Cartons *</label>
+              <input type="number" id="editBoxCount" required min="1" class="w-full text-sm px-3.5 py-2.5 border border-slate-300 rounded-xl focus:ring-2 focus:ring-amber-500 outline-none bg-white font-mono font-bold">
+            </div>
+          </div>
+
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div>
+              <label class="block text-xs font-semibold text-slate-700 mb-1">Invoice / Challan No. *</label>
+              <input type="text" id="editTruckLR" required class="w-full text-sm px-3.5 py-2.5 border border-slate-300 rounded-xl focus:ring-2 focus:ring-amber-500 outline-none font-semibold">
+            </div>
+            <div>
+              <label class="block text-xs font-semibold text-slate-700 mb-1">Dispatch Date *</label>
+              <input type="date" id="editDispatchDate" required class="w-full text-sm px-3.5 py-2.5 border border-slate-300 rounded-xl focus:ring-2 focus:ring-amber-500 outline-none bg-slate-50">
+            </div>
+          </div>
+
+          <div class="bg-indigo-50/70 border border-indigo-200/80 rounded-2xl p-3.5 space-y-2">
+            <div class="flex items-center justify-between">
+              <span class="text-xs font-bold text-indigo-950 flex items-center gap-1.5">
+                <span>🎗️ Ribbon Rolls Sent (Optional)</span>
+              </span>
+              <button type="button" onclick="clearEditRibbonConsignment()" class="text-[10px] text-slate-600 hover:text-rose-700 font-semibold bg-white hover:bg-rose-50 px-2 py-0.5 rounded-full border border-slate-200 hover:border-rose-300 transition cursor-pointer flex items-center gap-1" title="Clear and keep empty">
+                <span>✕ Keep Empty</span>
+              </button>
+            </div>
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div>
+                <label class="block text-[11px] font-bold text-indigo-900 mb-1">Ribbon Rolls</label>
+                <input type="number" id="editRibbonQty" min="0" value="" placeholder="Leave empty if none (rolls)" class="w-full text-xs px-3 py-2 border border-indigo-200 rounded-xl bg-white font-mono font-bold">
+              </div>
+              <div>
+                <label class="block text-[11px] font-bold text-indigo-900 mb-1">Ribbon Boxes</label>
+                <input type="number" id="editRibbonBoxes" min="0" value="" placeholder="Leave empty if none (boxes)" class="w-full text-xs px-3 py-2 border border-indigo-200 rounded-xl bg-white font-mono font-bold">
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="flex items-center justify-end gap-3 p-3.5 sm:p-4 px-4 sm:px-6 bg-slate-50 border-t border-slate-200 flex-shrink-0">
+          <button type="button" onclick="closeModal('editDispatchModal')" class="px-4 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-200 rounded-xl transition cursor-pointer">Cancel</button>
+          <button type="submit" class="btn-gradient-primary px-5 py-2.5 text-white text-xs font-bold rounded-xl shadow transition cursor-pointer">
+            <span>Save Corrected Dispatch</span>
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- ========================================== -->
+  <!-- MODAL: PASSWORD CONFIRMATION FOR DELETION  -->
+  <!-- ========================================== -->
+  <div id="passwordConfirmModal" class="fixed inset-0 z-[80] overflow-y-auto p-4 sm:p-6 flex min-h-full justify-center items-start sm:items-center modal-backdrop hidden">
+    <div class="bg-white rounded-3xl shadow-2xl max-w-md w-full border border-slate-200 overflow-hidden transform transition-all flex flex-col my-auto">
+      <div class="bg-gradient-to-r from-slate-950 via-rose-950 to-slate-900 border-b border-rose-900/30 p-5 px-6 text-white flex justify-between items-center flex-shrink-0">
+        <div>
+          <span class="text-xs text-rose-400 font-semibold uppercase tracking-wider block">Security Authorization</span>
+          <h3 class="text-base font-bold text-white mt-0.5" id="passwordConfirmTitle">Authorize Critical Action</h3>
+        </div>
+        <button onclick="closePasswordConfirmModal()" class="text-slate-400 hover:text-white text-2xl p-1 font-bold leading-none cursor-pointer">&times;</button>
+      </div>
+
+      <form id="passwordConfirmForm" onsubmit="handlePasswordConfirmSubmit(event)" class="p-6 space-y-4">
+        <div class="p-3.5 bg-rose-50 border border-rose-200 rounded-2xl flex items-start gap-3">
+          <span class="text-xl">🔒</span>
+          <div>
+            <p class="text-xs font-bold text-rose-900" id="passwordConfirmDesc">Please confirm your identity by entering your administrative password.</p>
+            <p class="text-[11px] text-rose-700 mt-0.5">This action cannot be undone and will be permanently recorded in the system audit logs.</p>
+          </div>
+        </div>
+
+        <div>
+          <label class="block text-xs font-bold text-slate-700 mb-1.5">Enter Admin Password *</label>
+          <input type="password" id="inputConfirmPassword" required placeholder="Enter password to confirm" class="w-full text-sm px-3.5 py-2.5 border border-slate-300 rounded-xl focus:ring-2 focus:ring-rose-500 outline-none">
+          <p id="passwordConfirmError" class="text-xs text-rose-600 mt-1.5 font-semibold hidden"></p>
+        </div>
+
+        <div class="flex items-center justify-end gap-3 pt-2">
+          <button type="button" onclick="closePasswordConfirmModal()" class="px-4 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-200 rounded-xl transition cursor-pointer">Cancel</button>
+          <button type="submit" class="px-5 py-2.5 bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold rounded-xl shadow-xs transition cursor-pointer">
+            Confirm & Execute
+          </button>
         </div>
       </form>
     </div>
@@ -947,7 +1398,7 @@
 
       <form id="newPoForm" onsubmit="handleNewPoSubmit(event)" class="flex flex-col flex-1 overflow-hidden">
         <div class="p-6 space-y-5 overflow-y-auto flex-1">
-          <div class="grid grid-cols-2 gap-3">
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
               <label class="block text-xs font-semibold text-slate-700 mb-1">Order Number *</label>
               <input type="text" id="newPoNumber" required class="w-full text-xs px-3.5 py-2.5 border border-slate-300 rounded-xl focus:ring-2 focus:ring-blue-500 font-mono font-bold bg-slate-50">
@@ -1004,7 +1455,7 @@
           </div>
         </div>
 
-        <div class="flex items-center justify-end gap-3 p-4 px-6 bg-slate-50 border-t border-slate-200 flex-shrink-0">
+        <div class="flex items-center justify-end gap-3 p-3.5 sm:p-4 px-4 sm:px-6 bg-slate-50 border-t border-slate-200 flex-shrink-0">
           <button type="button" onclick="closeModal('newPoModal')" class="px-4 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-200 rounded-xl transition cursor-pointer">Cancel</button>
           <button type="submit" class="btn-gradient-primary px-5 py-2.5 text-white text-xs font-bold rounded-xl shadow transition cursor-pointer">Create & Issue Order</button>
         </div>
@@ -1305,7 +1756,7 @@
   <!-- ========================================== -->
   <!-- MODAL 9: APPROVED SAMPLE ARTWORK SPECIMEN  -->
   <!-- ========================================== -->
-  <div id="sampleArtworkModal" class="fixed inset-0 z-50 overflow-y-auto p-4 sm:p-6 flex min-h-full justify-center items-start sm:items-center modal-backdrop hidden">
+  <div id="sampleArtworkModal" class="fixed inset-0 z-[70] overflow-y-auto p-4 sm:p-6 flex min-h-full justify-center items-start sm:items-center modal-backdrop hidden">
     <div class="bg-white rounded-3xl shadow-2xl max-w-3xl w-full border border-slate-200 overflow-hidden transform transition-all flex flex-col max-h-[92vh] my-auto">
       <div class="bg-gradient-to-r from-slate-950 via-slate-900 to-indigo-950 border-b border-slate-800 p-5 px-6 text-white flex justify-between items-center flex-shrink-0">
         <div>
@@ -1327,6 +1778,24 @@
           </div>
           <div id="sampleModalYearManageBtnContainer" class="shrink-0">
             <!-- Populated for Admin -->
+          </div>
+        </div>
+
+        <!-- 6-Month Color & Cipher Period Selector (Jan-Jun H1 vs Jul-Dec H2) -->
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between p-2.5 bg-slate-50 border border-slate-200 rounded-2xl gap-2">
+          <div class="flex items-center gap-1.5">
+            <span class="text-xs font-bold text-slate-800">6-Month Cycle:</span>
+            <span class="text-[10px] text-slate-500 font-medium">Color & Security Year Code change every 6 months</span>
+          </div>
+          <div class="flex items-center gap-1 bg-white p-1 rounded-xl border border-slate-200 self-start sm:self-auto">
+            <button type="button" id="btnSamplePeriodH1" onclick="switchSampleModalPeriod('H1')" class="px-3 py-1 rounded-lg text-xs font-bold transition flex items-center gap-1 bg-slate-900 text-white cursor-pointer shadow-2xs">
+              <span>H1 (Jan–Jun)</span>
+              <span id="badgeSamplePeriodH1Code" class="font-mono text-[10px] px-1.5 py-0.2 rounded bg-slate-800 text-sky-300 font-extrabold">HR</span>
+            </button>
+            <button type="button" id="btnSamplePeriodH2" onclick="switchSampleModalPeriod('H2')" class="px-3 py-1 rounded-lg text-xs font-bold transition flex items-center gap-1 text-slate-600 hover:bg-slate-100 cursor-pointer">
+              <span>H2 (Jul–Dec)</span>
+              <span id="badgeSamplePeriodH2Code" class="font-mono text-[10px] px-1.5 py-0.2 rounded bg-slate-100 text-slate-700 font-extrabold">2HR</span>
+            </button>
           </div>
         </div>
 
@@ -1419,16 +1888,16 @@
       </div>
 
       <!-- Navigation Sub-Tabs -->
-      <div class="px-6 pt-4 pb-2 bg-slate-50/80 border-b border-slate-200 flex items-center justify-between gap-4 flex-shrink-0">
-        <div class="nav-tab-container p-1 bg-slate-200/80 rounded-xl flex items-center gap-1">
-          <button type="button" onclick="switchAnnualManagerTab('mandates')" id="annualTabBtnMandates" class="nav-tab-btn nav-tab-btn-active px-3.5 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1.5">
+      <div class="px-4 sm:px-6 pt-3.5 pb-2 bg-slate-50/80 border-b border-slate-200 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 flex-shrink-0">
+        <div class="nav-tab-container p-1 bg-slate-200/80 rounded-xl flex items-center gap-1 w-full sm:w-auto overflow-x-auto no-scrollbar">
+          <button type="button" onclick="switchAnnualManagerTab('mandates')" id="annualTabBtnMandates" class="nav-tab-btn nav-tab-btn-active px-3.5 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1.5 flex-shrink-0">
             <span>🎨 Annual Color Mandates</span>
           </button>
-          <button type="button" onclick="switchAnnualManagerTab('matrix')" id="annualTabBtnMatrix" class="nav-tab-btn px-3.5 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1.5">
+          <button type="button" onclick="switchAnnualManagerTab('matrix')" id="annualTabBtnMatrix" class="nav-tab-btn px-3.5 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1.5 flex-shrink-0">
             <span>🖼️ Master Proofs Gallery</span>
           </button>
         </div>
-        <div class="text-xs font-semibold text-slate-600 flex items-center gap-2">
+        <div class="text-xs font-semibold text-slate-600 flex items-center justify-between sm:justify-start gap-2 w-full sm:w-auto">
           <span>Active Fiscal Mandate:</span>
           <span class="px-2.5 py-1 rounded-full text-[11px] font-bold font-mono text-white" id="annualActiveYearPill" style="background-color: #0284c7;">2026</span>
         </div>
@@ -1464,39 +1933,148 @@
                   <input type="number" id="inputYearNumber" required min="2020" max="2040" placeholder="e.g. 2028" class="w-full text-xs px-3 py-2 border border-slate-300 rounded-xl bg-white font-mono font-bold outline-none focus:ring-2 focus:ring-indigo-500">
                 </div>
                 <div class="sm:col-span-3">
-                  <label class="block text-[11px] font-bold text-slate-700 mb-1">Color Scheme Title *</label>
-                  <input type="text" id="inputYearColorName" required placeholder="e.g. Amber Gold & Midnight Navy" class="w-full text-xs px-3 py-2 border border-slate-300 rounded-xl bg-white font-medium outline-none focus:ring-2 focus:ring-indigo-500">
+                  <label class="block text-[11px] font-bold text-slate-700 mb-1">Color Scheme Title (Optional &bull; Auto-defaults to Pantone Code)</label>
+                  <input type="text" id="inputYearColorName" placeholder="Leave blank — automatically uses Pantone Code (e.g. PANTONE 2192 C)" class="w-full text-xs px-3 py-2 border border-slate-300 rounded-xl bg-white font-medium outline-none focus:ring-2 focus:ring-indigo-500">
                 </div>
               </div>
 
-              <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+              <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
-                  <label class="block text-[11px] font-bold text-slate-700 mb-1">Primary Color Hex *</label>
-                  <div class="flex items-center gap-2">
-                    <input type="color" id="inputYearPrimaryPicker" value="#0284c7" onchange="document.getElementById('inputYearPrimaryHex').value = this.value" class="w-9 h-9 p-0.5 rounded-lg border border-slate-300 cursor-pointer">
-                    <input type="text" id="inputYearPrimaryHex" value="#0284c7" required onchange="document.getElementById('inputYearPrimaryPicker').value = this.value" class="w-full text-xs px-2.5 py-2 border border-slate-300 rounded-xl font-mono uppercase bg-white">
-                  </div>
-                </div>
-                <div>
-                  <label class="block text-[11px] font-bold text-slate-700 mb-1">Accent / Secondary Hex (Optional)</label>
-                  <div class="flex items-center gap-2">
-                    <input type="color" id="inputYearSecondaryPicker" value="#facc15" onchange="document.getElementById('inputYearSecondaryHex').value = this.value" class="w-9 h-9 p-0.5 rounded-lg border border-slate-300 cursor-pointer">
-                    <input type="text" id="inputYearSecondaryHex" value="#facc15" onchange="document.getElementById('inputYearSecondaryPicker').value = this.value" class="w-full text-xs px-2.5 py-2 border border-slate-300 rounded-xl font-mono uppercase bg-white">
-                  </div>
-                </div>
-                <div>
-                  <label class="block text-[11px] font-bold text-slate-700 mb-1">Operational Mandate Status *</label>
-                  <select id="inputYearStatus" class="w-full text-xs px-3 py-2 border border-slate-300 rounded-xl bg-white font-semibold">
+                  <label class="block text-[11px] font-bold text-slate-700 mb-1">Mandate Operational Status *</label>
+                  <select id="inputYearStatus" class="w-full text-xs px-3 py-2 border border-slate-300 rounded-xl bg-white font-semibold shadow-2xs">
                     <option value="active">Active Mandate (Current Year)</option>
                     <option value="upcoming">Upcoming Year (Advance Prep)</option>
                     <option value="archived">Archived / Historical Year</option>
                   </select>
                 </div>
+                <div>
+                  <label class="block text-[11px] font-bold text-slate-700 mb-1">Roll Core & Packaging Guidelines</label>
+                  <input type="text" id="inputYearGuidelines" placeholder="e.g. Core band must feature approved Pantone shade with 6-month security code imprint." class="w-full text-xs px-3 py-2 border border-slate-300 rounded-xl bg-white outline-none focus:ring-2 focus:ring-indigo-500 font-medium">
+                </div>
+              </div>
+
+              <!-- Dual 6-Month Pantone Shades (H1 vs H2) Configuration Cards -->
+              <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                <!-- H1 SHADE: 1st 6 Months (Jan–Jun) -->
+                <div class="p-4 bg-gradient-to-br from-sky-50/80 via-white to-sky-50/40 border border-sky-200/90 rounded-2xl space-y-3 shadow-2xs">
+                  <div class="flex items-center justify-between">
+                    <div>
+                      <span class="text-xs font-black text-sky-950 flex items-center gap-1.5">
+                        <span class="w-2.5 h-2.5 rounded-full bg-sky-600"></span>
+                        <span>1st 6-Months (H1: Jan–Jun) Pantone Shade *</span>
+                      </span>
+                      <span class="text-[10px] text-sky-800 font-medium">Master annual core band shade for the first half of the financial year</span>
+                    </div>
+                    <span class="text-[10px] font-mono font-bold px-2 py-0.5 rounded bg-sky-100 text-sky-900 border border-sky-200">H1 Rotation</span>
+                  </div>
+
+                  <div class="space-y-2 pt-1">
+                    <label class="block text-[11px] font-bold text-sky-950">Pantone Color Code (e.g. 2192 C, 186 C, 300 C, Black 6 C, Cool Gray 11 C)</label>
+                    <div class="flex items-center gap-2">
+                      <span id="pantoneInputLiveSwatch" class="w-9 h-9 rounded-xl border border-sky-300 shadow-2xs shrink-0 transition-colors" style="background-color: #009FDA;" title="Live H1 Pantone Swatch"></span>
+                      <input type="text" id="inputYearPantoneCode" list="pantoneSuggestionsList" value="PANTONE 2192 C" oninput="handlePantoneInput(this.value)" onchange="handlePantoneInput(this.value)" placeholder="e.g. PANTONE 2192 C, 186 C, 300 C, Black 6 C" class="w-full text-xs px-3 py-2 border border-sky-300 rounded-xl bg-white font-mono font-bold outline-none focus:ring-2 focus:ring-sky-500 text-sky-950 shadow-2xs">
+                    </div>
+
+                    <div class="flex items-center justify-between gap-2 pt-1">
+                      <div class="flex items-center gap-2 flex-1">
+                        <input type="color" id="inputYearPrimaryPicker" value="#009FDA" onchange="document.getElementById('inputYearPrimaryHex').value = this.value; onManualHexChange();" class="w-8 h-8 p-0.5 rounded-lg border border-slate-300 cursor-pointer shadow-2xs shrink-0">
+                        <input type="text" id="inputYearPrimaryHex" value="#009FDA" required oninput="document.getElementById('inputYearPrimaryPicker').value = this.value; onManualHexChange();" class="w-full text-xs px-2.5 py-1.5 border border-slate-300 rounded-xl font-mono uppercase bg-white font-bold tracking-wider">
+                      </div>
+                      <span id="pantoneSyncStatusBadge" class="text-[10px] font-bold px-2 py-1 rounded-lg bg-emerald-100 text-emerald-800 border border-emerald-200 shrink-0">
+                        ✓ H1 Synced
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- H2 SHADE: 2nd 6 Months (Jul–Dec) Pantone Shade -->
+                <div class="p-4 bg-gradient-to-br from-indigo-50/80 via-white to-indigo-50/40 border border-indigo-200/90 rounded-2xl space-y-3 shadow-2xs">
+                  <div class="flex items-center justify-between">
+                    <div>
+                      <span class="text-xs font-black text-indigo-950 flex items-center gap-1.5">
+                        <span class="w-2.5 h-2.5 rounded-full bg-indigo-400"></span>
+                        <span>2nd 6-Months (H2: Jul–Dec) Pantone Shade (Optional / Pending)</span>
+                      </span>
+                      <span class="text-[10px] text-indigo-800 font-medium">Keep empty until designated for 2nd half-year specification</span>
+                    </div>
+                    <button type="button" onclick="clearH2Shade()" class="text-[10px] font-bold px-2.5 py-1 rounded-lg bg-slate-100 hover:bg-rose-50 text-slate-600 hover:text-rose-700 border border-slate-200 transition cursor-pointer flex items-center gap-1" title="Clear H2 shade and keep empty">
+                      <span>✕</span>
+                      <span>Keep Empty</span>
+                    </button>
+                  </div>
+
+                  <div class="space-y-2 pt-1">
+                    <label class="block text-[11px] font-bold text-indigo-950">Pantone Shade Code (Leave empty until specified)</label>
+                    <div class="flex items-center gap-2">
+                      <span id="pantoneH2InputLiveSwatch" class="w-9 h-9 rounded-xl border border-dashed border-slate-300 bg-slate-50 shadow-2xs shrink-0 transition-colors flex items-center justify-center text-[10px] text-slate-400" title="Live H2 Pantone Swatch">—</span>
+                      <input type="text" id="inputYearH2PantoneCode" list="pantoneSuggestionsList" value="" oninput="handlePantoneH2Input(this.value)" onchange="handlePantoneH2Input(this.value)" placeholder="Leave empty until specified (e.g. PANTONE code)" class="w-full text-xs px-3 py-2 border border-indigo-300 rounded-xl bg-white font-mono font-bold outline-none focus:ring-2 focus:ring-indigo-500 text-indigo-950 shadow-2xs">
+                    </div>
+
+                    <div class="flex items-center justify-between gap-2 pt-1">
+                      <div class="flex items-center gap-2 flex-1">
+                        <input type="color" id="inputYearH2Picker" value="#ffffff" onchange="document.getElementById('inputYearH2Hex').value = this.value; onManualH2HexChange();" class="w-8 h-8 p-0.5 rounded-lg border border-slate-300 cursor-pointer shadow-2xs shrink-0">
+                        <input type="text" id="inputYearH2Hex" value="" placeholder="(Pending)" oninput="document.getElementById('inputYearH2Picker').value = this.value; onManualH2HexChange();" class="w-full text-xs px-2.5 py-1.5 border border-slate-300 rounded-xl font-mono uppercase bg-white font-bold tracking-wider">
+                      </div>
+                      <span id="pantoneH2SyncStatusBadge" class="text-[10px] font-bold px-2 py-1 rounded-lg bg-slate-100 text-slate-600 border border-slate-200 shrink-0">
+                        Pending Specification
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Comprehensive Pantone Autocomplete Datalist (Official PMS Codes Only) -->
+              <datalist id="pantoneSuggestionsList">
+                <option value="PANTONE 2192 C">PANTONE 2192 C</option>
+                <option value="PANTONE 2194 C">PANTONE 2194 C</option>
+                <option value="PANTONE 2190 C">PANTONE 2190 C</option>
+                <option value="PANTONE 2191 C">PANTONE 2191 C</option>
+                <option value="PANTONE 2193 C">PANTONE 2193 C</option>
+                <option value="PANTONE 2195 C">PANTONE 2195 C</option>
+                <option value="PANTONE 2196 C">PANTONE 2196 C</option>
+                <option value="PANTONE 186 C">PANTONE 186 C</option>
+                <option value="PANTONE 187 C">PANTONE 187 C</option>
+                <option value="PANTONE 485 C">PANTONE 485 C</option>
+                <option value="PANTONE 300 C">PANTONE 300 C</option>
+                <option value="PANTONE 301 C">PANTONE 301 C</option>
+                <option value="PANTONE 290 C">PANTONE 290 C</option>
+                <option value="PANTONE 293 C">PANTONE 293 C</option>
+                <option value="PANTONE 3405 C">PANTONE 3405 C</option>
+                <option value="PANTONE 3425 C">PANTONE 3425 C</option>
+                <option value="PANTONE 354 C">PANTONE 354 C</option>
+                <option value="PANTONE 2685 C">PANTONE 2685 C</option>
+                <option value="PANTONE 1585 C">PANTONE 1585 C</option>
+                <option value="PANTONE 1375 C">PANTONE 1375 C</option>
+                <option value="PANTONE 4625 C">PANTONE 4625 C</option>
+                <option value="PANTONE 476 C">PANTONE 476 C</option>
+                <option value="PANTONE 109 C">PANTONE 109 C</option>
+                <option value="PANTONE BLACK C">PANTONE Black C</option>
+                <option value="PANTONE BLACK 6 C">PANTONE Black 6 C</option>
+                <option value="PANTONE COOL GRAY 7 C">PANTONE Cool Gray 7 C</option>
+                <option value="PANTONE COOL GRAY 11 C">PANTONE Cool Gray 11 C</option>
+                <option value="PANTONE WARM RED C">PANTONE Warm Red C</option>
+                <option value="PANTONE REFLEX BLUE C">PANTONE Reflex Blue C</option>
+                <option value="PANTONE PROCESS BLUE C">PANTONE Process Blue C</option>
+              </datalist>
+
+              <!-- Automated 6-Month Security Year Imprint Info Card -->
+              <div class="p-3.5 bg-slate-900 text-white rounded-2xl space-y-2 border border-slate-800">
+                <div class="flex items-center justify-between">
+                  <span class="text-xs font-bold text-sky-400 flex items-center gap-1.5">
+                    <span>🛡️ Automated Security Year Imprint Standard</span>
+                  </span>
+                  <span class="text-[10px] font-mono text-slate-400 font-bold bg-slate-800 px-2 py-0.5 rounded">6-Month Rotation</span>
+                </div>
+                <div class="text-[11px] text-slate-300 flex flex-wrap items-center justify-between gap-2 pt-1 border-t border-slate-800/80">
+                  <span>1st 6 Months (Jan–Jun): <strong class="text-emerald-400 font-mono">H1 Code</strong></span>
+                  <span>2nd 6 Months (Jul–Dec): <strong class="text-amber-400 font-mono">H2 Code</strong></span>
+                  <span class="text-slate-400 text-[10px]">Encrypted security code auto-calculated per financial year</span>
+                </div>
               </div>
 
               <div>
                 <label class="block text-[11px] font-bold text-slate-700 mb-1">Roll Core & Packaging Guidelines</label>
-                <input type="text" id="inputYearGuidelines" placeholder="e.g. Core band must feature this primary color with secondary color lot stamp." class="w-full text-xs px-3 py-2 border border-slate-300 rounded-xl bg-white outline-none focus:ring-2 focus:ring-indigo-500 font-medium">
+                <input type="text" id="inputYearGuidelines" placeholder="e.g. Core band must feature this approved Pantone color standard with security code imprint." class="w-full text-xs px-3 py-2 border border-slate-300 rounded-xl bg-white outline-none focus:ring-2 focus:ring-indigo-500 font-medium">
               </div>
 
               <div class="flex items-center justify-end gap-2 pt-2 border-t border-indigo-100">

@@ -4,6 +4,8 @@ Thumbs.db
 
 # Logs & Temp
 *.log
+*.db
+logs/
 npm-debug.log*
 yarn-debug.log*
 .vercel
