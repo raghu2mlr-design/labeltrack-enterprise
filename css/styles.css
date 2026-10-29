@@ -71,7 +71,6 @@ h1, h2, h3, h4, h5, h6 {
   to { opacity: 1; }
 }
 
-.modal-content-animated,
 .modal-backdrop > div {
   animation: modalSlideUp 0.22s cubic-bezier(0.16, 1, 0.3, 1);
 }
@@ -126,17 +125,6 @@ h1, h2, h3, h4, h5, h6 {
 }
 .btn-gradient-emerald:active {
   transform: translateY(0);
-}
-
-/* Dynamic Filter & Category Pills */
-.pill-tab {
-  transition: all 0.18s cubic-bezier(0.16, 1, 0.3, 1);
-  font-weight: 600;
-  cursor: pointer;
-  user-select: none;
-}
-.pill-tab:active {
-  transform: scale(0.97);
 }
 
 /* Category Specific Active Styles */
@@ -257,11 +245,6 @@ h1, h2, h3, h4, h5, h6 {
   color: #7e22ce;
   border-color: #e9d5ff;
 }
-.badge-slate {
-  background-color: #f8fafc;
-  color: #475569;
-  border-color: #cbd5e1;
-}
 
 /* Smooth Scrollbars */
 ::-webkit-scrollbar {
@@ -303,13 +286,28 @@ input:focus, select:focus, textarea:focus {
   background-color: #ffffff !important;
 }
 
-/* Subtle Shimmer for High-Priority Alerts */
-@keyframes soft-pulse {
-  0%, 100% { opacity: 1; transform: scale(1); }
-  50% { opacity: 0.9; transform: scale(1.015); }
+/* Native Date Picker & Select Enhancements */
+input[type="date"]::-webkit-calendar-picker-indicator {
+  cursor: pointer;
+  opacity: 0.6;
+  padding: 0.15rem;
+  transition: opacity 0.15s ease;
 }
-.pulse-subtle {
-  animation: soft-pulse 2.5s infinite ease-in-out;
+
+input[type="date"]::-webkit-calendar-picker-indicator:hover {
+  opacity: 1;
+}
+
+select {
+  cursor: pointer;
+  background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%2364748b' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e");
+  background-position: right 0.65rem center;
+  background-repeat: no-repeat;
+  background-size: 1.15em 1.15em;
+  padding-right: 2rem !important;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  appearance: none;
 }
 
 /* ========================================================= */
@@ -358,6 +356,7 @@ button, input, select, a, [role="button"] {
     background: #f8fafc;
     box-shadow: -4px 0 8px -2px rgba(15, 23, 42, 0.08);
     z-index: 10;
+    min-width: 85px;
   }
   .table-sticky-actions td:last-child {
     position: sticky;
@@ -365,13 +364,23 @@ button, input, select, a, [role="button"] {
     background: #ffffff;
     box-shadow: -4px 0 8px -2px rgba(15, 23, 42, 0.08);
     z-index: 9;
+    min-width: 85px;
   }
   .table-sticky-actions tr:hover td:last-child {
     background: #f8fafc;
   }
 }
 
-/* 6. Mobile scroll affordance indicator */
+/* 6. Clean horizontal scrolling without ugly scrollbar bars */
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+/* 7. Mobile scroll affordance indicator */
 .mobile-scroll-hint {
   display: none;
 }
@@ -400,6 +409,15 @@ button, input, select, a, [role="button"] {
   padding: 0.28rem;
   border-radius: 0.875rem;
   border: 1px solid #e2e8f0;
+  max-width: 100%;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.nav-tab-container::-webkit-scrollbar {
+  display: none;
 }
 
 .nav-tab-btn {
@@ -416,6 +434,7 @@ button, input, select, a, [role="button"] {
   border: 1px solid transparent;
   user-select: none;
   white-space: nowrap;
+  flex-shrink: 0;
 }
 
 .nav-tab-btn:hover {
@@ -490,5 +509,36 @@ button, input, select, a, [role="button"] {
   align-items: center;
   justify-content: center;
 }
+
+/* Pantone & Security Cipher Standards */
+.pantone-swatch {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.2rem 0.5rem;
+  border-radius: 0.5rem;
+  font-family: var(--font-mono);
+  font-size: 0.6875rem;
+  font-weight: 700;
+  border: 1px solid rgba(226, 232, 240, 0.9);
+  background: #ffffff;
+}
+
+.cipher-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0.25rem 0.6rem;
+  border-radius: 0.5rem;
+  font-family: var(--font-mono);
+  font-weight: 800;
+  letter-spacing: 0.05em;
+  font-size: 0.75rem;
+  background: #0f172a;
+  color: #38bdf8;
+  border: 1px solid #334155;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.2);
+}
+
 
 
