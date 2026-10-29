@@ -4135,6 +4135,29 @@ function openReceiveModal(shipmentId) {
     }
   }
 
+  // Visual highlight for Gatekeeper when shipment includes ribbons
+  const gateRibbonContainer = document.getElementById('gateRibbonContainer');
+  const gateRibbonAlertPrompt = document.getElementById('gateRibbonAlertPrompt');
+  const gateRibbonPromptDetails = document.getElementById('gateRibbonPromptDetails');
+  if (s.ribbonQty && s.ribbonQty > 0) {
+    if (gateRibbonContainer) {
+      gateRibbonContainer.className = 'bg-purple-50/90 p-4 rounded-2xl border-2 border-purple-400 shadow-xs space-y-2.5 ring-2 ring-purple-200/50 transition-all';
+    }
+    if (gateRibbonAlertPrompt) {
+      gateRibbonAlertPrompt.classList.remove('hidden');
+    }
+    if (gateRibbonPromptDetails) {
+      gateRibbonPromptDetails.innerHTML = `Vendor included <strong>${formatNumber(s.ribbonQty)} Ribbon Rolls</strong> (${s.ribbonBoxes || 1} carton(s)) with these labels. Gatekeeper must count physical rolls and check for transit damage.`;
+    }
+  } else {
+    if (gateRibbonContainer) {
+      gateRibbonContainer.className = 'bg-indigo-50/70 p-3.5 rounded-xl border border-indigo-200/90 space-y-2 transition-all';
+    }
+    if (gateRibbonAlertPrompt) {
+      gateRibbonAlertPrompt.classList.add('hidden');
+    }
+  }
+
   const inRecRib = document.getElementById('inputReceivedRibbons');
   const inDamRib = document.getElementById('inputDamagedRibbons');
   if (inRecRib) inRecRib.value = (s.receivedRibbons !== undefined && s.receivedRibbons !== null && s.receivedRibbons > 0) ? s.receivedRibbons : (s.ribbonQty && s.ribbonQty > 0 ? s.ribbonQty : '');
@@ -4234,6 +4257,14 @@ async function handleReceiveSubmit(e) {
   }
   if (isNaN(damagedRibbons) || damagedRibbons < 0) {
     showToast('Damaged ribbon rolls cannot be negative!', true);
+    return;
+  }
+
+  // Mandatory ribbon roll verification check: If vendor shipped ribbons, gatekeeper must verify count
+  const rawReceivedRibbons = document.getElementById('inputReceivedRibbons')?.value;
+  if (s.ribbonQty > 0 && (rawReceivedRibbons === '' || rawReceivedRibbons === null || rawReceivedRibbons === undefined)) {
+    showToast(`⚠️ Ribbon Roll Count Required: Vendor shipped ${formatNumber(s.ribbonQty)} ribbon rolls. Please enter the physical verified count!`, true);
+    document.getElementById('inputReceivedRibbons')?.focus();
     return;
   }
 
@@ -5961,26 +5992,53 @@ function render() {
     }
   }
 
-  // 4. Gatekeeper Inward Inspection Table
+  // 4. Gatekeeper Inward Inspection Table & Ribbon Verification Metrics
   const currentGateFilter = state.gateFilter || 'all';
   const countGateAll = shipments.length;
   const countGateTransit = shipments.filter(s => s.receivedQty === null || s.receivedQty === undefined).length;
+  const countGateRibbons = shipments.filter(s => Number(s.ribbonQty || 0) > 0 || Number(s.receivedRibbons || 0) > 0).length;
   const countGateToday = shipments.filter(s => s.date === todayStr).length;
   const countGateDamaged = shipments.filter(s => Number(s.damagedQty || 0) > 0 || Number(s.damagedRibbons || 0) > 0).length;
 
+  // Gatekeeper Inward KPI Scorecard Metrics (Labels & Thermal Ribbons)
+  const gateVerifiedLabels = shipments.filter(s => s.receivedQty !== null && s.receivedQty !== undefined).reduce((sum, s) => sum + Number(s.receivedQty || 0), 0);
+  const gateVerifiedRibbons = shipments.filter(s => s.receivedQty !== null && s.receivedQty !== undefined).reduce((sum, s) => sum + Number(s.receivedRibbons || 0), 0);
+  const gatePendingRibbons = shipments.filter(s => s.receivedQty === null || s.receivedQty === undefined).reduce((sum, s) => sum + Number(s.ribbonQty || 0), 0);
+  const gateDamagedLabels = shipments.reduce((sum, s) => sum + Number(s.damagedQty || 0), 0);
+  const gateDamagedRibbons = shipments.reduce((sum, s) => sum + Number(s.damagedRibbons || 0), 0);
+
+  const elGateStatTotalShipments = document.getElementById('gateStatTotalShipments');
+  const elGateStatPendingShipments = document.getElementById('gateStatPendingShipments');
+  const elGateStatVerifiedLabels = document.getElementById('gateStatVerifiedLabels');
+  const elGateStatVerifiedRibbons = document.getElementById('gateStatVerifiedRibbons');
+  const elGateStatPendingRibbons = document.getElementById('gateStatPendingRibbons');
+  const elGateStatDamagedTotal = document.getElementById('gateStatDamagedTotal');
+  const elGateStatDamagedRibbons = document.getElementById('gateStatDamagedRibbons');
+
+  if (elGateStatTotalShipments) elGateStatTotalShipments.textContent = formatNumber(countGateAll);
+  if (elGateStatPendingShipments) elGateStatPendingShipments.textContent = formatNumber(countGateTransit);
+  if (elGateStatVerifiedLabels) elGateStatVerifiedLabels.textContent = formatNumber(gateVerifiedLabels);
+  if (elGateStatVerifiedRibbons) elGateStatVerifiedRibbons.textContent = formatNumber(gateVerifiedRibbons);
+  if (elGateStatPendingRibbons) elGateStatPendingRibbons.textContent = formatNumber(gatePendingRibbons);
+  if (elGateStatDamagedTotal) elGateStatDamagedTotal.textContent = formatNumber(gateDamagedLabels + gateDamagedRibbons);
+  if (elGateStatDamagedRibbons) elGateStatDamagedRibbons.textContent = formatNumber(gateDamagedRibbons);
+
   const bgGateAll = document.getElementById('gateCountAll');
   const bgGateTransit = document.getElementById('gateCountTransit');
+  const bgGateRibbons = document.getElementById('gateCountRibbons');
   const bgGateToday = document.getElementById('gateCountToday');
   const bgGateDamaged = document.getElementById('gateCountDamaged');
 
   if (bgGateAll) bgGateAll.textContent = countGateAll;
   if (bgGateTransit) bgGateTransit.textContent = countGateTransit;
+  if (bgGateRibbons) bgGateRibbons.textContent = countGateRibbons;
   if (bgGateToday) bgGateToday.textContent = countGateToday;
   if (bgGateDamaged) bgGateDamaged.textContent = countGateDamaged;
 
   const gateBtns = {
     all: document.getElementById('gateFilterAll'),
     transit: document.getElementById('gateFilterTransit'),
+    ribbons: document.getElementById('gateFilterRibbons'),
     today: document.getElementById('gateFilterToday'),
     damaged: document.getElementById('gateFilterDamaged')
   };
@@ -5990,12 +6048,14 @@ function render() {
     if (isActive) {
       let activeCls = 'ship-filter-all-active';
       if (key === 'transit') activeCls = 'ship-filter-transit-active';
+      else if (key === 'ribbons') activeCls = 'ship-filter-ribbons-active';
       else if (key === 'today') activeCls = 'ship-filter-today-active';
       else if (key === 'damaged') activeCls = 'ship-filter-damaged-active';
       btn.className = `px-3.5 py-1.5 rounded-xl font-bold text-xs transition-all duration-150 flex items-center gap-1.5 cursor-pointer flex-shrink-0 whitespace-nowrap ${activeCls}`;
     } else {
       let inactiveCls = 'border border-slate-200/90 text-slate-600 bg-white hover:bg-slate-100 hover:text-slate-900';
       if (key === 'transit') inactiveCls = 'border border-indigo-200/80 text-indigo-800 bg-indigo-50/50 hover:bg-indigo-100/70';
+      else if (key === 'ribbons') inactiveCls = 'border border-purple-200/80 text-purple-800 bg-purple-50/50 hover:bg-purple-100/70';
       else if (key === 'today') inactiveCls = 'border border-teal-200/80 text-teal-800 bg-teal-50/50 hover:bg-teal-100/70';
       else if (key === 'damaged') inactiveCls = 'border border-amber-200/80 text-amber-800 bg-amber-50/50 hover:bg-amber-100/70';
       btn.className = `px-3.5 py-1.5 rounded-xl font-semibold text-xs transition-all duration-150 flex items-center gap-1.5 cursor-pointer flex-shrink-0 whitespace-nowrap ${inactiveCls}`;
@@ -6005,15 +6065,21 @@ function render() {
   let gateShipments = shipments;
   if (currentGateFilter === 'transit') {
     gateShipments = shipments.filter(s => s.receivedQty === null || s.receivedQty === undefined);
+  } else if (currentGateFilter === 'ribbons') {
+    gateShipments = shipments.filter(s => Number(s.ribbonQty || 0) > 0 || Number(s.receivedRibbons || 0) > 0);
   } else if (currentGateFilter === 'today') {
     gateShipments = shipments.filter(s => s.date === todayStr);
   } else if (currentGateFilter === 'damaged') {
     gateShipments = shipments.filter(s => Number(s.damagedQty || 0) > 0 || Number(s.damagedRibbons || 0) > 0);
   }
 
-  // Category Filter for Gatekeeper
+  // Category Filter for Gatekeeper (including ribbon-carrying shipments when filtered by ribbons)
   if (state.categoryFilter && state.categoryFilter !== 'all') {
     gateShipments = gateShipments.filter(s => {
+      if (state.categoryFilter === 'ribbons') {
+        const cInfo = getItemCategoryInfo(s);
+        return cInfo.id === 'ribbons' || Number(s.ribbonQty || 0) > 0 || Number(s.receivedRibbons || 0) > 0;
+      }
       const cInfo = getItemCategoryInfo(s);
       return cInfo.id === state.categoryFilter;
     });
@@ -6024,10 +6090,12 @@ function render() {
     gateShipments = gateShipments.filter(s => {
       const po = state.pos.find(p => p.poNumber === s.poNumber);
       const vendorName = po ? po.vendor.toLowerCase() : '';
+      const isRibbonSearch = gateSearch === 'ribbon' || gateSearch === 'ribbons';
       return s.id.toLowerCase().includes(gateSearch) ||
         s.poNumber.toLowerCase().includes(gateSearch) ||
         (s.truckLR && s.truckLR.toLowerCase().includes(gateSearch)) ||
         (s.description && s.description.toLowerCase().includes(gateSearch)) ||
+        (isRibbonSearch && (Number(s.ribbonQty || 0) > 0 || Number(s.receivedRibbons || 0) > 0)) ||
         vendorName.includes(gateSearch);
     });
   }
@@ -6051,13 +6119,20 @@ function render() {
         const ribbonShortfall = ribbonClaimed > 0 ? (ribbonAccepted - ribbonClaimed) : 0;
         const hasRibbonIssue = ribbonClaimed > 0 && (ribbonShortfall < 0 || ribbonDamaged > 0);
 
-        let auditBadge = `<span class="badge-pill badge-amber">⏳ Awaiting Count</span>`;
+        let auditBadge = ribbonClaimed > 0 
+          ? `<span class="badge-pill badge-indigo">⏳ Awaiting Count (Labels + Ribbons)</span>` 
+          : `<span class="badge-pill badge-amber">⏳ Awaiting Count</span>`;
+
         if (hasCount) {
-          if (!hasRibbonIssue) {
+          if (ribbonClaimed > 0 && ribbonAccepted === 0 && ribbonDamaged === 0) {
+            auditBadge = `<span class="badge-pill badge-rose">⚠️ Ribbons Uncounted / Missing (0/${formatNumber(ribbonClaimed)} rolls)</span>`;
+          } else if (!hasRibbonIssue) {
             if (damaged > 0 && variance === 0) {
-              auditBadge = `<span class="badge-pill badge-amber">⚠️ Damage Recorded</span>`;
+              auditBadge = `<span class="badge-pill badge-amber">⚠️ Label Damage Recorded</span>`;
             } else if (variance === 0) {
-              auditBadge = `<span class="badge-pill badge-emerald">✓ Exact Match</span>`;
+              auditBadge = ribbonClaimed > 0 
+                ? `<span class="badge-pill badge-emerald">✓ Exact Match (Labels & Ribbons)</span>` 
+                : `<span class="badge-pill badge-emerald">✓ Exact Match</span>`;
             } else if (variance < 0) {
               auditBadge = `<span class="badge-pill badge-rose">⚠️ Shortfall: -${formatNumber(Math.abs(variance))}</span>`;
             } else {
@@ -6068,7 +6143,7 @@ function render() {
               if (ribbonShortfall < 0) {
                 auditBadge = `<span class="badge-pill badge-rose">⚠️ Ribbon Short: ${ribbonShortfall} rolls</span>`;
               } else if (ribbonDamaged > 0) {
-                auditBadge = `<span class="badge-pill badge-amber">⚠️ Ribbon Damage (${formatNumber(ribbonDamaged)})</span>`;
+                auditBadge = `<span class="badge-pill badge-amber">⚠️ Ribbon Damage (${formatNumber(ribbonDamaged)} rolls)</span>`;
               }
             } else {
               auditBadge = `<span class="badge-pill badge-rose">⚠️ Discrepancy (Labels & Ribbons)</span>`;
@@ -6098,30 +6173,55 @@ function render() {
               </div>
               <span class="font-bold text-slate-900 block leading-snug">${escapeHtml(sParsed.title)}</span>
               ${sParsed.specs ? `<span class="text-[10px] text-slate-500 font-mono block mt-0.5 leading-tight">${escapeHtml(sParsed.specs)}</span>` : ''}
-            </td>
-            <td class="p-3 text-right whitespace-nowrap">
-              <span class="font-mono font-bold text-blue-600 block text-xs">${formatNumber(s.qtySent)}</span>
-              <span class="text-[10px] text-slate-500 font-semibold inline-block px-1.5 py-0.5 bg-slate-100 rounded border border-slate-200 mt-0.5 whitespace-nowrap">${s.boxCount || 1} box(es)</span>
               ${ribbonClaimed > 0 ? `
-                <div class="mt-1 pt-1 border-t border-slate-100 text-[10px] text-purple-700 font-mono font-semibold">
-                  <span>🎗️ ${formatNumber(ribbonClaimed)} rolls</span>
-                  <span class="text-slate-400 font-normal font-sans">(${s.ribbonBoxes || 0} bxs)</span>
+                <div class="mt-2 inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[11px] font-bold bg-purple-50 text-purple-900 border border-purple-200 shadow-2xs">
+                  <span class="text-sm">🎗️</span>
+                  <span>Vendor Sent: <strong>${formatNumber(ribbonClaimed)} Ribbon Rolls</strong> (${s.ribbonBoxes || 1} bxs)</span>
                 </div>
               ` : ''}
             </td>
             <td class="p-3 text-right whitespace-nowrap">
-              ${hasCount ? `
-                <span class="font-mono font-bold text-emerald-700 block text-xs">${formatNumber(s.receivedQty)} good</span>
-                <span class="text-[10px] text-slate-500 font-semibold inline-block px-1.5 py-0.5 bg-slate-100 rounded border border-slate-200 mt-0.5 whitespace-nowrap">${s.receivedBoxes || s.boxCount || 1} box(es)</span>
-                ${damaged > 0 ? `<span class="text-[10px] text-rose-700 bg-rose-50 border border-rose-200 px-1.5 py-0.5 rounded font-semibold block mt-0.5 whitespace-nowrap">⚠️ ${formatNumber(damaged)} rejected</span>` : ''}
-                ${(ribbonClaimed > 0 || ribbonAccepted > 0 || ribbonDamaged > 0) ? `
-                  <div class="mt-1 pt-1 border-t border-slate-100 text-[10px] text-purple-800 font-mono font-semibold text-right">
-                    <span>🎗️ ${formatNumber(ribbonAccepted)} rolls good</span>
-                    ${ribbonDamaged > 0 ? `<span class="text-[10px] text-rose-700 block">⚠️ ${formatNumber(ribbonDamaged)} rejected</span>` : ''}
-                    ${ribbonShortfall < 0 ? `<span class="text-[10px] text-rose-600 block">⚠️ ${ribbonShortfall} rolls short</span>` : ''}
+              <div class="space-y-1">
+                <div>
+                  <span class="font-mono font-bold text-blue-600 block text-xs">${formatNumber(s.qtySent)} labels</span>
+                  <span class="text-[10px] text-slate-500 font-semibold inline-block px-1.5 py-0.5 bg-slate-100 rounded border border-slate-200 mt-0.5 whitespace-nowrap">${s.boxCount || 1} box(es)</span>
+                </div>
+                ${ribbonClaimed > 0 ? `
+                  <div class="pt-1 border-t border-slate-100">
+                    <span class="font-mono font-bold text-purple-700 block text-xs">🎗️ ${formatNumber(ribbonClaimed)} ribbons</span>
+                    <span class="text-[10px] text-purple-600 font-semibold inline-block px-1.5 py-0.5 bg-purple-50 rounded border border-purple-200 mt-0.5 whitespace-nowrap">${s.ribbonBoxes || 1} box(es)</span>
                   </div>
                 ` : ''}
-              ` : '<span class="text-amber-600 font-semibold text-xs whitespace-nowrap">⏳ Uninspected</span>'}
+              </div>
+            </td>
+            <td class="p-3 text-right whitespace-nowrap">
+              ${hasCount ? `
+                <div class="space-y-1">
+                  <div>
+                    <span class="font-mono font-bold text-emerald-700 block text-xs">${formatNumber(s.receivedQty)} good labels</span>
+                    <span class="text-[10px] text-slate-500 font-semibold inline-block px-1.5 py-0.5 bg-slate-100 rounded border border-slate-200 mt-0.5 whitespace-nowrap">${s.receivedBoxes || s.boxCount || 1} box(es)</span>
+                    ${damaged > 0 ? `<span class="text-[10px] text-rose-700 bg-rose-50 border border-rose-200 px-1.5 py-0.5 rounded font-semibold block mt-0.5 whitespace-nowrap">⚠️ ${formatNumber(damaged)} damaged</span>` : ''}
+                  </div>
+                  ${(ribbonClaimed > 0 || ribbonAccepted > 0 || ribbonDamaged > 0) ? `
+                    <div class="pt-1 border-t border-slate-100">
+                      <span class="font-mono font-bold ${ribbonAccepted > 0 ? 'text-purple-800' : 'text-slate-400'} block text-xs">🎗️ ${formatNumber(ribbonAccepted)} good ribbons</span>
+                      ${ribbonDamaged > 0 ? `<span class="text-[10px] text-rose-700 font-semibold block mt-0.5 whitespace-nowrap">⚠️ ${formatNumber(ribbonDamaged)} rejected</span>` : ''}
+                      ${ribbonShortfall < 0 ? `<span class="text-[10px] text-rose-600 font-bold block mt-0.5 whitespace-nowrap">⚠️ ${ribbonShortfall} rolls short</span>` : ''}
+                      ${ribbonClaimed > 0 && ribbonAccepted === 0 && ribbonDamaged === 0 ? `<span class="text-[10px] text-rose-600 font-bold block mt-0.5 whitespace-nowrap">⚠️ 0 rolls verified</span>` : ''}
+                    </div>
+                  ` : ''}
+                </div>
+              ` : `
+                <div class="space-y-1">
+                  <span class="text-amber-600 font-semibold text-xs whitespace-nowrap block">⏳ Uninspected</span>
+                  ${ribbonClaimed > 0 ? `
+                    <span class="inline-flex items-center gap-1 text-[10px] font-bold text-purple-700 bg-purple-50 border border-purple-200 px-2 py-0.5 rounded">
+                      <span>🎗️</span>
+                      <span>Count ${formatNumber(ribbonClaimed)} Rolls</span>
+                    </span>
+                  ` : ''}
+                </div>
+              `}
             </td>
             <td class="p-3 text-center">
               <div class="inline-flex flex-col gap-1 items-center">
