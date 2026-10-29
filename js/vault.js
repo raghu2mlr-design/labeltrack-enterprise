@@ -39,20 +39,12 @@ window.__AUTH_VAULT__ = {
       "password_hash": "005420d010f6de4bccdc7bb67a52f1b6c8981fe317a896369b21a205fbd79287"
     },
     {
-      "email": "ch.saipavan@rsbrothers.net",
+      "email": "vendor@example.com",
       "role": "vendor",
-      "vendorName": "pavan",
+      "vendorName": "Premier Labels",
       "vendorCode": "VEN-03",
-      "salt": "s4lt_v_tzgrwzoxdq",
-      "password_hash": "31f71739667380e7215792dd5c9b5c99ef94d2bf2ec1ff9306208ac52ce36969"
-    },
-    {
-      "email": "svl@gmail.com",
-      "role": "vendor",
-      "vendorName": "Sri Vigeneswara Labels",
-      "vendorCode": "SVL",
-      "salt": "s4lt_v_j65lk9rfta",
-      "password_hash": "c5f950b9edeb66f9c935e78a258c39b917e63d8328afaf12228bba3f14195fd0"
+      "salt": "s4lt_prm_54a8b19",
+      "password_hash": "87365389292e685fe6afaa93905db9082cffaa23d2ac0ab1c08466453225038b"
     }
   ]
 };

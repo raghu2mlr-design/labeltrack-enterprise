@@ -95,19 +95,12 @@ async function handleLoginSubmit(e) {
 
   try {
     // Robust multi-tier vault resolution:
-    // 1. Gather all users from state.authVault, window.__AUTH_VAULT__, and localStorage
+    // 1. Gather all users from state.authVault and window.__AUTH_VAULT__ (strictly database-driven)
     const userMap = new Map();
 
     if (typeof window !== 'undefined' && window.__AUTH_VAULT__ && Array.isArray(window.__AUTH_VAULT__.users)) {
       window.__AUTH_VAULT__.users.forEach(u => userMap.set(u.email.toLowerCase(), { ...u }));
     }
-
-    try {
-      const stored = JSON.parse(localStorage.getItem('labeltrack_auth_vault') || '{}');
-      if (stored && Array.isArray(stored.users)) {
-        stored.users.forEach(u => userMap.set(u.email.toLowerCase(), { ...u }));
-      }
-    } catch (e) {}
 
     if (typeof state !== 'undefined' && state.authVault && Array.isArray(state.authVault.users)) {
       state.authVault.users.forEach(u => userMap.set(u.email.toLowerCase(), { ...u }));
@@ -228,9 +221,18 @@ async function handleLoginSubmit(e) {
 
     setLoginFeedback('Signing in...', false);
 
-    // Switch to application view
-    document.getElementById('loginScreen').classList.add('hidden');
-    document.getElementById('appScreen').classList.remove('hidden');
+    // Switch to application view instantly
+    document.documentElement.classList.add('has-active-session');
+    const loginScreen = document.getElementById('loginScreen');
+    const appScreen = document.getElementById('appScreen');
+    if (loginScreen) {
+      loginScreen.classList.add('hidden');
+      loginScreen.style.removeProperty('display');
+    }
+    if (appScreen) {
+      appScreen.classList.remove('hidden');
+      appScreen.style.removeProperty('display');
+    }
 
     if (typeof render === 'function') {
       render();
@@ -253,20 +255,39 @@ function logout() {
   state.isLoggedIn = false;
   state.currentUser = null;
   sessionStorage.removeItem('labeltrack_session');
+  localStorage.removeItem('labeltrack_session');
+  document.documentElement.classList.remove('has-active-session');
+
+  // Immediately close any open modals
+  const openModals = document.querySelectorAll('.modal-backdrop:not(.hidden)');
+  openModals.forEach(m => m.classList.add('hidden'));
+
   const pInput = document.getElementById('loginPassword');
   if (pInput) pInput.value = '';
   setLoginFeedback('');
-  document.getElementById('appScreen').classList.add('hidden');
-  document.getElementById('loginScreen').classList.remove('hidden');
+
+  const appScreen = document.getElementById('appScreen');
+  const loginScreen = document.getElementById('loginScreen');
+  if (appScreen) {
+    appScreen.classList.add('hidden');
+    appScreen.style.removeProperty('display');
+  }
+  if (loginScreen) {
+    loginScreen.classList.remove('hidden');
+    loginScreen.style.removeProperty('display');
+  }
+
+  window.scrollTo({ top: 0, behavior: 'instant' });
   showToast('Signed out successfully.');
 }
 
 function checkExistingSession() {
   try {
-    const saved = sessionStorage.getItem('labeltrack_session');
+    const saved = sessionStorage.getItem('labeltrack_session') || localStorage.getItem('labeltrack_session');
     if (saved) {
       const user = JSON.parse(saved);
       if (user && user.email) {
+        document.documentElement.classList.add('has-active-session');
         if (typeof state === 'undefined') {
           window.state = { isLoggedIn: false, currentUser: null, currentFilter: 'all', vendors: [], pos: [], shipments: [] };
         }
@@ -274,11 +295,19 @@ function checkExistingSession() {
         state.currentUser = user;
         const loginScreen = document.getElementById('loginScreen');
         const appScreen = document.getElementById('appScreen');
-        if (loginScreen) loginScreen.classList.add('hidden');
-        if (appScreen) appScreen.classList.remove('hidden');
+        if (loginScreen) {
+          loginScreen.classList.add('hidden');
+          loginScreen.style.removeProperty('display');
+        }
+        if (appScreen) {
+          appScreen.classList.remove('hidden');
+          appScreen.style.removeProperty('display');
+        }
         if (typeof render === 'function') render();
+        return;
       }
     }
+    document.documentElement.classList.remove('has-active-session');
   } catch(e) {}
 }
 
