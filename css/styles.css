@@ -190,13 +190,26 @@ h1, h2, h3, h4, h5, h6 {
   border-color: transparent !important;
   box-shadow: 0 4px 12px -2px rgba(79, 70, 229, 0.35) !important;
 }
+.ship-filter-ribbons-active {
+  background: #7c3aed !important;
+  color: #ffffff !important;
+  border-color: transparent !important;
+  box-shadow: 0 4px 12px -2px rgba(124, 58, 237, 0.35) !important;
+}
 
 /* When a quick filter is active, auto-invert its count badge cleanly */
 .ship-filter-all-active span[id^="badgeShip"],
 .ship-filter-shortages-active span[id^="badgeShip"],
 .ship-filter-damaged-active span[id^="badgeShip"],
 .ship-filter-today-active span[id^="badgeShip"],
-.ship-filter-transit-active span[id^="badgeShip"] {
+.ship-filter-transit-active span[id^="badgeShip"],
+.ship-filter-ribbons-active span[id^="badgeShip"],
+.ship-filter-all-active span[id^="gateCount"],
+.ship-filter-shortages-active span[id^="gateCount"],
+.ship-filter-damaged-active span[id^="gateCount"],
+.ship-filter-today-active span[id^="gateCount"],
+.ship-filter-transit-active span[id^="gateCount"],
+.ship-filter-ribbons-active span[id^="gateCount"] {
   background: rgba(255, 255, 255, 0.22) !important;
   color: #ffffff !important;
 }
