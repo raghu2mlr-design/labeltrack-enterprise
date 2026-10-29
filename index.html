@@ -162,42 +162,50 @@
           </div>
         </div>
 
-        <!-- 4 KPI Summary Cards -->
-        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          <div class="bg-gradient-to-br from-blue-500/5 via-white to-white rounded-2xl p-5 border border-blue-100 shadow-xs card-hover transition">
-            <div class="flex items-center justify-between text-slate-400 mb-2">
-              <span class="text-xs font-bold uppercase tracking-wider text-slate-500">Active Allocated Orders</span>
-              <span class="w-9 h-9 bg-blue-50 text-blue-600 rounded-xl flex items-center justify-center text-sm shadow-2xs border border-blue-100">📋</span>
+        <!-- 4 KPI Summary Cards (Compact Responsive Layout) -->
+        <div class="grid grid-cols-2 lg:grid-cols-4 gap-2.5 sm:gap-4">
+          <div class="bg-gradient-to-br from-blue-500/5 via-white to-white rounded-xl sm:rounded-2xl p-3 sm:p-4 border border-blue-100 shadow-2xs card-hover transition flex flex-col justify-between">
+            <div class="flex items-center justify-between text-slate-400 mb-1 sm:mb-1.5">
+              <span class="text-[10px] sm:text-xs font-bold uppercase tracking-wider text-slate-500 truncate mr-1">Active Orders</span>
+              <span class="w-7 h-7 sm:w-8 sm:h-8 bg-blue-50 text-blue-600 rounded-lg sm:rounded-xl flex items-center justify-center text-xs sm:text-sm shadow-2xs border border-blue-100 shrink-0">📋</span>
             </div>
-            <p class="text-2xl font-black text-slate-900 font-mono tracking-tight" id="vendorStatActiveCount">0 Orders</p>
-            <p class="text-[11px] text-slate-400 mt-1 font-medium">Currently open in production</p>
+            <div>
+              <p class="text-lg sm:text-2xl font-black text-slate-900 font-mono tracking-tight" id="vendorStatActiveCount">0 Orders</p>
+              <p class="text-[10px] sm:text-[11px] text-slate-400 mt-0.5 font-medium truncate">Open in production</p>
+            </div>
           </div>
 
-          <div class="bg-gradient-to-br from-amber-500/5 via-white to-white rounded-2xl p-5 border border-amber-100 shadow-xs card-hover transition">
-            <div class="flex items-center justify-between text-slate-400 mb-2">
-              <span class="text-xs font-bold uppercase tracking-wider text-slate-500">Remaining Quota</span>
-              <span class="w-9 h-9 bg-amber-50 text-amber-600 rounded-xl flex items-center justify-center text-sm shadow-2xs border border-amber-100">⏳</span>
+          <div class="bg-gradient-to-br from-amber-500/5 via-white to-white rounded-xl sm:rounded-2xl p-3 sm:p-4 border border-amber-100 shadow-2xs card-hover transition flex flex-col justify-between">
+            <div class="flex items-center justify-between text-slate-400 mb-1 sm:mb-1.5">
+              <span class="text-[10px] sm:text-xs font-bold uppercase tracking-wider text-slate-500 truncate mr-1">Remaining Quota</span>
+              <span class="w-7 h-7 sm:w-8 sm:h-8 bg-amber-50 text-amber-600 rounded-lg sm:rounded-xl flex items-center justify-center text-xs sm:text-sm shadow-2xs border border-amber-100 shrink-0">⏳</span>
             </div>
-            <p class="text-2xl font-black text-amber-600 font-mono tracking-tight" id="vendorStatPendingUnits">0</p>
-            <p class="text-[11px] text-slate-400 mt-1 font-medium">Units waiting to be manufactured</p>
+            <div>
+              <p class="text-lg sm:text-2xl font-black text-amber-600 font-mono tracking-tight" id="vendorStatPendingUnits">0</p>
+              <p class="text-[10px] sm:text-[11px] text-slate-400 mt-0.5 font-medium truncate">Units to manufacture</p>
+            </div>
           </div>
 
-          <div class="bg-gradient-to-br from-emerald-500/5 via-white to-white rounded-2xl p-5 border border-emerald-100 shadow-xs card-hover transition">
-            <div class="flex items-center justify-between text-slate-400 mb-2">
-              <span class="text-xs font-bold uppercase tracking-wider text-slate-500">Dispatched Units</span>
-              <span class="w-9 h-9 bg-emerald-50 text-emerald-600 rounded-xl flex items-center justify-center text-sm shadow-2xs border border-emerald-100">🚚</span>
+          <div class="bg-gradient-to-br from-emerald-500/5 via-white to-white rounded-xl sm:rounded-2xl p-3 sm:p-4 border border-emerald-100 shadow-2xs card-hover transition flex flex-col justify-between">
+            <div class="flex items-center justify-between text-slate-400 mb-1 sm:mb-1.5">
+              <span class="text-[10px] sm:text-xs font-bold uppercase tracking-wider text-slate-500 truncate mr-1">Dispatched Units</span>
+              <span class="w-7 h-7 sm:w-8 sm:h-8 bg-emerald-50 text-emerald-600 rounded-lg sm:rounded-xl flex items-center justify-center text-xs sm:text-sm shadow-2xs border border-emerald-100 shrink-0">🚚</span>
             </div>
-            <p class="text-2xl font-black text-emerald-600 font-mono tracking-tight" id="vendorStatShippedUnits">0</p>
-            <p class="text-[11px] text-slate-400 mt-1 font-medium">Units already shipped to warehouse</p>
+            <div>
+              <p class="text-lg sm:text-2xl font-black text-emerald-600 font-mono tracking-tight" id="vendorStatShippedUnits">0</p>
+              <p class="text-[10px] sm:text-[11px] text-slate-400 mt-0.5 font-medium truncate">Shipped to warehouse</p>
+            </div>
           </div>
 
-          <div class="bg-gradient-to-br from-purple-500/5 via-white to-white rounded-2xl p-5 border border-purple-100 shadow-xs card-hover transition">
-            <div class="flex items-center justify-between text-slate-400 mb-2">
-              <span class="text-xs font-bold uppercase tracking-wider text-slate-500">Fulfilled Orders</span>
-              <span class="w-9 h-9 bg-purple-50 text-purple-600 rounded-xl flex items-center justify-center text-sm shadow-2xs border border-purple-100">✅</span>
+          <div class="bg-gradient-to-br from-purple-500/5 via-white to-white rounded-xl sm:rounded-2xl p-3 sm:p-4 border border-purple-100 shadow-2xs card-hover transition flex flex-col justify-between">
+            <div class="flex items-center justify-between text-slate-400 mb-1 sm:mb-1.5">
+              <span class="text-[10px] sm:text-xs font-bold uppercase tracking-wider text-slate-500 truncate mr-1">Fulfilled Orders</span>
+              <span class="w-7 h-7 sm:w-8 sm:h-8 bg-purple-50 text-purple-600 rounded-lg sm:rounded-xl flex items-center justify-center text-xs sm:text-sm shadow-2xs border border-purple-100 shrink-0">✅</span>
             </div>
-            <p class="text-2xl font-black text-purple-600 font-mono tracking-tight" id="vendorStatCompletedCount">0 Orders</p>
-            <p class="text-[11px] text-slate-400 mt-1 font-medium">100% completed & locked</p>
+            <div>
+              <p class="text-lg sm:text-2xl font-black text-purple-600 font-mono tracking-tight" id="vendorStatCompletedCount">0 Orders</p>
+              <p class="text-[10px] sm:text-[11px] text-slate-400 mt-0.5 font-medium truncate">100% completed</p>
+            </div>
           </div>
         </div>
 
@@ -851,13 +859,62 @@
             </div>
             <h1 class="text-2xl sm:text-3xl font-black tracking-tight">Gate Physical Inspection & Verification</h1>
             <p class="text-xs sm:text-sm text-slate-300 max-w-2xl font-normal leading-relaxed">
-              Inspect offloaded cartons from trucks. Enter box counts, verify good label units, record defect evidence, and sign off delivery gate passes.
+              Inspect offloaded cartons from trucks. Enter carton & physical counts for both <strong class="text-white font-semibold">Labels</strong> and accompanying <strong class="text-purple-300 font-semibold">Thermal Transfer Ribbons</strong>, record defect evidence, and sign off inward gate passes.
             </p>
             <div class="pt-2 max-w-md">
               <div class="relative">
-                <input type="text" id="gateSearchInput" oninput="render()" placeholder="Scan or search Invoice #, Order #, Vendor, or SKU..." class="w-full text-xs px-4 py-3 pl-10 rounded-xl bg-white/10 border border-white/20 text-white placeholder-slate-400 outline-none focus:ring-2 focus:ring-emerald-400 transition font-medium">
+                <input type="text" id="gateSearchInput" oninput="render()" placeholder="Scan or search Invoice #, Order #, Vendor, SKU, or Ribbons..." class="w-full text-xs px-4 py-3 pl-10 rounded-xl bg-white/10 border border-white/20 text-white placeholder-slate-400 outline-none focus:ring-2 focus:ring-emerald-400 transition font-medium">
                 <span class="absolute left-3 top-3.5 text-slate-400">🔍</span>
               </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Gatekeeper Metric Summary Scorecard -->
+        <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+          <div class="bg-white p-4 rounded-2xl border border-slate-200 shadow-xs flex flex-col justify-between">
+            <div class="flex items-center justify-between">
+              <span class="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Inward Shipments</span>
+              <span class="w-8 h-8 rounded-xl bg-slate-100 text-slate-700 flex items-center justify-center text-sm font-bold">🚛</span>
+            </div>
+            <div class="mt-3">
+              <span id="gateStatTotalShipments" class="text-2xl font-black text-slate-900 font-mono">0</span>
+              <span class="text-xs text-slate-400 block mt-0.5 font-medium"><span id="gateStatPendingShipments" class="text-amber-600 font-bold">0</span> awaiting gate count</span>
+            </div>
+          </div>
+
+          <div class="bg-white p-4 rounded-2xl border border-slate-200 shadow-xs flex flex-col justify-between">
+            <div class="flex items-center justify-between">
+              <span class="text-[11px] font-bold text-slate-500 uppercase tracking-wider">🏷️ Label Units</span>
+              <span class="w-8 h-8 rounded-xl bg-blue-50 text-blue-700 flex items-center justify-center text-sm font-bold">🏷️</span>
+            </div>
+            <div class="mt-3">
+              <span id="gateStatVerifiedLabels" class="text-2xl font-black text-blue-700 font-mono">0</span>
+              <span class="text-xs text-slate-400 block mt-0.5 font-medium">good units verified inward</span>
+            </div>
+          </div>
+
+          <div class="bg-white p-4 rounded-2xl border border-purple-200 bg-gradient-to-br from-white to-purple-50/40 shadow-xs flex flex-col justify-between ring-1 ring-purple-100">
+            <div class="flex items-center justify-between">
+              <span class="text-[11px] font-bold text-purple-900 uppercase tracking-wider flex items-center gap-1">
+                <span>🎗️ Ribbon Rolls</span>
+              </span>
+              <span class="w-8 h-8 rounded-xl bg-purple-100 text-purple-700 flex items-center justify-center text-sm font-bold">🎗️</span>
+            </div>
+            <div class="mt-3">
+              <span id="gateStatVerifiedRibbons" class="text-2xl font-black text-purple-800 font-mono">0</span>
+              <span class="text-xs text-purple-700 block mt-0.5 font-medium"><span id="gateStatPendingRibbons" class="font-bold text-purple-900">0</span> rolls awaiting gate count</span>
+            </div>
+          </div>
+
+          <div class="bg-white p-4 rounded-2xl border border-slate-200 shadow-xs flex flex-col justify-between">
+            <div class="flex items-center justify-between">
+              <span class="text-[11px] font-bold text-slate-500 uppercase tracking-wider">⚠️ Damaged / Defect</span>
+              <span class="w-8 h-8 rounded-xl bg-rose-50 text-rose-700 flex items-center justify-center text-sm font-bold">⚠️</span>
+            </div>
+            <div class="mt-3">
+              <span id="gateStatDamagedTotal" class="text-2xl font-black text-rose-600 font-mono">0</span>
+              <span class="text-xs text-slate-400 block mt-0.5 font-medium"><span id="gateStatDamagedRibbons" class="text-rose-700 font-bold">0</span> damaged ribbon rolls</span>
             </div>
           </div>
         </div>
@@ -867,7 +924,7 @@
           <div class="p-4 border-b border-slate-100 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
             <div>
               <h2 class="text-sm font-bold text-slate-900">Incoming Deliveries & Inspection Queue</h2>
-              <p class="text-xs text-slate-500 mt-0.5">Click "Verify Inward" to count cartons and log accepted stock.</p>
+              <p class="text-xs text-slate-500 mt-0.5">Click "Verify Inward" to count label cartons and accompanying ribbon rolls.</p>
             </div>
             <div class="flex flex-wrap items-center gap-1.5 text-xs">
               <span class="text-[11px] font-bold text-slate-400 uppercase tracking-wider mr-1">Filter:</span>
@@ -878,6 +935,10 @@
               <button type="button" onclick="setGateFilter('transit')" class="px-3.5 py-1.5 rounded-xl font-semibold text-xs text-slate-600 hover:bg-slate-100 transition flex items-center gap-1.5 border border-slate-200 bg-white flex-shrink-0 cursor-pointer" id="gateFilterTransit">
                 <span>⏳ Awaiting Count</span>
                 <span id="gateCountTransit" class="bg-indigo-100 text-indigo-700 px-1.5 py-0.2 rounded-full text-[10px] font-mono font-bold">0</span>
+              </button>
+              <button type="button" onclick="setGateFilter('ribbons')" class="px-3.5 py-1.5 rounded-xl font-semibold text-xs text-purple-700 hover:bg-purple-100 transition flex items-center gap-1.5 border border-purple-200 bg-purple-50/50 flex-shrink-0 cursor-pointer" id="gateFilterRibbons">
+                <span>🎗️ With Ribbons</span>
+                <span id="gateCountRibbons" class="bg-purple-200 text-purple-900 px-1.5 py-0.2 rounded-full text-[10px] font-mono font-bold">0</span>
               </button>
               <button type="button" onclick="setGateFilter('today')" class="px-3.5 py-1.5 rounded-xl font-semibold text-xs text-slate-600 hover:bg-slate-100 transition flex items-center gap-1.5 border border-slate-200 bg-white flex-shrink-0 cursor-pointer" id="gateFilterToday">
                 <span>📅 Today</span>
@@ -1229,26 +1290,34 @@
             </div>
 
             <!-- GATE RIBBON INWARD CONFIRMATION (Rolls & Damaged) -->
-            <div class="bg-indigo-50/70 p-3.5 rounded-xl border border-indigo-200/90 space-y-2">
+            <div id="gateRibbonContainer" class="bg-indigo-50/70 p-3.5 rounded-xl border border-indigo-200/90 space-y-2 transition-all">
               <div class="flex items-center justify-between">
                 <span class="text-xs font-bold text-indigo-950 flex items-center gap-1.5">
                   <span>🎗️ Gate Ribbon Roll Inward Verification</span>
                 </span>
                 <span id="gateRibbonClaimedBadge" class="text-[10px] text-indigo-600 font-semibold bg-white px-2 py-0.5 rounded-full border border-indigo-200">Inspect & Confirm</span>
               </div>
+              <!-- Ribbon Consignment Alert for Gatekeeper -->
+              <div id="gateRibbonAlertPrompt" class="p-3 rounded-xl bg-purple-100/90 border border-purple-300 text-purple-950 font-medium text-xs hidden flex items-start gap-2 shadow-2xs">
+                <span class="text-base shrink-0">🎗️</span>
+                <div>
+                  <span class="font-bold block text-purple-950">Ribbons Accompanied With This Label Shipment</span>
+                  <span class="text-[11px] text-purple-800 leading-tight block mt-0.5" id="gateRibbonPromptDetails">Vendor shipped ribbon rolls alongside cartons. Gatekeeper must count physical rolls and verify quality!</span>
+                </div>
+              </div>
               <div id="gateRibbonAuditComparison" class="text-xs p-2.5 rounded-xl bg-white/90 border border-indigo-200/80 font-medium hidden">
                 <!-- Live Ribbon audit summary -->
               </div>
               <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
-                  <label class="block text-[11px] font-bold text-indigo-900 mb-1">Ribbon Rolls Accepted</label>
-                  <input type="number" id="inputReceivedRibbons" min="0" value="" placeholder="Leave empty if none" oninput="updateReceiveComparison()" class="w-full text-xs px-3 py-2 border border-indigo-300 rounded-xl bg-white font-mono font-bold text-indigo-900">
-                  <span class="text-[10px] text-indigo-600 block mt-0.5">Good condition rolls</span>
+                  <label class="block text-[11px] font-bold text-indigo-900 mb-1">Ribbon Rolls Accepted *</label>
+                  <input type="number" id="inputReceivedRibbons" min="0" value="" placeholder="0" oninput="updateReceiveComparison()" class="w-full text-xs px-3 py-2 border border-indigo-300 rounded-xl bg-white font-mono font-bold text-indigo-900 focus:ring-2 focus:ring-purple-400 outline-none">
+                  <span class="text-[10px] text-indigo-600 block mt-0.5">Physical good condition rolls</span>
                 </div>
                 <div>
                   <label class="block text-[11px] font-bold text-rose-800 mb-1">Damaged Ribbon Rolls</label>
-                  <input type="number" id="inputDamagedRibbons" min="0" value="" placeholder="Leave empty if none" oninput="updateReceiveComparison()" class="w-full text-xs px-3 py-2 border border-rose-300 rounded-xl bg-white font-mono font-bold text-rose-700">
-                  <span class="text-[10px] text-rose-500 block mt-0.5">Defective / crushed rolls</span>
+                  <input type="number" id="inputDamagedRibbons" min="0" value="" placeholder="0" oninput="updateReceiveComparison()" class="w-full text-xs px-3 py-2 border border-rose-300 rounded-xl bg-white font-mono font-bold text-rose-700 focus:ring-2 focus:ring-rose-400 outline-none">
+                  <span class="text-[10px] text-rose-500 block mt-0.5">Crushed or defective rolls</span>
                 </div>
               </div>
             </div>
