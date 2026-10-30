@@ -272,6 +272,22 @@ function handlePantoneH2Input(val) {
   const picker = document.getElementById('inputYearH2Picker');
   const badge = document.getElementById('pantoneH2SyncStatusBadge');
   const liveSwatch = document.getElementById('pantoneH2InputLiveSwatch');
+  const nameInput = document.getElementById('inputYearColorName');
+  const guidelinesInput = document.getElementById('inputYearGuidelines');
+  const yearInput = document.getElementById('inputYearNumber');
+  const curYear = yearInput ? yearInput.value : (getActiveYear() || 2026);
+  const isH2Period = getCurrentCalendarPeriod() === 'H2';
+
+  if (val && val.trim() && isH2Period) {
+    const cleanLabel = String(val).replace(/^PANTONE\s*/i, '').trim().toUpperCase();
+    const fullPantone = cleanLabel ? `PANTONE ${cleanLabel}` : val.trim();
+    if (nameInput && (!nameInput.value || nameInput.value.toUpperCase().startsWith('PANTONE') || nameInput.value.includes('&'))) {
+      nameInput.value = fullPantone;
+    }
+    if (guidelinesInput && (!guidelinesInput.value || guidelinesInput.value.includes('approved annual color standard'))) {
+      guidelinesInput.value = `FY ${curYear} approved annual color standard ${fullPantone} with 6-month security code imprint.`;
+    }
+  }
 
   if (!val || !val.trim()) {
     if (hexInput) hexInput.value = '';
@@ -374,6 +390,11 @@ function clearH2Shade() {
   const h2Hex = document.getElementById('inputYearH2Hex');
   const h2Swatch = document.getElementById('pantoneH2InputLiveSwatch');
   const h2Badge = document.getElementById('pantoneH2SyncStatusBadge');
+  const nameInput = document.getElementById('inputYearColorName');
+  const guidelinesInput = document.getElementById('inputYearGuidelines');
+  const yearInput = document.getElementById('inputYearNumber');
+  const curYear = yearInput ? yearInput.value : (getActiveYear() || 2026);
+  const h1Pantone = document.getElementById('inputYearPantoneCode')?.value.trim() || 'PANTONE 2192 C';
 
   if (h2Input) h2Input.value = '';
   if (h2Picker) h2Picker.value = '#ffffff';
@@ -385,6 +406,13 @@ function clearH2Shade() {
   if (h2Badge) {
     h2Badge.className = 'text-[10px] font-bold px-2 py-1 rounded-lg bg-slate-100 text-slate-600 border border-slate-200 shrink-0';
     h2Badge.textContent = 'Pending Specification';
+  }
+
+  if (nameInput && (nameInput.value.toUpperCase().startsWith('PANTONE') || nameInput.value.includes('&'))) {
+    nameInput.value = h1Pantone;
+  }
+  if (guidelinesInput && guidelinesInput.value.includes('approved annual color standard')) {
+    guidelinesInput.value = `FY ${curYear} approved annual color standard ${h1Pantone} with 6-month security code imprint.`;
   }
 }
 
@@ -571,13 +599,15 @@ const DEFAULT_ANNUAL_COLOR_CONFIG = {
     },
     {
       year: 2026,
-      colorName: "PANTONE 2192 C",
-      hexColor: "#009FDA",
-      pantoneCode: "PANTONE 2192 C",
+      colorName: (new Date().getMonth() >= 6 ? "PANTONE 4625 C" : "PANTONE 2192 C"),
+      hexColor: (new Date().getMonth() >= 6 ? "#553B30" : "#009FDA"),
+      pantoneCode: (new Date().getMonth() >= 6 ? "PANTONE 4625 C" : "PANTONE 2192 C"),
       status: "active",
-      guidelines: "2026 Active Mandate: H1 Pantone 2192 C with HR imprint; H2 shade pending specification.",
+      guidelines: (new Date().getMonth() >= 6
+        ? "FY 2026 approved annual color standard PANTONE 4625 C with 6-month security code imprint."
+        : "2026 Active Mandate: H1 Pantone 2192 C with HR imprint; H2 shade pending specification."),
       h1: { pantone: "PANTONE 2192 C", hex: "#009FDA", name: "PANTONE 2192 C", code: "HR" },
-      h2: null
+      h2: { pantone: "PANTONE 4625 C", hex: "#553B30", name: "PANTONE 4625 C", code: "2HR" }
     },
     {
       year: 2027,
@@ -613,6 +643,49 @@ function getActiveYear() {
   return 2026;
 }
 
+function getEffectiveYearColor(yObj, period) {
+  if (!yObj) return { pantone: 'PANTONE 2192 C', hex: '#009FDA', code: 'HR', name: 'PANTONE 2192 C' };
+  const activePeriod = period || getCurrentCalendarPeriod();
+  const hasH2 = yObj.h2 && yObj.h2.pantone && !yObj.h2.pantone.includes('Shade') && !yObj.h2.pantone.includes('(') && !yObj.h2.pantone.includes('Companion');
+  if (activePeriod === 'H2' && hasH2) {
+    return {
+      pantone: yObj.h2.pantone,
+      hex: yObj.h2.hex || '#553B30',
+      code: yObj.h2.code || getSecurityYearCode(yObj.year, 'H2'),
+      name: yObj.h2.name || yObj.h2.pantone
+    };
+  }
+  return {
+    pantone: (yObj.h1 && yObj.h1.pantone) || yObj.pantoneCode || 'PANTONE 2192 C',
+    hex: (yObj.h1 && yObj.h1.hex) || yObj.hexColor || '#009FDA',
+    code: (yObj.h1 && yObj.h1.code) || getSecurityYearCode(yObj.year, 'H1'),
+    name: (yObj.h1 && yObj.h1.name) || yObj.colorName || yObj.pantoneCode || 'PANTONE 2192 C'
+  };
+}
+
+function alignActivePeriodConfig() {
+  if (typeof state === 'undefined' || !state.annualColorConfig || !Array.isArray(state.annualColorConfig.years)) return false;
+  const isH2Period = getCurrentCalendarPeriod() === 'H2';
+  state.annualColorConfig.activePeriod = isH2Period ? 'H2' : 'H1';
+  let changed = false;
+
+  state.annualColorConfig.years.forEach(y => {
+    const hasH2 = y.h2 && y.h2.pantone && !y.h2.pantone.includes('Shade') && !y.h2.pantone.includes('(') && !y.h2.pantone.includes('Companion');
+    if (isH2Period && hasH2) {
+      if (y.h2.hex && y.hexColor !== y.h2.hex) { y.hexColor = y.h2.hex; changed = true; }
+      if (y.h2.pantone && y.pantoneCode !== y.h2.pantone) { y.pantoneCode = y.h2.pantone; changed = true; }
+      if (!y.colorName || y.colorName.includes('&') || y.colorName.includes(y.h1?.pantone) || y.colorName.toUpperCase().startsWith('PANTONE')) {
+        if (y.colorName !== y.h2.pantone) { y.colorName = y.h2.pantone; changed = true; }
+      }
+      if (!y.guidelines || y.guidelines.includes('approved annual color standard') || y.guidelines.includes(y.h1?.pantone)) {
+        const targetGuidelines = `FY ${y.year} approved annual color standard ${y.h2.pantone} with 6-month security code imprint.`;
+        if (y.guidelines !== targetGuidelines) { y.guidelines = targetGuidelines; changed = true; }
+      }
+    }
+  });
+  return changed;
+}
+
 function getYearColorConfig(year) {
   const targetYear = Number(year) || getActiveYear();
   const yearsList = (typeof state !== 'undefined' && state.annualColorConfig && Array.isArray(state.annualColorConfig.years))
@@ -620,29 +693,41 @@ function getYearColorConfig(year) {
     : DEFAULT_ANNUAL_COLOR_CONFIG.years;
 
   const found = yearsList.find(y => Number(y.year) === targetYear);
-  if (found) return found;
+  if (found) {
+    const eff = getEffectiveYearColor(found);
+    return {
+      ...found,
+      hexColor: eff.hex,
+      pantoneCode: eff.pantone,
+      colorName: (found.colorName && !found.colorName.includes('&') && !found.colorName.startsWith('PANTONE')) ? found.colorName : eff.pantone,
+      effectiveShade: eff
+    };
+  }
 
+  const isH2 = getCurrentCalendarPeriod() === 'H2';
   return {
     year: targetYear,
-    colorName: "Standard Cyan & White",
-    hexColor: "#0284c7",
+    colorName: isH2 ? "PANTONE 4625 C" : "Standard Cyan & White",
+    hexColor: isH2 ? "#553B30" : "#0284c7",
     status: (targetYear === getActiveYear() ? "active" : "upcoming"),
     guidelines: `Annual color mandate for FY ${targetYear}. Suppliers must follow this color scheme.`
   };
 }
 
 function updateAnnualColorUI() {
+  alignActivePeriodConfig();
   const activeYear = getActiveYear();
   const yearConfig = getYearColorConfig(activeYear);
+  const activeHex = yearConfig.hexColor;
 
   const dot = document.getElementById('adminActiveYearColorDot');
-  if (dot) dot.style.backgroundColor = yearConfig.hexColor;
+  if (dot) dot.style.backgroundColor = activeHex;
 
   const badgeText = document.getElementById('adminActiveYearColorBadgeText');
   if (badgeText) badgeText.innerHTML = `<span class="sm:hidden">🎨 Proofs (${activeYear})</span><span class="hidden sm:inline">🎨 Annual Color Proofs (${activeYear})</span>`;
 
   const vDot = document.getElementById('vendorActiveYearColorDot');
-  if (vDot) vDot.style.backgroundColor = yearConfig.hexColor;
+  if (vDot) vDot.style.backgroundColor = activeHex;
 
   const vBadgeText = document.getElementById('vendorActiveYearColorBadgeText');
   if (vBadgeText) vBadgeText.innerHTML = `<span class="sm:hidden">🎨 Proofs & Codes (${activeYear})</span><span class="hidden sm:inline">🎨 Annual Proofs & Codes (${activeYear})</span>`;
@@ -650,7 +735,7 @@ function updateAnnualColorUI() {
   const activePill = document.getElementById('annualActiveYearPill');
   if (activePill) {
     activePill.textContent = activeYear;
-    activePill.style.backgroundColor = yearConfig.hexColor;
+    activePill.style.backgroundColor = activeHex;
   }
 }
 
@@ -1737,11 +1822,16 @@ function renderAnnualColorRegistry() {
       });
     }
 
+    const isH2Period = getCurrentCalendarPeriod() === 'H2';
+    const hasH2 = y.h2 && y.h2.pantone && !y.h2.pantone.includes('Shade') && !y.h2.pantone.includes('(') && !y.h2.pantone.includes('Companion');
+    const effectiveHex = (isH2Period && hasH2 && y.h2.hex) ? y.h2.hex : (y.h1 ? y.h1.hex : y.hexColor);
+    const effectivePantone = (isH2Period && hasH2 && y.h2.pantone) ? y.h2.pantone : (y.h1 ? y.h1.pantone : (y.pantoneCode || 'PANTONE 2192 C'));
+
     return `
       <div class="rounded-2xl border ${isActive ? 'border-indigo-400 ring-2 ring-indigo-500/20 bg-indigo-50/20' : 'border-slate-200 bg-white'} shadow-xs overflow-hidden flex flex-col justify-between transition hover:shadow-md">
         <div>
-          <!-- Top Color Bar -->
-          <div class="h-3 w-full" style="background-color: ${y.hexColor};"></div>
+          <!-- Top Color Bar (Dynamic Active Cycle Shade) -->
+          <div class="h-3 w-full" style="background-color: ${effectiveHex};"></div>
           
           <div class="p-5 space-y-3">
             <div class="flex items-start justify-between gap-2">
@@ -1764,11 +1854,14 @@ function renderAnnualColorRegistry() {
             <!-- 6-Month Dual Pantone Shades Presentation -->
             <div class="grid grid-cols-2 gap-2 p-2 rounded-xl border border-slate-200/90 bg-slate-50/80">
               <!-- H1 Shade -->
-              <div class="flex items-center gap-2 p-2 rounded-lg bg-white border border-slate-200 shadow-2xs min-w-0">
+              <div class="flex items-center gap-2 p-2 rounded-lg bg-white border ${(!isH2Period && isActive) ? 'border-emerald-400 ring-2 ring-emerald-500/20 shadow-xs' : 'border-slate-200'} shadow-2xs min-w-0">
                 <span class="w-6 h-6 rounded-md border border-slate-300 shadow-2xs shrink-0" style="background-color: ${y.h1 ? y.h1.hex : y.hexColor};"></span>
                 <div class="min-w-0 flex-1">
                   <div class="flex items-center justify-between gap-1">
-                    <span class="text-[9px] font-extrabold uppercase tracking-wider text-slate-400 block">H1 (Jan–Jun)</span>
+                    <span class="text-[9px] font-extrabold uppercase tracking-wider text-slate-400 block flex items-center gap-1">
+                      <span>H1 (Jan–Jun)</span>
+                      ${(!isH2Period && isActive) ? '<span class="bg-emerald-600 text-white text-[8px] font-black px-1.5 py-0.2 rounded-full uppercase">Active</span>' : ''}
+                    </span>
                     <span class="font-mono text-[9px] text-emerald-800 bg-emerald-100 border border-emerald-200 px-1 py-0.2 rounded font-black shrink-0">🔐 ${(y.h1 && y.h1.code) || getSecurityYearCode(y.year, 'H1')}</span>
                   </div>
                   <span class="font-bold text-slate-900 text-[11px] block truncate">${escapeHtml((y.h1 && y.h1.pantone) || y.pantoneCode || 'PANTONE 2192 C')}</span>
@@ -1776,12 +1869,15 @@ function renderAnnualColorRegistry() {
                 </div>
               </div>
               <!-- H2 Shade -->
-              <div class="flex items-center gap-2 p-2 rounded-lg bg-white border border-slate-200 shadow-2xs min-w-0">
-                ${(y.h2 && y.h2.pantone) ? `
+              <div class="flex items-center gap-2 p-2 rounded-lg bg-white border ${(isH2Period && isActive && hasH2) ? 'border-amber-400 ring-2 ring-amber-500/20 shadow-xs' : 'border-slate-200'} shadow-2xs min-w-0">
+                ${hasH2 ? `
                   <span class="w-6 h-6 rounded-md border border-slate-300 shadow-2xs shrink-0" style="background-color: ${y.h2.hex};"></span>
                   <div class="min-w-0 flex-1">
                     <div class="flex items-center justify-between gap-1">
-                      <span class="text-[9px] font-extrabold uppercase tracking-wider text-slate-400 block">H2 (Jul–Dec)</span>
+                      <span class="text-[9px] font-extrabold uppercase tracking-wider ${isH2Period && isActive ? 'text-amber-800 font-black' : 'text-slate-400'} block flex items-center gap-1">
+                        <span>H2 (Jul–Dec)</span>
+                        ${(isH2Period && isActive) ? '<span class="bg-amber-600 text-white text-[8px] font-black px-1.5 py-0.2 rounded-full uppercase">Active Now</span>' : ''}
+                      </span>
                       <span class="font-mono text-[9px] text-amber-800 bg-amber-100 border border-amber-200 px-1 py-0.2 rounded font-black shrink-0">🔐 ${(y.h2 && y.h2.code) || getSecurityYearCode(y.year, 'H2')}</span>
                     </div>
                     <span class="font-bold text-slate-900 text-[11px] block truncate">${escapeHtml(y.h2.pantone)}</span>
@@ -1917,9 +2013,24 @@ function toggleNewYearForm(show, yearToEdit) {
       clearH2Shade();
     }
 
-    if (colorNameInput) colorNameInput.value = (yObj.colorName || '').trim();
+    const isH2Period = getCurrentCalendarPeriod() === 'H2';
+    const activePantone = (isH2Period && hasValidH2) ? yObj.h2.pantone : h1Pantone;
+
+    if (colorNameInput) {
+      if (!yObj.colorName || yObj.colorName.includes('&') || yObj.colorName.includes(h1Pantone) || yObj.colorName.toUpperCase().startsWith('PANTONE')) {
+        colorNameInput.value = activePantone;
+      } else {
+        colorNameInput.value = yObj.colorName.trim();
+      }
+    }
     if (statusSelect) statusSelect.value = yObj.status || 'upcoming';
-    if (guidelinesInput) guidelinesInput.value = (yObj.guidelines || '').trim();
+    if (guidelinesInput) {
+      if (!yObj.guidelines || yObj.guidelines.includes('approved annual color standard') || yObj.guidelines.includes(h1Pantone)) {
+        guidelinesInput.value = `FY ${yObj.year} approved annual color standard ${activePantone} with 6-month security code imprint.`;
+      } else {
+        guidelinesInput.value = yObj.guidelines.trim();
+      }
+    }
     updateFormSecurityYearCodes(yearToEdit);
   } else {
     if (heading) heading.textContent = 'Register New Financial Year Color Standard';
@@ -1968,11 +2079,16 @@ function handleSaveYearColor(event) {
     h2Payload = { pantone: h2PantoneInput, hex: h2Hex, name: h2PantoneInput, code: h2Code };
   }
 
-  // Pure Pantone code as standard title when user does not specify a custom title
-  const colorName = colorNameInputVal || (h2PantoneInput ? `${h1Pantone} & ${h2PantoneInput}` : h1Pantone);
+  const isH2Period = getCurrentCalendarPeriod() === 'H2';
+  const hasH2 = Boolean(h2Payload);
+  const activeHalf = (isH2Period && hasH2) ? h2Payload : { pantone: h1Pantone, hex: h1Hex, name: h1Pantone, code: h1Code };
+
+  // Current active Pantone code as standard title
+  const colorName = colorNameInputVal || activeHalf.pantone;
 
   const status = document.getElementById('inputYearStatus')?.value;
-  const guidelines = (document.getElementById('inputYearGuidelines')?.value.trim() || '').trim();
+  const defaultGuidelines = `FY ${yearNum} approved annual color standard ${activeHalf.pantone} with 6-month security code imprint.`;
+  const guidelines = (document.getElementById('inputYearGuidelines')?.value.trim() || '').trim() || defaultGuidelines;
 
   if (!yearNum || !h1Hex) {
     showToast('Please fill in the Financial Year and a valid Pantone Code.', true);
@@ -1989,10 +2105,10 @@ function handleSaveYearColor(event) {
   const yearPayload = {
     year: yearNum,
     colorName,
-    pantoneCode: h1Pantone,
-    hexColor: h1Hex,
+    pantoneCode: activeHalf.pantone,
+    hexColor: activeHalf.hex,
     status,
-    guidelines: guidelines || `FY ${yearNum} approved annual color standard ${h1Pantone} with 6-month security code imprint.`,
+    guidelines,
     h1: { pantone: h1Pantone, hex: h1Hex, name: h1Pantone, code: h1Code },
     h2: h2Payload
   };
@@ -2469,9 +2585,9 @@ function toggleCardAccordion(cardId) {
   }
 }
 
-let gateMobileViewMode = 'cards';
+let gateMobileViewMode = (typeof window !== 'undefined' && window.innerWidth < 768) ? 'cards' : 'table';
 function setGateMobileView(mode) {
-  gateMobileViewMode = mode || 'cards';
+  gateMobileViewMode = mode || 'table';
   const cardsEl = document.getElementById('gateShipmentsCardsContainer');
   const tableWrapperEl = document.getElementById('gateShipmentsTableWrapper');
   const hintEl = document.getElementById('gateShipmentsScrollHint');
@@ -2481,20 +2597,16 @@ function setGateMobileView(mode) {
   if (cardsEl && tableWrapperEl) {
     if (gateMobileViewMode === 'cards') {
       cardsEl.classList.remove('hidden');
-      cardsEl.classList.add('block');
-      tableWrapperEl.classList.remove('block');
-      tableWrapperEl.classList.add('hidden', 'md:block');
+      tableWrapperEl.classList.add('hidden');
       if (hintEl) hintEl.classList.add('hidden');
-      if (btnCards) btnCards.className = 'px-2.5 py-1 rounded-lg text-[10px] font-bold bg-slate-900 text-white shadow-2xs cursor-pointer';
-      if (btnTable) btnTable.className = 'px-2.5 py-1 rounded-lg text-[10px] font-bold text-slate-600 hover:bg-slate-200 cursor-pointer';
+      if (btnCards) btnCards.className = 'px-3 py-1.5 rounded-lg text-xs font-bold bg-slate-900 text-white shadow-2xs transition cursor-pointer';
+      if (btnTable) btnTable.className = 'px-3 py-1.5 rounded-lg text-xs font-bold text-slate-600 hover:bg-slate-200 transition cursor-pointer';
     } else {
       cardsEl.classList.add('hidden');
-      cardsEl.classList.remove('block');
       tableWrapperEl.classList.remove('hidden');
-      tableWrapperEl.classList.add('block');
-      if (hintEl) hintEl.classList.remove('hidden');
-      if (btnCards) btnCards.className = 'px-2.5 py-1 rounded-lg text-[10px] font-bold text-slate-600 hover:bg-slate-200 cursor-pointer';
-      if (btnTable) btnTable.className = 'px-2.5 py-1 rounded-lg text-[10px] font-bold bg-slate-900 text-white shadow-2xs cursor-pointer';
+      if (hintEl) hintEl.classList.add('hidden');
+      if (btnCards) btnCards.className = 'px-3 py-1.5 rounded-lg text-xs font-bold text-slate-600 hover:bg-slate-200 transition cursor-pointer';
+      if (btnTable) btnTable.className = 'px-3 py-1.5 rounded-lg text-xs font-bold bg-slate-900 text-white shadow-2xs transition cursor-pointer';
     }
   }
 }
@@ -2543,8 +2655,35 @@ function formatProductionStatusText(status) {
   }
 }
 
-function getProductionBadgeHtml(status, estDate) {
+function getItemProductionBadgeHtml(status, estDate) {
+  const dateStr = estDate ? ` <span class="font-mono text-[9px] opacity-80">(${estDate})</span>` : '';
+  switch (status) {
+    case 'in_stock':
+      return `<span class="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-800 border border-emerald-300 shadow-2xs">📦 Ready in Stock${dateStr}</span>`;
+    case 'in_production':
+      return `<span class="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full bg-indigo-50 text-indigo-800 border border-indigo-300 shadow-2xs"><span class="w-1.5 h-1.5 rounded-full bg-indigo-600 animate-pulse"></span>🏭 In Production${dateStr}</span>`;
+    case 'packing':
+      return `<span class="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-50 text-amber-900 border border-amber-300 shadow-2xs">🔍 Packing / QA${dateStr}</span>`;
+    case 'ready_to_ship':
+      return `<span class="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full bg-purple-50 text-purple-900 border border-purple-300 shadow-2xs">🚚 Ready to Dispatch${dateStr}</span>`;
+    case 'pending':
+    default:
+      return `<span class="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full bg-slate-100 text-slate-600 border border-slate-300 shadow-2xs">⏳ Pending Confirmation${dateStr}</span>`;
+  }
+}
+
+function getProductionBadgeHtml(status, estDate, poItems) {
   const dateStr = estDate ? `<span class="opacity-80 font-mono text-[9px] block">Est: ${estDate}</span>` : '';
+  if ((status === 'mixed' || status === 'partial_ready') && Array.isArray(poItems) && poItems.length > 1) {
+    const readyCount = poItems.filter(i => (i.productionStatus === 'ready_to_ship' || i.productionStatus === 'in_stock')).length;
+    const prodCount = poItems.filter(i => (i.productionStatus === 'in_production' || i.productionStatus === 'packing')).length;
+    const pendingCount = poItems.filter(i => (!i.productionStatus || i.productionStatus === 'pending')).length;
+    let parts = [];
+    if (readyCount > 0) parts.push(`${readyCount} Ready`);
+    if (prodCount > 0) parts.push(`${prodCount} In Prod`);
+    if (pendingCount > 0) parts.push(`${pendingCount} Pending`);
+    return `<div class="inline-flex flex-col items-center"><span class="prod-badge bg-amber-50 text-amber-900 border-amber-300 font-bold shadow-2xs">⚡ Mixed (${parts.join(', ')})</span>${dateStr}</div>`;
+  }
   switch (status) {
     case 'in_stock':
       return `<div class="inline-flex flex-col items-center"><span class="prod-badge prod-in-stock">📦 Ready in Stock</span>${dateStr}</div>`;
@@ -2554,19 +2693,94 @@ function getProductionBadgeHtml(status, estDate) {
       return `<div class="inline-flex flex-col items-center"><span class="prod-badge prod-packing">🔍 Packing / QA</span>${dateStr}</div>`;
     case 'ready_to_ship':
       return `<div class="inline-flex flex-col items-center"><span class="prod-badge prod-ready-dispatch">🚚 Ready to Dispatch</span>${dateStr}</div>`;
+    case 'partial_ready':
+      return `<div class="inline-flex flex-col items-center"><span class="prod-badge bg-amber-50 text-amber-900 border-amber-300 font-bold shadow-2xs">⚡ Partial Readiness</span>${dateStr}</div>`;
     case 'pending':
     default:
       return `<div class="inline-flex flex-col items-center"><span class="prod-badge prod-pending">⏳ Pending Confirmation</span>${dateStr}</div>`;
   }
 }
 
-function openUpdateProductionStatusModal(poNumber) {
+function syncProdModalFieldsForScope(po, scope) {
+  let currentStatus = po.productionStatus || 'pending';
+  let estDate = po.productionEstimatedDate || po.requiredByDate || '';
+  let notes = po.productionNotes || '';
+
+  if (scope && scope !== 'all' && po.items) {
+    const item = po.items.find(i => (i.sku === scope || i.model === scope));
+    if (item) {
+      currentStatus = item.productionStatus || po.productionStatus || 'pending';
+      estDate = item.productionEstimatedDate || po.productionEstimatedDate || po.requiredByDate || '';
+      notes = item.productionNotes || '';
+    }
+  }
+
+  const radios = document.getElementsByName('prodStatusRadio');
+  radios.forEach(r => {
+    r.checked = (r.value === currentStatus);
+  });
+  if (currentStatus === 'pending' && radios.length > 0) {
+    radios[0].checked = true;
+  }
+
+  const estInput = document.getElementById('updateProdEstimatedDate');
+  if (estInput) estInput.value = estDate;
+
+  const notesInput = document.getElementById('updateProdNotes');
+  if (notesInput) {
+    if (notes && notes.startsWith('Buyer Instruction:')) {
+      notesInput.value = '';
+    } else {
+      notesInput.value = notes;
+    }
+  }
+
+  const badgeEl = document.getElementById('updateProdCurrentBadge');
+  if (badgeEl) {
+    badgeEl.innerHTML = getProductionBadgeHtml(currentStatus, estDate);
+  }
+}
+
+function handleProdItemScopeChange(scope) {
+  const poNumber = document.getElementById('updateProdPoNumber')?.value;
+  const po = state.pos.find(p => p.poNumber === poNumber);
+  if (!po) return;
+  syncProdModalFieldsForScope(po, scope);
+}
+
+function openUpdateProductionStatusModal(poNumber, targetItemSku) {
   const po = state.pos.find(p => p.poNumber === poNumber);
   if (!po) return;
 
   document.getElementById('updateProdPoNumber').value = po.poNumber;
   document.getElementById('updateProdPoDisplay').textContent = po.poNumber;
   document.getElementById('updateProdVendorDisplay').textContent = `Assigned Supplier: ${po.vendor}`;
+
+  // Populate Item Scope dropdown
+  const scopeSelect = document.getElementById('updateProdItemSelect');
+  if (scopeSelect) {
+    let optionsHtml = '';
+    if (po.items && po.items.length > 1) {
+      optionsHtml += `<option value="all">📦 All Items (${po.items.length} SKUs in Order)</option>`;
+    }
+    (po.items || []).forEach(item => {
+      const parsed = formatProductDisplay(item.description || item.model);
+      const curStatus = item.productionStatus || po.productionStatus || 'pending';
+      const curStatusLabel = formatProductionStatusText(curStatus);
+      optionsHtml += `<option value="${escapeHtml(item.sku || item.model)}">🏷️ ${escapeHtml(item.sku ? item.sku + ': ' : '')}${escapeHtml(parsed.title)} [${curStatusLabel}]</option>`;
+    });
+    scopeSelect.innerHTML = optionsHtml;
+
+    if (targetItemSku && targetItemSku !== 'all') {
+      scopeSelect.value = targetItemSku;
+    } else if (po.items && po.items.length > 1) {
+      scopeSelect.value = 'all';
+    } else if (po.items && po.items.length === 1) {
+      scopeSelect.value = po.items[0].sku || po.items[0].model;
+    }
+  }
+
+  syncProdModalFieldsForScope(po, scopeSelect ? scopeSelect.value : 'all');
   
   // Show Buyer Deadline & Instructions if specified
   const buyerBox = document.getElementById('updateProdBuyerInstructionBox');
@@ -2585,34 +2799,6 @@ function openUpdateProductionStatusModal(poNumber) {
     }
   }
 
-  const currentStatus = po.productionStatus || (po.fulfillmentType === 'in_stock' ? 'in_stock' : 'pending');
-  const radios = document.getElementsByName('prodStatusRadio');
-  radios.forEach(r => {
-    r.checked = (r.value === currentStatus);
-  });
-  // If still pending, check in_stock as suggested default
-  if (currentStatus === 'pending' && radios.length > 0) {
-    radios[0].checked = true;
-  }
-
-  const estInput = document.getElementById('updateProdEstimatedDate');
-  if (estInput) estInput.value = po.productionEstimatedDate || po.requiredByDate || '';
-
-  const notesInput = document.getElementById('updateProdNotes');
-  if (notesInput) {
-    // If notes only contain initial buyer instruction, keep field clean for supplier notes
-    if (po.productionNotes && po.productionNotes.startsWith('Buyer Instruction:')) {
-      notesInput.value = '';
-    } else {
-      notesInput.value = po.productionNotes || '';
-    }
-  }
-
-  const badgeEl = document.getElementById('updateProdCurrentBadge');
-  if (badgeEl) {
-    badgeEl.innerHTML = getProductionBadgeHtml(currentStatus, po.productionEstimatedDate);
-  }
-
   openModal('updateProductionStatusModal');
 }
 
@@ -2622,34 +2808,74 @@ function handleProductionStatusSubmit(e) {
   const po = state.pos.find(p => p.poNumber === poNumber);
   if (!po) return;
 
+  const selectedScope = document.getElementById('updateProdItemSelect')?.value || 'all';
   const selectedStatus = document.querySelector('input[name="prodStatusRadio"]:checked')?.value || 'in_production';
   const estDate = document.getElementById('updateProdEstimatedDate')?.value || '';
   const notes = document.getElementById('updateProdNotes')?.value.trim() || '';
 
-  po.productionStatus = selectedStatus;
-  po.fulfillmentType = (selectedStatus === 'in_stock') ? 'in_stock' : 'made_to_order';
-  po.productionEstimatedDate = estDate;
-  if (notes) po.productionNotes = notes;
+  if (selectedScope === 'all') {
+    po.productionStatus = selectedStatus;
+    po.fulfillmentType = (selectedStatus === 'in_stock') ? 'in_stock' : 'made_to_order';
+    po.productionEstimatedDate = estDate;
+    if (notes) po.productionNotes = notes;
+    if (Array.isArray(po.items)) {
+      po.items.forEach(item => {
+        item.productionStatus = selectedStatus;
+        item.productionEstimatedDate = estDate;
+        if (notes) item.productionNotes = notes;
+      });
+    }
+  } else {
+    // Specific Item Updated
+    const targetItem = (po.items || []).find(i => (i.sku === selectedScope || i.model === selectedScope));
+    if (targetItem) {
+      targetItem.productionStatus = selectedStatus;
+      targetItem.productionEstimatedDate = estDate;
+      if (notes) targetItem.productionNotes = notes;
+    }
+    // Recompute aggregate PO production status
+    const allItemStatuses = (po.items || []).map(i => i.productionStatus || 'pending');
+    const unique = Array.from(new Set(allItemStatuses));
+    if (unique.length === 1) {
+      po.productionStatus = unique[0];
+    } else {
+      const hasReady = allItemStatuses.some(s => s === 'ready_to_ship' || s === 'in_stock');
+      const hasProd = allItemStatuses.some(s => s === 'in_production' || s === 'packing');
+      if (hasReady && hasProd) {
+        po.productionStatus = 'partial_ready';
+      } else if (hasProd) {
+        po.productionStatus = 'in_production';
+      } else if (hasReady) {
+        po.productionStatus = 'ready_to_ship';
+      } else {
+        po.productionStatus = 'pending';
+      }
+    }
+    po.productionEstimatedDate = estDate || po.productionEstimatedDate;
+    if (notes) po.productionNotes = `${selectedScope}: ${notes}`;
+  }
+
   if (!Array.isArray(po.productionHistory)) po.productionHistory = [];
   po.productionHistory.push({
     timestamp: new Date().toISOString(),
+    scope: selectedScope,
     status: selectedStatus,
-    notes: notes || `Readiness confirmed: ${formatProductionStatusText(selectedStatus)}`,
+    notes: notes || `Readiness updated for ${selectedScope === 'all' ? 'All Items' : selectedScope}: ${formatProductionStatusText(selectedStatus)}`,
     updatedBy: state.currentUser?.name || (state.currentUser?.vendorName ? state.currentUser.vendorName : 'Supplier')
   });
 
   saveState();
   closeModal('updateProductionStatusModal');
-  showToast(`Updated production stage for Order ${poNumber} to "${formatProductionStatusText(selectedStatus)}"!`);
+  showToast(`Updated production stage for ${selectedScope === 'all' ? 'All Items in Order ' + poNumber : selectedScope} to "${formatProductionStatusText(selectedStatus)}"`);
 
   if (supabaseClient) {
     supabaseClient.from('purchase_orders').upsert([{
       po_number: po.poNumber,
       vendor_name: po.vendor,
       items: po.items,
-      production_status: selectedStatus,
-      production_estimated_date: estDate,
-      production_notes: notes
+      production_status: po.productionStatus,
+      production_estimated_date: po.productionEstimatedDate,
+      production_notes: po.productionNotes
     }], { onConflict: 'po_number' }).then(({ error }) => {
       if (error) {
         supabaseClient.from('purchase_orders').upsert([{
@@ -2661,7 +2887,6 @@ function handleProductionStatusSubmit(e) {
     });
   }
 }
-
 
 const DEFAULT_POS = [];
 
@@ -3114,6 +3339,7 @@ async function fetchCloudState() {
         }
       }
     } catch(e) {}
+    alignActivePeriodConfig();
 
     // 5. Fetch Sample Proofs from Supabase
     try {
@@ -3349,7 +3575,10 @@ function getPoMetrics(poNumber) {
       shipped,
       received,
       remaining,
-      effectiveFulfilled
+      effectiveFulfilled,
+      productionStatus: item.productionStatus || po.productionStatus || 'pending',
+      productionEstimatedDate: item.productionEstimatedDate || po.productionEstimatedDate || '',
+      productionNotes: item.productionNotes || ''
     };
   });
 
@@ -5769,14 +5998,18 @@ function render() {
         badgeText = "Partially Dispatched";
       }
 
-      // SKU breakdown with Category and Model + Sample Proof Button
+      // SKU breakdown with Category, Model, Individual Item Stage & Update Button
       const itemsHtml = itemsMetrics.map(item => {
         const itemPct = Math.min(100, Math.round((item.shipped / item.orderedQty) * 100));
         const isFulfilled = item.remaining === 0;
         const catInfo = getItemCategoryInfo(item);
         const parsed = formatProductDisplay(item.description);
+        const itemProdStatus = item.productionStatus || po.productionStatus || 'pending';
+        const itemProdEst = item.productionEstimatedDate || po.productionEstimatedDate || '';
+        const itemBadge = getItemProductionBadgeHtml(itemProdStatus, itemProdEst);
+
         return `
-          <div class="p-3 bg-slate-50/80 rounded-xl border border-slate-200/70 space-y-1.5 transition-colors hover:bg-slate-50">
+          <div class="p-3 bg-slate-50/80 rounded-xl border border-slate-200/70 space-y-2 transition-colors hover:bg-slate-50">
             <div class="flex items-start justify-between text-xs gap-2">
               <div class="flex items-center gap-1.5 flex-wrap">
                 <span class="inline-flex items-center gap-1 font-bold text-[10px] px-2 py-0.5 rounded-md border ${catInfo.badgeClass}">
@@ -5793,6 +6026,19 @@ function render() {
               </div>
               <span class="font-mono text-slate-500 text-[11px] whitespace-nowrap shrink-0">Target: <strong class="text-slate-800">${formatNumber(item.orderedQty)}</strong></span>
             </div>
+
+            <!-- Item-Based Production Stage Indicator & Update Action -->
+            <div class="flex flex-wrap items-center justify-between gap-2 pt-1 border-t border-slate-200/60">
+              <div class="flex items-center gap-2 flex-wrap">
+                <span class="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Item Stage:</span>
+                ${itemBadge}
+                ${item.productionNotes ? `<span class="text-[10px] text-slate-500 italic max-w-xs truncate" title="${escapeHtml(item.productionNotes)}">"${escapeHtml(item.productionNotes)}"</span>` : ''}
+              </div>
+              <button type="button" onclick="openUpdateProductionStatusModal('${escapeHtml(po.poNumber)}', '${escapeHtml(item.sku || item.model)}')" class="px-2.5 py-0.5 text-[11px] font-bold text-indigo-700 hover:bg-indigo-100 bg-indigo-50 border border-indigo-200/90 rounded-lg transition inline-flex items-center gap-1 shadow-2xs cursor-pointer">
+                <span>⚡ Update Item Status</span>
+              </button>
+            </div>
+
             ${parsed.specs ? `<p class="text-[10px] text-slate-500 font-mono sm:hidden pl-0.5 leading-snug">${escapeHtml(parsed.specs)}</p>` : ''}
             <div class="grid grid-cols-3 text-[11px] text-slate-500 pt-0.5">
               <span>Dispatched: <strong class="text-blue-600 font-mono">${formatNumber(item.shipped)}</strong></span>
@@ -5907,7 +6153,15 @@ function render() {
       ` : '';
 
       const isPendingReadiness = !po.productionStatus || po.productionStatus === 'pending';
-      const prodBadge = getProductionBadgeHtml(po.productionStatus || 'pending', po.productionEstimatedDate);
+      const itemStatuses = (po.items || []).map(i => i.productionStatus || po.productionStatus || 'pending');
+      const uniqueStatuses = Array.from(new Set(itemStatuses));
+      let effectivePoStatus = po.productionStatus || 'pending';
+      if (uniqueStatuses.length > 1) {
+        effectivePoStatus = 'mixed';
+      } else if (uniqueStatuses.length === 1 && uniqueStatuses[0]) {
+        effectivePoStatus = uniqueStatuses[0];
+      }
+      const prodBadge = getProductionBadgeHtml(effectivePoStatus, po.productionEstimatedDate, po.items);
 
       let fulfillmentBadgeHtml = '';
       if (po.productionStatus === 'in_stock') {
@@ -5953,8 +6207,8 @@ function render() {
             </div>
             <div class="flex items-center gap-3 text-xs">
               ${prodBadge}
-              <button onclick="openUpdateProductionStatusModal('${escapeHtml(po.poNumber)}')" title="Update Manufacturing / Stock Status" class="px-2.5 py-1 text-xs font-bold ${isPendingReadiness ? 'bg-amber-500 hover:bg-amber-600 text-white' : 'text-indigo-700 hover:bg-indigo-50 border border-indigo-200/90'} rounded-xl transition inline-flex items-center gap-1 shadow-2xs cursor-pointer">
-                <span>⚡ ${isPendingReadiness ? 'Confirm Readiness' : 'Update Status'}</span>
+              <button onclick="openUpdateProductionStatusModal('${escapeHtml(po.poNumber)}', 'all')" title="Update Manufacturing / Stock Status" class="px-2.5 py-1 text-xs font-bold ${isPendingReadiness ? 'bg-amber-500 hover:bg-amber-600 text-white' : 'text-indigo-700 hover:bg-indigo-50 border border-indigo-200/90'} rounded-xl transition inline-flex items-center gap-1 shadow-2xs cursor-pointer">
+                <span>⚡ ${(po.items && po.items.length > 1) ? 'Update Order Status' : (isPendingReadiness ? 'Confirm Readiness' : 'Update Status')}</span>
               </button>
             </div>
           </div>
@@ -6338,9 +6592,15 @@ function render() {
                 <span class="text-xs font-bold text-slate-900 block truncate mt-0.5">${escapeHtml(parsed.title)}</span>
                 ${(po.items || []).length > 1 ? `<span class="text-[10px] text-slate-500 font-mono">Qty: ${formatNumber(i.orderedQty)} units</span>` : ''}
               </div>
-              <button type="button" onclick="openSampleArtworkModal('${escapeHtml(i.model || i.description)}')" class="px-2 py-1 rounded-lg text-[10px] font-bold bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 transition shrink-0 shadow-2xs cursor-pointer flex items-center gap-1">
-                <span>🖼️ Sample</span>
-              </button>
+              <div class="flex items-center gap-1.5 shrink-0">
+                ${getItemProductionBadgeHtml(i.productionStatus || po.productionStatus || 'pending', i.productionEstimatedDate)}
+                <button type="button" onclick="openUpdateProductionStatusModal('${escapeHtml(po.poNumber)}', '${escapeHtml(i.sku || i.model)}')" class="px-2 py-1 rounded-lg text-[10px] font-bold bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 transition shrink-0 shadow-2xs cursor-pointer flex items-center gap-1" title="Update Item Status">
+                  <span>⚡</span>
+                </button>
+                <button type="button" onclick="openSampleArtworkModal('${escapeHtml(i.model || i.description)}')" class="px-2 py-1 rounded-lg text-[10px] font-bold bg-slate-50 hover:bg-slate-100 text-slate-700 border border-slate-200 transition shrink-0 shadow-2xs cursor-pointer flex items-center gap-1">
+                  <span>🖼️ Proof</span>
+                </button>
+              </div>
             </div>
           `;
         }).join('');
@@ -6567,13 +6827,25 @@ function render() {
         }
 
         return `
-          <tr class="hover:bg-slate-50/80 transition">
-            <td class="p-3 font-mono font-bold text-slate-800 text-xs whitespace-nowrap">${escapeHtml(s.id)}</td>
-            <td class="p-3 font-mono font-semibold text-blue-600 text-xs whitespace-nowrap">${escapeHtml(s.poNumber)}</td>
-            <td class="p-3 text-slate-800 font-semibold whitespace-nowrap">${escapeHtml(po ? po.vendor : '-')}</td>
-            <td class="p-3 text-slate-700 font-mono text-[11px] font-medium whitespace-nowrap">${escapeHtml(s.truckLR)}</td>
-            <td class="p-3 text-slate-500 font-mono text-[11px] whitespace-nowrap">${escapeHtml(s.date)}</td>
-            <td class="p-3 min-w-[260px]">
+          <tr class="hover:bg-slate-50/90 transition group">
+            <!-- 1. Ref ID & Order # (Stacked) -->
+            <td class="p-3 whitespace-nowrap">
+              <span class="font-mono font-black text-slate-900 text-xs block">${escapeHtml(s.id)}</span>
+              <span class="font-mono text-indigo-600 font-bold text-[11px] block mt-0.5">${escapeHtml(s.poNumber)}</span>
+            </td>
+
+            <!-- 2. Vendor, Invoice # & Date (Stacked) -->
+            <td class="p-3 whitespace-nowrap">
+              <span class="font-bold text-slate-900 text-xs block truncate max-w-[175px]" title="${escapeHtml(po ? po.vendor : '-')}">${escapeHtml(po ? po.vendor : '-')}</span>
+              <div class="flex items-center gap-1.5 text-[10px] text-slate-500 font-mono mt-0.5">
+                <span class="text-slate-700 font-semibold">Inv: ${escapeHtml(s.truckLR)}</span>
+                <span>&bull;</span>
+                <span>${escapeHtml(s.date)}</span>
+              </div>
+            </td>
+
+            <!-- 3. Item / SKU Description -->
+            <td class="p-3 min-w-[220px]">
               <div class="flex items-center justify-between gap-1.5 mb-1.5">
                 <div class="flex items-center gap-1.5 flex-wrap">
                   <span class="inline-flex items-center gap-1 font-bold text-[10px] px-2 py-0.5 rounded border ${catInfo.badgeClass} whitespace-nowrap shrink-0">
@@ -7049,9 +7321,10 @@ function render() {
                 ` : ''}
               </div>
             </td>
-            <td class="p-3 text-center">${auditBadge}</td>
-            <td class="p-3 text-center">
-              <button onclick="openReceiveModal('${s.id}')" class="px-3.5 py-1.5 ${hasCount ? 'bg-slate-100 text-slate-700 hover:bg-slate-200 border border-slate-200/90' : 'btn-gradient-emerald text-white shadow-2xs'} font-bold rounded-xl text-xs transition inline-flex items-center gap-1.5 cursor-pointer">
+            <td class="p-3 text-center whitespace-nowrap">${auditBadge}</td>
+            <!-- Sticky Action Column (Always Visible on Right Edge) -->
+            <td class="p-3 text-center whitespace-nowrap sticky right-0 bg-white/95 group-hover:bg-slate-50/95 backdrop-blur-xs shadow-[-4px_0_8px_-2px_rgba(0,0,0,0.06)] z-10">
+              <button onclick="openReceiveModal('${s.id}')" class="px-3.5 py-1.5 ${hasCount ? 'bg-slate-100 text-slate-700 hover:bg-slate-200 border border-slate-300' : 'btn-gradient-emerald text-white shadow-2xs'} font-bold rounded-xl text-xs transition inline-flex items-center gap-1.5 cursor-pointer">
                 <span>${hasCount ? '✏️ Edit Count' : '📥 Verify Inward'}</span>
               </button>
             </td>
@@ -7362,7 +7635,9 @@ document.addEventListener('click', (e) => {
 // Initialize Database and Cloud Sync on startup
 if (typeof window !== 'undefined') {
   const bootDatabaseEngine = async () => {
+    alignActivePeriodConfig();
     await loadDatabaseState();
+    alignActivePeriodConfig();
     initSupabase();
     updateAnnualColorUI();
   };
@@ -7453,6 +7728,8 @@ if (typeof window !== 'undefined') {
   window.handleMatrixQuickUpload = handleMatrixQuickUpload;
   window.updateAnnualColorUI = updateAnnualColorUI;
   window.openUpdateProductionStatusModal = openUpdateProductionStatusModal;
+  window.handleProdItemScopeChange = handleProdItemScopeChange;
+  window.getItemProductionBadgeHtml = getItemProductionBadgeHtml;
   window.handleProductionStatusSubmit = handleProductionStatusSubmit;
   window.render = render;
   Object.defineProperty(window, 'currentDispatchInvoice', {
