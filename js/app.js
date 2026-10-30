@@ -1630,6 +1630,11 @@ async function handleSampleProofFileChange(event) {
 
 // Delete an uploaded sample proof
 function deleteSampleProof(proofKey) {
+  const isAdmin = state.currentUser && (state.currentUser.role === 'admin' || state.currentUser.role === 'store_manager');
+  if (!isAdmin) {
+    showToast('Permission denied: Only Operations Admin can remove sample proofs.', true);
+    return;
+  }
   if (!confirm('Are you sure you want to remove this approved sample photo proof?')) return;
   if (state.sampleProofs && state.sampleProofs[proofKey]) {
     delete state.sampleProofs[proofKey];
@@ -1704,10 +1709,14 @@ function renderAnnualColorRegistry() {
   if (!grid) return;
 
   const isAdmin = state.currentUser && (state.currentUser.role === 'admin' || state.currentUser.role === 'store_manager');
-  const addYearBtn = document.querySelector('button[onclick="toggleNewYearForm()"]');
+  const addYearBtn = document.getElementById('btnAddNewAnnualYear') || document.querySelector('button[onclick="toggleNewYearForm()"]');
   if (addYearBtn) {
     if (isAdmin) addYearBtn.classList.remove('hidden');
     else addYearBtn.classList.add('hidden');
+  }
+  const formCard = document.getElementById('newYearColorFormCard');
+  if (formCard && !isAdmin) {
+    formCard.classList.add('hidden');
   }
 
   const activeYear = getActiveYear();
@@ -1806,6 +1815,7 @@ function renderAnnualColorRegistry() {
           </div>
         </div>
 
+        ${isAdmin ? `
         <div class="p-3.5 bg-slate-50/90 border-t border-slate-200 flex items-center justify-between gap-2">
           ${!isActive ? `
             <button type="button" onclick="setActiveOperationalYear(${y.year})" class="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-bold transition flex items-center gap-1 shadow-2xs cursor-pointer">
@@ -1827,6 +1837,14 @@ function renderAnnualColorRegistry() {
             ` : ''}
           </div>
         </div>
+        ` : `
+        <div class="p-3 bg-slate-50 border-t border-slate-200 flex items-center justify-between text-xs">
+          <span class="font-bold ${isActive ? 'text-emerald-700' : 'text-slate-600'} flex items-center gap-1.5">
+            <span>${isActive ? '● Current Active Standard' : '○ ' + (y.status === 'upcoming' ? 'Upcoming Mandate' : 'Archived Mandate')}</span>
+          </span>
+          <span class="font-mono text-[10px] text-slate-500 font-bold uppercase tracking-wider bg-slate-200/70 px-2 py-0.5 rounded">Official Mandate Spec</span>
+        </div>
+        `}
       </div>
     `;
   }).join('');
@@ -1834,10 +1852,11 @@ function renderAnnualColorRegistry() {
 
 // Toggle Add/Edit Year Form
 function toggleNewYearForm(show, yearToEdit) {
+  const isAdmin = state.currentUser && (state.currentUser.role === 'admin' || state.currentUser.role === 'store_manager');
   const formCard = document.getElementById('newYearColorFormCard');
   if (!formCard) return;
 
-  if (show === false) {
+  if (!isAdmin || show === false) {
     formCard.classList.add('hidden');
     return;
   }
@@ -1927,7 +1946,12 @@ function toggleNewYearForm(show, yearToEdit) {
 
 // Save Year Color Standard
 function handleSaveYearColor(event) {
-  event.preventDefault();
+  if (event && event.preventDefault) event.preventDefault();
+  const isAdmin = state.currentUser && (state.currentUser.role === 'admin' || state.currentUser.role === 'store_manager');
+  if (!isAdmin) {
+    showToast('Permission denied: Only Operations Admin can configure annual color standards.', true);
+    return;
+  }
   const origYear = document.getElementById('editYearOriginalYear')?.value;
   const yearNum = Number(document.getElementById('inputYearNumber')?.value);
   const colorNameInputVal = (document.getElementById('inputYearColorName')?.value.trim() || '').trim();
@@ -2009,6 +2033,11 @@ function handleSaveYearColor(event) {
 
 // Set Active Operational Year
 function setActiveOperationalYear(year) {
+  const isAdmin = state.currentUser && (state.currentUser.role === 'admin' || state.currentUser.role === 'store_manager');
+  if (!isAdmin) {
+    showToast('Permission denied: Only Operations Admin can change the active operational standard.', true);
+    return;
+  }
   const targetYear = Number(year);
   if (!state.annualColorConfig) state.annualColorConfig = { ...DEFAULT_ANNUAL_COLOR_CONFIG };
   state.annualColorConfig.activeYear = targetYear;
@@ -2032,6 +2061,11 @@ function setActiveOperationalYear(year) {
 
 // Delete an annual color year
 function deleteAnnualColorYear(year) {
+  const isAdmin = state.currentUser && (state.currentUser.role === 'admin' || state.currentUser.role === 'store_manager');
+  if (!isAdmin) {
+    showToast('Permission denied: Only Operations Admin can delete annual color standards.', true);
+    return;
+  }
   const targetYear = Number(year);
   if (targetYear === getActiveYear()) {
     showToast('Cannot delete the currently active operational mandate.', true);
@@ -2049,6 +2083,7 @@ function deleteAnnualColorYear(year) {
 
 // Render Master Proofs Matrix
 function renderAnnualProofsMatrix(selectedYear, catFilter) {
+  const isAdmin = state.currentUser && (state.currentUser.role === 'admin' || state.currentUser.role === 'store_manager');
   if (selectedYear) currentMatrixSelectedYear = Number(selectedYear);
   if (catFilter) currentMatrixCategoryFilter = catFilter;
 
@@ -2125,16 +2160,22 @@ function renderAnnualProofsMatrix(selectedYear, catFilter) {
         </div>
 
         <div class="pt-2 border-t border-slate-100 flex items-center justify-between gap-2">
-          <button type="button" onclick="openSampleArtworkModal('${escapeHtml(item.modelName)}', null, ${currentMatrixSelectedYear})" class="px-2.5 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg text-xs font-bold transition flex items-center gap-1 cursor-pointer">
-            <span>🔍 View Proof</span>
-          </button>
-          
-          <div>
-            <input type="file" id="matrixInput_${proofKey}" accept="image/*" class="hidden" onchange="handleMatrixQuickUpload('${escapeHtml(item.modelName)}', ${currentMatrixSelectedYear}, this)">
-            <button type="button" onclick="document.getElementById('matrixInput_${proofKey}').click()" class="px-3 py-1.5 ${proof ? 'bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200' : 'btn-gradient-primary text-white'} rounded-lg text-xs font-bold transition flex items-center gap-1 shadow-2xs cursor-pointer">
-              <span>${proof ? '🔄 Replace' : '📸 Upload Photo'}</span>
+          ${isAdmin ? `
+            <button type="button" onclick="openSampleArtworkModal('${escapeHtml(item.modelName)}', null, ${currentMatrixSelectedYear})" class="px-2.5 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg text-xs font-bold transition flex items-center gap-1 cursor-pointer">
+              <span>🔍 View Proof</span>
             </button>
-          </div>
+            
+            <div>
+              <input type="file" id="matrixInput_${proofKey}" accept="image/*" class="hidden" onchange="handleMatrixQuickUpload('${escapeHtml(item.modelName)}', ${currentMatrixSelectedYear}, this)">
+              <button type="button" onclick="document.getElementById('matrixInput_${proofKey}').click()" class="px-3 py-1.5 ${proof ? 'bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200' : 'btn-gradient-primary text-white'} rounded-lg text-xs font-bold transition flex items-center gap-1 shadow-2xs cursor-pointer">
+                <span>${proof ? '🔄 Replace' : '📸 Upload Photo'}</span>
+              </button>
+            </div>
+          ` : `
+            <button type="button" onclick="openSampleArtworkModal('${escapeHtml(item.modelName)}', null, ${currentMatrixSelectedYear})" class="w-full py-2 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 rounded-xl text-xs font-bold transition flex items-center justify-center gap-1.5 cursor-pointer shadow-2xs">
+              <span>🔍 View Approved Technical Specimen</span>
+            </button>
+          `}
         </div>
       </div>
     `;
@@ -2153,6 +2194,12 @@ function handleMatrixCatChange(cat) {
 
 // Quick Upload from Master Proofs Gallery Matrix
 async function handleMatrixQuickUpload(modelName, year, fileInput) {
+  const isAdmin = state.currentUser && (state.currentUser.role === 'admin' || state.currentUser.role === 'store_manager');
+  if (!isAdmin) {
+    showToast('Permission denied: Only Operations Admin can upload sample proofs.', true);
+    if (fileInput) fileInput.value = '';
+    return;
+  }
   const file = fileInput.files && fileInput.files[0];
   if (!file) return;
 
@@ -2273,6 +2320,11 @@ function renderAdminPoFilterUI() {
       btn.className = "nav-tab-btn px-3 py-1.5 rounded-lg text-xs font-semibold text-slate-600 hover:text-slate-900 transition flex items-center gap-1.5 cursor-pointer flex-shrink-0 whitespace-nowrap";
     }
   });
+
+  const poMobileSelect = document.getElementById('adminPoMobileFilterSelect');
+  if (poMobileSelect) {
+    poMobileSelect.value = currentPoFilter;
+  }
 }
 
 function setAdminPoFilter(filter) {
@@ -3145,6 +3197,17 @@ function showToast(msg, isError = false) {
   }, 3500);
 }
 
+// ==========================================
+// SMART MOBILE NAVIGATION & MODAL MANAGEMENT
+// Prevents accidental exit on mobile swipe gestures
+// and enables home navigation via top LT logo
+// ==========================================
+if (typeof window !== 'undefined' && window.history && !window.history.state) {
+  try {
+    window.history.replaceState({ page: 'home' }, '');
+  } catch (e) {}
+}
+
 function openModal(id) { 
   const el = document.getElementById(id);
   if (el) {
@@ -3152,14 +3215,82 @@ function openModal(id) {
     el.scrollTop = 0;
     const scrollables = el.querySelectorAll('.overflow-y-auto, .overflow-auto');
     scrollables.forEach(s => { s.scrollTop = 0; });
+
+    // Push history state so phone edge-swipes or back button closes the modal instead of closing the browser tab!
+    try {
+      window.history.pushState({ modalOpen: id }, '');
+    } catch (e) {}
   }
   if (id === 'vendorScorecardModal') {
     renderVendorScorecards();
   }
 }
-function closeModal(id) { 
+
+function closeModal(id, fromHistory) { 
   const el = document.getElementById(id);
   if (el) el.classList.add('hidden'); 
+}
+
+function closeAllModals() {
+  const openModals = document.querySelectorAll('.modal-backdrop:not(.hidden)');
+  openModals.forEach(m => m.classList.add('hidden'));
+}
+
+// Master Home Button Navigator (Triggered when user clicks LT Logo / Brand Header)
+function navigateToHome() {
+  closeAllModals();
+
+  // Reset search query
+  const searchInput = document.getElementById('searchInput');
+  if (searchInput) searchInput.value = '';
+
+  // Reset all filters to default
+  state.currentFilter = 'all';
+  state.categoryFilter = 'all';
+  state.shipmentFilter = 'all';
+  state.adminPoFilter = 'all';
+  state.gateFilter = 'all';
+
+  // For Admin view, switch to primary Executive Dashboard tab
+  if (state.currentUser && state.currentUser.role === 'admin') {
+    state.adminActiveTab = 'dashboard';
+    const mobileTabSelect = document.getElementById('adminMobileTabSelect');
+    if (mobileTabSelect) mobileTabSelect.value = 'dashboard';
+    renderAdminTabsUI();
+  }
+
+  // Synchronize all dropdowns and views
+  renderCategoryFilterUI();
+  renderVendorFilterUI();
+  renderAdminPoFilterUI();
+  render();
+
+  // Smooth scroll to top of viewport
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+
+  showToast('🏠 Home Page Loaded');
+}
+
+// Intercept phone gesture sliding & hardware back buttons
+if (typeof window !== 'undefined') {
+  window.addEventListener('popstate', (e) => {
+    // 1. If any modal is open, close it safely so the user stays on the website
+    const openModals = document.querySelectorAll('.modal-backdrop:not(.hidden)');
+    if (openModals.length > 0) {
+      openModals.forEach(m => m.classList.add('hidden'));
+      return;
+    }
+
+    // 2. If in Admin view and on a sub-tab, return to main Executive Dashboard
+    if (state.currentUser && state.currentUser.role === 'admin' && state.adminActiveTab !== 'dashboard') {
+      state.adminActiveTab = 'dashboard';
+      const mobileTabSelect = document.getElementById('adminMobileTabSelect');
+      if (mobileTabSelect) mobileTabSelect.value = 'dashboard';
+      renderAdminTabsUI();
+      render();
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+  });
 }
 
 // ==========================================
@@ -5116,6 +5247,12 @@ function renderVendorFilterUI() {
   if (btnInProd) btnInProd.className = isInProd ? activeCls : inactiveCls;
   if (btnInStock) btnInStock.className = isInStock ? activeCls : inactiveCls;
   if (btnCmp) btnCmp.className = isComp ? activeCls : inactiveCls;
+
+  const vMobileSelect = document.getElementById('vendorMobileFilterSelect');
+  if (vMobileSelect) {
+    const cur = state.currentFilter || 'all';
+    vMobileSelect.value = cur;
+  }
 }
 
 function setFilter(filter) {
@@ -5156,6 +5293,12 @@ function renderCategoryFilterUI() {
         btn.className = `cat-filter-btn-${c} px-3.5 py-1 rounded-xl text-xs font-semibold transition-all duration-150 flex items-center gap-1.5 cursor-pointer flex-shrink-0 whitespace-nowrap ${inactiveClass}`;
       }
     });
+  });
+
+  // Keep all mobile category dropdown selects synchronized
+  ['vendorMobileCatSelect', 'adminPoMobileCatSelect', 'adminShipmentsMobileCatSelect', 'gateMobileCatSelect'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el && el.value !== cat) el.value = cat;
   });
 }
 
@@ -5528,6 +5671,18 @@ function render() {
   if (cInProd) cInProd.textContent = vInProdCount;
   if (cInStock) cInStock.textContent = vInStockCount;
   if (cComp) cComp.textContent = vCompletedCount;
+
+  const vMobileSelect = document.getElementById('vendorMobileFilterSelect');
+  if (vMobileSelect) {
+    const cur = state.currentFilter || 'all';
+    vMobileSelect.innerHTML = `
+      <option value="all" ${cur === 'all' ? 'selected' : ''}>📋 All Orders (${vendorPOs.length})</option>
+      <option value="pending" ${cur === 'pending' ? 'selected' : ''}>⚡ Action Needed (${vPendingCount})</option>
+      <option value="in_stock" ${cur === 'in_stock' ? 'selected' : ''}>📦 Ready in Stock (${vInStockCount})</option>
+      <option value="in_production" ${cur === 'in_production' ? 'selected' : ''}>🏭 In Production (${vInProdCount})</option>
+      <option value="completed" ${cur === 'completed' ? 'selected' : ''}>✅ Completed (${vCompletedCount})</option>
+    `;
+  }
 
   // Search Filter
   const searchVal = (document.getElementById('searchInput') ? document.getElementById('searchInput').value.trim().toLowerCase() : '');
@@ -5957,6 +6112,18 @@ function render() {
   if (bPoProd) bPoProd.textContent = adminCountInProd;
   if (bPoComp) bPoComp.textContent = adminCountCompleted;
 
+  const poMobileSelect = document.getElementById('adminPoMobileFilterSelect');
+  if (poMobileSelect) {
+    const cur = state.adminPoFilter || 'all';
+    poMobileSelect.innerHTML = `
+      <option value="all" ${cur === 'all' ? 'selected' : ''}>All (${state.pos.length})</option>
+      <option value="pending" ${cur === 'pending' ? 'selected' : ''}>⏳ Awaiting Supplier (${adminCountPending})</option>
+      <option value="in_stock" ${cur === 'in_stock' ? 'selected' : ''}>📦 In Stock (${adminCountInStock})</option>
+      <option value="in_production" ${cur === 'in_production' ? 'selected' : ''}>🏭 In Production (${adminCountInProd})</option>
+      <option value="completed" ${cur === 'completed' ? 'selected' : ''}>✅ Fulfilled (${adminCountCompleted})</option>
+    `;
+  }
+
   renderAdminPoFilterUI();
 
   // Category Filter for Admin Orders
@@ -6282,6 +6449,18 @@ function render() {
   if (bDamaged) bDamaged.textContent = countDamaged;
   if (bToday) bToday.textContent = countToday;
   if (bTransit) bTransit.textContent = countTransit;
+
+  const shipMobileSelect = document.getElementById('adminShipmentsMobileFilterSelect');
+  if (shipMobileSelect) {
+    const cur = state.shipmentFilter || 'all';
+    shipMobileSelect.innerHTML = `
+      <option value="all" ${cur === 'all' ? 'selected' : ''}>All Dispatches (${countAll})</option>
+      <option value="shortages" ${cur === 'shortages' ? 'selected' : ''}>⚠️ Shortages Only (${countShortages})</option>
+      <option value="damaged" ${cur === 'damaged' ? 'selected' : ''}>📦 Damaged / Rejected (${countDamaged})</option>
+      <option value="today" ${cur === 'today' ? 'selected' : ''}>📅 Today's Deliveries (${countToday})</option>
+      <option value="transit" ${cur === 'transit' ? 'selected' : ''}>⏳ In Transit (${countTransit})</option>
+    `;
+  }
 
   const currentShipFilter = state.shipmentFilter || 'all';
   const filterBtns = {
@@ -6655,6 +6834,18 @@ function render() {
   if (bgGateRibbons) bgGateRibbons.textContent = countGateRibbons;
   if (bgGateToday) bgGateToday.textContent = countGateToday;
   if (bgGateDamaged) bgGateDamaged.textContent = countGateDamaged;
+
+  const gateMobileSelect = document.getElementById('gateMobileFilterSelect');
+  if (gateMobileSelect) {
+    const cur = state.gateFilter || 'all';
+    gateMobileSelect.innerHTML = `
+      <option value="all" ${cur === 'all' ? 'selected' : ''}>All Inward (${countGateAll})</option>
+      <option value="transit" ${cur === 'transit' ? 'selected' : ''}>⏳ Awaiting Count (${countGateTransit})</option>
+      <option value="ribbons" ${cur === 'ribbons' ? 'selected' : ''}>🎗️ With Ribbons (${countGateRibbons})</option>
+      <option value="today" ${cur === 'today' ? 'selected' : ''}>📅 Today (${countGateToday})</option>
+      <option value="damaged" ${cur === 'damaged' ? 'selected' : ''}>⚠️ Damage / Rejections (${countGateDamaged})</option>
+    `;
+  }
 
   const gateBtns = {
     all: document.getElementById('gateFilterAll'),
@@ -7184,6 +7375,8 @@ if (typeof window !== 'undefined') {
   // Global Window API Exposure for Template Handlers
   window.openModal = openModal;
   window.closeModal = closeModal;
+  window.closeAllModals = closeAllModals;
+  window.navigateToHome = navigateToHome;
   window.openDispatchModal = openDispatchModal;
   window.handleDispatchSubmit = handleDispatchSubmit;
   window.openReceiveModal = openReceiveModal;
