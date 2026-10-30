@@ -16,7 +16,7 @@
 
   <!-- Modular Scripts: Encrypted Credential Vault, Auth & Core Business Logic -->
   <script src="js/vault.js"></script>
-  <script src="js/app.js"></script>
+  <script src="js/app.js?v=20261029_2hr_live"></script>
   <script src="js/auth.js"></script>
   <!-- Anti-Flash Authentication State Evaluator -->
   <script>
@@ -154,16 +154,31 @@
       <!-- ======================================== -->
       <section id="vendorSection" class="space-y-6">
 
-        <!-- Banner with Title & Quick Info -->
-        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <!-- Banner with Title & Quick Proofs Access -->
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4">
           <div>
             <h1 class="text-2xl font-extrabold text-slate-900 tracking-tight" id="vendorWelcomeTitle">Supplier Portal</h1>
-            <p class="text-xs text-slate-500 mt-1">Review your allocated label production orders, remaining balances, and log truck dispatches with invoices.</p>
           </div>
+          <button type="button" onclick="openAnnualColorManagerModal()" class="px-3.5 py-2 sm:px-4 sm:py-2.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-900 border border-indigo-200 text-xs font-bold rounded-xl shadow-xs transition flex items-center justify-center gap-2 cursor-pointer whitespace-nowrap self-start sm:self-auto">
+            <span class="w-2.5 h-2.5 rounded-full border border-indigo-400 shrink-0" id="vendorActiveYearColorDot" style="background-color: #0284c7;"></span>
+            <span id="vendorActiveYearColorBadgeText">🎨 Annual Color Proofs & Secret Codes</span>
+          </button>
         </div>
 
-        <!-- 4 KPI Summary Cards (Compact Responsive Layout) -->
-        <div class="grid grid-cols-2 lg:grid-cols-4 gap-2.5 sm:gap-4">
+        <!-- Mobile KPI Summary Dropdown Trigger -->
+        <button type="button" onclick="toggleVendorKpiMobile()" class="w-full md:hidden bg-gradient-to-r from-blue-50/80 to-indigo-50/80 hover:from-blue-100 hover:to-indigo-100 border border-blue-200/90 p-3 rounded-2xl flex items-center justify-between transition cursor-pointer shadow-2xs">
+          <div class="flex items-center gap-2.5">
+            <span class="text-base">📊</span>
+            <div class="text-left">
+              <span class="text-xs font-bold text-slate-900 block">Performance Summary (4 KPIs)</span>
+              <span class="text-[10px] text-slate-500 font-mono" id="vendorKpiQuickSummary">Tap to expand overview</span>
+            </div>
+          </div>
+          <span id="vendorKpiChevron" class="text-xs font-bold text-indigo-600 transition-transform duration-200">▼</span>
+        </button>
+
+        <!-- 4 KPI Summary Cards (Collapsible Dropdown on Mobile, Grid on Desktop) -->
+        <div id="vendorKpiContainer" class="hidden md:grid grid-cols-2 lg:grid-cols-4 gap-2.5 sm:gap-4">
           <div class="bg-gradient-to-br from-blue-500/5 via-white to-white rounded-xl sm:rounded-2xl p-3 sm:p-4 border border-blue-100 shadow-2xs card-hover transition flex flex-col justify-between">
             <div class="flex items-center justify-between text-slate-400 mb-1 sm:mb-1.5">
               <span class="text-[10px] sm:text-xs font-bold uppercase tracking-wider text-slate-500 truncate mr-1">Active Orders</span>
@@ -171,7 +186,6 @@
             </div>
             <div>
               <p class="text-lg sm:text-2xl font-black text-slate-900 font-mono tracking-tight" id="vendorStatActiveCount">0 Orders</p>
-              <p class="text-[10px] sm:text-[11px] text-slate-400 mt-0.5 font-medium truncate">Open in production</p>
             </div>
           </div>
 
@@ -182,7 +196,6 @@
             </div>
             <div>
               <p class="text-lg sm:text-2xl font-black text-amber-600 font-mono tracking-tight" id="vendorStatPendingUnits">0</p>
-              <p class="text-[10px] sm:text-[11px] text-slate-400 mt-0.5 font-medium truncate">Units to manufacture</p>
             </div>
           </div>
 
@@ -193,7 +206,6 @@
             </div>
             <div>
               <p class="text-lg sm:text-2xl font-black text-emerald-600 font-mono tracking-tight" id="vendorStatShippedUnits">0</p>
-              <p class="text-[10px] sm:text-[11px] text-slate-400 mt-0.5 font-medium truncate">Shipped to warehouse</p>
             </div>
           </div>
 
@@ -204,7 +216,6 @@
             </div>
             <div>
               <p class="text-lg sm:text-2xl font-black text-purple-600 font-mono tracking-tight" id="vendorStatCompletedCount">0 Orders</p>
-              <p class="text-[10px] sm:text-[11px] text-slate-400 mt-0.5 font-medium truncate">100% completed</p>
             </div>
           </div>
         </div>
@@ -280,21 +291,37 @@
               <span>Internal Operations Command</span>
             </span>
             <h1 class="text-xl sm:text-2xl font-black text-slate-900 tracking-tight mt-1.5">Multi-Vendor Order & Reconciliation Hub</h1>
-            <p class="text-xs text-slate-500 mt-0.5">Manage split order allocations across suppliers, monitor live production readiness, and reconcile physical warehouse receipts.</p>
           </div>
-          <div class="flex items-center gap-2 flex-wrap sm:flex-nowrap w-full sm:w-auto">
-            <button onclick="openAnnualColorManagerModal()" class="flex-1 sm:flex-initial justify-center px-3.5 py-2.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-900 border border-indigo-200 text-xs font-bold rounded-xl shadow-xs transition flex items-center gap-2 cursor-pointer whitespace-nowrap">
-              <span class="w-3 h-3 rounded-full border border-indigo-400 shrink-0" id="adminActiveYearColorDot" style="background-color: #0284c7;"></span>
-              <span id="adminActiveYearColorBadgeText">🎨 Annual Color Proofs (2026)</span>
+          <div class="grid grid-cols-2 gap-2 w-full sm:w-auto sm:flex sm:items-center">
+            <button onclick="openAnnualColorManagerModal()" class="justify-center px-2.5 py-1.5 sm:px-3.5 sm:py-2.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-900 border border-indigo-200 text-[11px] sm:text-xs font-bold rounded-xl shadow-xs transition flex items-center gap-1.5 cursor-pointer whitespace-nowrap">
+              <span class="w-2.5 h-2.5 rounded-full border border-indigo-400 shrink-0" id="adminActiveYearColorDot" style="background-color: #0284c7;"></span>
+              <span id="adminActiveYearColorBadgeText" class="truncate">🎨 Proofs (2026)</span>
             </button>
-            <button onclick="openNewPoModal()" class="flex-1 sm:flex-initial justify-center px-5 py-2.5 btn-gradient-primary text-xs font-bold rounded-xl transition flex items-center gap-1.5 cursor-pointer whitespace-nowrap shadow-xs">
-              <span>+ Create New Order</span>
+            <button onclick="openNewPoModal()" class="justify-center px-2.5 py-1.5 sm:px-5 sm:py-2.5 btn-gradient-primary text-[11px] sm:text-xs font-bold rounded-xl transition flex items-center gap-1 cursor-pointer whitespace-nowrap shadow-xs">
+              <span>+ <span class="hidden sm:inline">Create </span>New Order</span>
             </button>
           </div>
         </div>
 
-        <!-- Professional Executive Tab Bar (Apple / Linear-style segmented control) -->
-        <div class="nav-tab-container p-1 bg-slate-200/70 rounded-2xl flex items-center gap-1 overflow-x-auto border border-slate-200/90 shadow-2xs no-scrollbar">
+        <!-- Mobile Section View Selector Dropdown (Zero horizontal scroll on phone) -->
+        <div class="block md:hidden">
+          <label class="block text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1 ml-0.5">Switch View / Tab:</label>
+          <div class="relative bg-white rounded-2xl border border-slate-300 shadow-2xs overflow-hidden focus-within:ring-2 focus-within:ring-blue-500 focus-within:border-blue-500 transition">
+            <select id="adminMobileTabSelect" onchange="switchAdminTab(this.value)" class="w-full text-xs font-bold py-3 pl-3.5 pr-10 bg-transparent text-slate-900 outline-none appearance-none cursor-pointer">
+              <option value="dashboard">📊 Executive Dashboard</option>
+              <option value="orders" id="optAdminOrders">📋 Purchase Orders & Production (0)</option>
+              <option value="dispatches" id="optAdminDispatches">🚚 Inward Deliveries & Gate Audit (0)</option>
+              <option value="scorecards" id="optAdminScorecards">📊 Quality Scorecards & Analytics</option>
+              <option value="vendors" id="optAdminVendors">👥 Supplier Directory & Access (0)</option>
+            </select>
+            <div class="absolute inset-y-0 right-0 flex items-center px-3.5 pointer-events-none text-slate-500">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
+            </div>
+          </div>
+        </div>
+
+        <!-- Professional Executive Tab Bar (Desktop Segmented Control) -->
+        <div class="hidden md:flex nav-tab-container p-1 bg-slate-200/70 rounded-2xl items-center gap-1 overflow-x-auto border border-slate-200/90 shadow-2xs no-scrollbar">
           <button type="button" onclick="switchAdminTab('dashboard')" id="adminTabBtnDashboard" class="nav-tab-btn nav-tab-btn-active px-4 py-2.5 rounded-xl text-xs font-bold transition flex items-center gap-2 flex-shrink-0 cursor-pointer">
             <span>📊 Executive Dashboard</span>
             <span id="adminTabBadgeDashboard" class="px-2 py-0.5 rounded-full text-[10px] font-mono font-bold bg-slate-900 text-white shadow-2xs transition-colors">Overview</span>
@@ -322,39 +349,47 @@
         <!-- ============================================== -->
         <div id="adminPaneDashboard" class="space-y-6">
 
-          <!-- 4 KPI Cards for Internal Operations -->
-          <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-            <div class="bg-gradient-to-br from-blue-500/5 via-white to-white rounded-2xl p-5 border border-blue-100 shadow-xs card-hover transition">
-              <div class="flex items-center justify-between text-slate-400 mb-2">
-                <span class="text-xs font-bold uppercase tracking-wider text-slate-500">Total Units Contracted</span>
-                <span class="w-9 h-9 bg-blue-50 text-blue-600 rounded-xl flex items-center justify-center text-sm shadow-2xs border border-blue-100">📦</span>
+          <!-- Mobile Operations Overview Dropdown Trigger -->
+          <button type="button" onclick="toggleAdminKpiMobile()" class="w-full md:hidden bg-gradient-to-r from-blue-50/80 to-indigo-50/80 hover:from-blue-100 hover:to-indigo-100 border border-blue-200/90 p-3 rounded-2xl flex items-center justify-between transition cursor-pointer shadow-2xs">
+            <div class="flex items-center gap-2.5">
+              <span class="text-base">📊</span>
+              <div class="text-left">
+                <span class="text-xs font-bold text-slate-900 block">Operations Overview (4 KPIs)</span>
+                <span class="text-[10px] text-slate-500 font-mono" id="adminKpiQuickSummary">Tap to expand overview</span>
               </div>
-              <p class="text-2xl font-black text-slate-900 font-mono tracking-tight mt-1" id="adminStatOrdered">0</p>
-              <p class="text-[11px] text-slate-400 mt-1 font-medium">Sum of all multi-item order quotas</p>
             </div>
-            <div class="bg-gradient-to-br from-indigo-500/5 via-white to-white rounded-2xl p-5 border border-indigo-100 shadow-xs card-hover transition">
-              <div class="flex items-center justify-between text-slate-400 mb-2">
-                <span class="text-xs font-bold uppercase tracking-wider text-slate-500">Total Units Shipped</span>
-                <span class="w-9 h-9 bg-indigo-50 text-indigo-600 rounded-xl flex items-center justify-center text-sm shadow-2xs border border-indigo-100">🚚</span>
+            <span id="adminKpiChevron" class="text-xs font-bold text-indigo-600 transition-transform duration-200">▼</span>
+          </button>
+
+          <!-- 4 KPI Cards for Internal Operations (Collapsible Dropdown on Mobile, Grid on Desktop) -->
+          <div id="adminKpiContainer" class="hidden md:grid grid-cols-2 lg:grid-cols-4 gap-2.5 sm:gap-4">
+            <div class="bg-gradient-to-br from-blue-500/5 via-white to-white rounded-xl sm:rounded-2xl p-3 sm:p-5 border border-blue-100 shadow-2xs card-hover transition flex flex-col justify-between">
+              <div class="flex items-center justify-between text-slate-400 mb-1 sm:mb-2">
+                <span class="text-[10px] sm:text-xs font-bold uppercase tracking-wider text-slate-500 truncate mr-1">Contracted Units</span>
+                <span class="w-7 h-7 sm:w-9 sm:h-9 bg-blue-50 text-blue-600 rounded-lg sm:rounded-xl flex items-center justify-center text-xs sm:text-sm shadow-2xs border border-blue-100 shrink-0">📦</span>
               </div>
-              <p class="text-2xl font-black text-blue-600 font-mono tracking-tight mt-1" id="adminStatShipped">0</p>
-              <p class="text-[11px] text-slate-400 mt-1 font-medium">Dispatched from all printing factories</p>
+              <p class="text-lg sm:text-2xl font-black text-slate-900 font-mono tracking-tight mt-0.5 sm:mt-1 truncate" id="adminStatOrdered">0</p>
             </div>
-            <div class="bg-gradient-to-br from-emerald-500/5 via-white to-white rounded-2xl p-5 border border-emerald-100 shadow-xs card-hover transition">
-              <div class="flex items-center justify-between text-slate-400 mb-2">
-                <span class="text-xs font-bold uppercase tracking-wider text-slate-500">Total Physical Receipts</span>
-                <span class="w-9 h-9 bg-emerald-50 text-emerald-600 rounded-xl flex items-center justify-center text-sm shadow-2xs border border-emerald-100">🏢</span>
+            <div class="bg-gradient-to-br from-indigo-500/5 via-white to-white rounded-xl sm:rounded-2xl p-3 sm:p-5 border border-indigo-100 shadow-2xs card-hover transition flex flex-col justify-between">
+              <div class="flex items-center justify-between text-slate-400 mb-1 sm:mb-2">
+                <span class="text-[10px] sm:text-xs font-bold uppercase tracking-wider text-slate-500 truncate mr-1">Units Shipped</span>
+                <span class="w-7 h-7 sm:w-9 sm:h-9 bg-indigo-50 text-indigo-600 rounded-lg sm:rounded-xl flex items-center justify-center text-xs sm:text-sm shadow-2xs border border-indigo-100 shrink-0">🚚</span>
               </div>
-              <p class="text-2xl font-black text-emerald-600 font-mono tracking-tight mt-1" id="adminStatReceived">0</p>
-              <p class="text-[11px] text-slate-400 mt-1 font-medium">Physically verified at gate receiving</p>
+              <p class="text-lg sm:text-2xl font-black text-blue-600 font-mono tracking-tight mt-0.5 sm:mt-1 truncate" id="adminStatShipped">0</p>
             </div>
-            <div class="bg-gradient-to-br from-rose-500/5 via-white to-white rounded-2xl p-5 border border-rose-100 shadow-xs card-hover transition">
-              <div class="flex items-center justify-between text-slate-400 mb-2">
-                <span class="text-xs font-bold uppercase tracking-wider text-slate-500">Total Physical Variance</span>
-                <span class="w-9 h-9 bg-rose-50 text-rose-600 rounded-xl flex items-center justify-center text-sm shadow-2xs border border-rose-100">⚖️</span>
+            <div class="bg-gradient-to-br from-emerald-500/5 via-white to-white rounded-xl sm:rounded-2xl p-3 sm:p-5 border border-emerald-100 shadow-2xs card-hover transition flex flex-col justify-between">
+              <div class="flex items-center justify-between text-slate-400 mb-1 sm:mb-2">
+                <span class="text-[10px] sm:text-xs font-bold uppercase tracking-wider text-slate-500 truncate mr-1">Physical Receipts</span>
+                <span class="w-7 h-7 sm:w-9 sm:h-9 bg-emerald-50 text-emerald-600 rounded-lg sm:rounded-xl flex items-center justify-center text-xs sm:text-sm shadow-2xs border border-emerald-100 shrink-0">🏢</span>
               </div>
-              <p class="text-2xl font-black text-rose-600 font-mono tracking-tight mt-1" id="adminStatVariance">0</p>
-              <p class="text-[11px] text-slate-400 mt-1 font-medium">Reconciliation across audited dispatches</p>
+              <p class="text-lg sm:text-2xl font-black text-emerald-600 font-mono tracking-tight mt-0.5 sm:mt-1 truncate" id="adminStatReceived">0</p>
+            </div>
+            <div class="bg-gradient-to-br from-rose-500/5 via-white to-white rounded-xl sm:rounded-2xl p-3 sm:p-5 border border-rose-100 shadow-2xs card-hover transition flex flex-col justify-between">
+              <div class="flex items-center justify-between text-slate-400 mb-1 sm:mb-2">
+                <span class="text-[10px] sm:text-xs font-bold uppercase tracking-wider text-slate-500 truncate mr-1">Physical Variance</span>
+                <span class="w-7 h-7 sm:w-9 sm:h-9 bg-rose-50 text-rose-600 rounded-lg sm:rounded-xl flex items-center justify-center text-xs sm:text-sm shadow-2xs border border-rose-100 shrink-0">⚖️</span>
+              </div>
+              <p class="text-lg sm:text-2xl font-black text-rose-600 font-mono tracking-tight mt-0.5 sm:mt-1 truncate" id="adminStatVariance">0</p>
             </div>
           </div>
 
@@ -368,7 +403,6 @@
                   </h3>
                   <span class="px-2.5 py-0.5 rounded-full text-[10px] font-mono font-bold bg-indigo-50 text-indigo-700 border border-indigo-200" id="adminCurrentMonthBadge">This Month</span>
                 </div>
-                <p class="text-xs text-slate-500 mt-0.5">Automated monthly procurement volume, factory dispatches, gate receipts and delivery accuracy.</p>
               </div>
               <!-- Comprehensive Date-Range Excel / CSV Exporter -->
               <div class="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 w-full lg:w-auto">
@@ -389,27 +423,23 @@
               </div>
             </div>
 
-            <!-- Monthly Metrics Cards -->
-            <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
-              <div class="bg-slate-50/80 p-3.5 rounded-xl border border-slate-200/90">
-                <span class="text-[11px] font-bold text-slate-500 uppercase tracking-wider block">Monthly Orders</span>
-                <span id="monthlyStatOrdersCount" class="text-xl font-black text-slate-900 font-mono mt-0.5 block">0 Orders</span>
-                <span class="text-[10px] text-slate-400 block mt-0.5">Created this calendar month</span>
+            <!-- Monthly Metrics Cards (Compact on Mobile) -->
+            <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-3 text-xs">
+              <div class="bg-slate-50/80 p-2.5 sm:p-3.5 rounded-xl border border-slate-200/90">
+                <span class="text-[10px] sm:text-[11px] font-bold text-slate-500 uppercase tracking-wider block truncate">Monthly Orders</span>
+                <span id="monthlyStatOrdersCount" class="text-base sm:text-xl font-black text-slate-900 font-mono mt-0.5 block truncate">0 Orders</span>
               </div>
-              <div class="bg-slate-50/80 p-3.5 rounded-xl border border-slate-200/90">
-                <span class="text-[11px] font-bold text-slate-500 uppercase tracking-wider block">Monthly Contracted</span>
-                <span id="monthlyStatContractedUnits" class="text-xl font-black text-blue-600 font-mono mt-0.5 block">0</span>
-                <span class="text-[10px] text-slate-400 block mt-0.5">Quota allocated to vendors</span>
+              <div class="bg-slate-50/80 p-2.5 sm:p-3.5 rounded-xl border border-slate-200/90">
+                <span class="text-[10px] sm:text-[11px] font-bold text-slate-500 uppercase tracking-wider block truncate">Contracted</span>
+                <span id="monthlyStatContractedUnits" class="text-base sm:text-xl font-black text-blue-600 font-mono mt-0.5 block truncate">0</span>
               </div>
-              <div class="bg-slate-50/80 p-3.5 rounded-xl border border-slate-200/90">
-                <span class="text-[11px] font-bold text-slate-500 uppercase tracking-wider block">Dispatched This Month</span>
-                <span id="monthlyStatShippedUnits" class="text-xl font-black text-emerald-600 font-mono mt-0.5 block">0</span>
-                <span class="text-[10px] text-slate-400 block mt-0.5">Shipped from factories</span>
+              <div class="bg-slate-50/80 p-2.5 sm:p-3.5 rounded-xl border border-slate-200/90">
+                <span class="text-[10px] sm:text-[11px] font-bold text-slate-500 uppercase tracking-wider block truncate">Dispatched</span>
+                <span id="monthlyStatShippedUnits" class="text-base sm:text-xl font-black text-emerald-600 font-mono mt-0.5 block truncate">0</span>
               </div>
-              <div class="bg-slate-50/80 p-3.5 rounded-xl border border-slate-200/90">
-                <span class="text-[11px] font-bold text-slate-500 uppercase tracking-wider block">Fulfillment Efficiency</span>
-                <span id="monthlyStatFulfillmentRate" class="text-xl font-black text-purple-600 font-mono mt-0.5 block">0%</span>
-                <span class="text-[10px] text-slate-400 block mt-0.5">Shipped vs contracted ratio</span>
+              <div class="bg-slate-50/80 p-2.5 sm:p-3.5 rounded-xl border border-slate-200/90">
+                <span class="text-[10px] sm:text-[11px] font-bold text-slate-500 uppercase tracking-wider block truncate">Efficiency</span>
+                <span id="monthlyStatFulfillmentRate" class="text-base sm:text-xl font-black text-purple-600 font-mono mt-0.5 block truncate">0%</span>
               </div>
             </div>
           </div>
@@ -423,64 +453,59 @@
                   <span class="w-7 h-7 rounded-lg bg-indigo-50 border border-indigo-100/80 flex items-center justify-center text-sm shrink-0">🏭</span>
                   <div>
                     <h4 class="text-xs font-bold uppercase tracking-wider text-slate-800">Manufacturing & Order Pipeline</h4>
-                    <p class="text-[11px] text-slate-400 font-medium">Stage-by-stage factory workflow tracking</p>
                   </div>
                 </div>
                 <button type="button" onclick="switchAdminTab('orders'); window.scrollTo({ top: 0, behavior: 'smooth' });" class="px-2.5 py-1 rounded-lg text-xs font-bold text-blue-600 hover:text-blue-800 hover:bg-blue-50 transition border border-transparent hover:border-blue-100 flex items-center gap-1 cursor-pointer shrink-0">
                   <span>View All Orders &rarr;</span>
                 </button>
               </div>
-              <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-                <button type="button" onclick="drilldownPo('pending')" class="group p-3.5 rounded-xl bg-amber-50/70 hover:bg-amber-100/80 border border-amber-200/80 text-left transition shadow-2xs hover:shadow-xs cursor-pointer flex flex-col justify-between min-h-[84px]">
+              <div class="grid grid-cols-2 gap-2 sm:gap-2.5">
+                <button type="button" onclick="drilldownPo('pending')" class="group p-2.5 sm:p-3.5 rounded-xl bg-amber-50/70 hover:bg-amber-100/80 border border-amber-200/80 text-left transition shadow-2xs hover:shadow-xs cursor-pointer flex flex-col justify-between min-h-[58px] sm:min-h-[70px]">
                   <div class="flex items-center justify-between gap-1">
-                    <span class="text-xs font-bold text-amber-900 flex items-center gap-1.5">
+                    <span class="text-[10px] sm:text-xs font-bold text-amber-900 flex items-center gap-1 sm:gap-1.5 truncate">
                       <span>⏳</span>
-                      <span>Awaiting Supplier</span>
+                      <span class="truncate">Awaiting</span>
                     </span>
-                    <span class="text-[10px] font-bold text-amber-700 bg-amber-200/60 group-hover:bg-amber-200 px-1.5 py-0.5 rounded transition shrink-0">&rarr;</span>
+                    <span class="text-[9px] sm:text-[10px] font-bold text-amber-700 bg-amber-200/60 group-hover:bg-amber-200 px-1 sm:px-1.5 py-0.5 rounded transition shrink-0">&rarr;</span>
                   </div>
-                  <div class="flex items-baseline justify-between gap-1 mt-2">
-                    <span id="dashPipelinePending" class="text-2xl font-black text-amber-950 font-mono tracking-tight leading-none">0</span>
-                    <span class="text-[10px] text-amber-700/90 font-medium">Click to review</span>
+                  <div class="flex items-baseline justify-between gap-1 mt-1 sm:mt-2">
+                    <span id="dashPipelinePending" class="text-lg sm:text-2xl font-black text-amber-950 font-mono tracking-tight leading-none">0</span>
                   </div>
                 </button>
-                <button type="button" onclick="drilldownPo('in_production')" class="group p-3.5 rounded-xl bg-indigo-50/70 hover:bg-indigo-100/80 border border-indigo-200/80 text-left transition shadow-2xs hover:shadow-xs cursor-pointer flex flex-col justify-between min-h-[84px]">
+                <button type="button" onclick="drilldownPo('in_production')" class="group p-2.5 sm:p-3.5 rounded-xl bg-indigo-50/70 hover:bg-indigo-100/80 border border-indigo-200/80 text-left transition shadow-2xs hover:shadow-xs cursor-pointer flex flex-col justify-between min-h-[58px] sm:min-h-[70px]">
                   <div class="flex items-center justify-between gap-1">
-                    <span class="text-xs font-bold text-indigo-900 flex items-center gap-1.5">
+                    <span class="text-[10px] sm:text-xs font-bold text-indigo-900 flex items-center gap-1 sm:gap-1.5 truncate">
                       <span>🏭</span>
-                      <span>In Production</span>
+                      <span class="truncate">In Production</span>
                     </span>
-                    <span class="text-[10px] font-bold text-indigo-700 bg-indigo-200/60 group-hover:bg-indigo-200 px-1.5 py-0.5 rounded transition shrink-0">&rarr;</span>
+                    <span class="text-[9px] sm:text-[10px] font-bold text-indigo-700 bg-indigo-200/60 group-hover:bg-indigo-200 px-1 sm:px-1.5 py-0.5 rounded transition shrink-0">&rarr;</span>
                   </div>
-                  <div class="flex items-baseline justify-between gap-1 mt-2">
-                    <span id="dashPipelineProd" class="text-2xl font-black text-indigo-950 font-mono tracking-tight leading-none">0</span>
-                    <span class="text-[10px] text-indigo-700/90 font-medium">Click to inspect</span>
+                  <div class="flex items-baseline justify-between gap-1 mt-1 sm:mt-2">
+                    <span id="dashPipelineProd" class="text-lg sm:text-2xl font-black text-indigo-950 font-mono tracking-tight leading-none">0</span>
                   </div>
                 </button>
-                <button type="button" onclick="drilldownPo('in_stock')" class="group p-3.5 rounded-xl bg-emerald-50/70 hover:bg-emerald-100/80 border border-emerald-200/80 text-left transition shadow-2xs hover:shadow-xs cursor-pointer flex flex-col justify-between min-h-[84px]">
+                <button type="button" onclick="drilldownPo('in_stock')" class="group p-2.5 sm:p-3.5 rounded-xl bg-emerald-50/70 hover:bg-emerald-100/80 border border-emerald-200/80 text-left transition shadow-2xs hover:shadow-xs cursor-pointer flex flex-col justify-between min-h-[58px] sm:min-h-[70px]">
                   <div class="flex items-center justify-between gap-1">
-                    <span class="text-xs font-bold text-emerald-900 flex items-center gap-1.5">
+                    <span class="text-[10px] sm:text-xs font-bold text-emerald-900 flex items-center gap-1 sm:gap-1.5 truncate">
                       <span>📦</span>
-                      <span>Ready in Stock</span>
+                      <span class="truncate">In Stock</span>
                     </span>
-                    <span class="text-[10px] font-bold text-emerald-700 bg-emerald-200/60 group-hover:bg-emerald-200 px-1.5 py-0.5 rounded transition shrink-0">&rarr;</span>
+                    <span class="text-[9px] sm:text-[10px] font-bold text-emerald-700 bg-emerald-200/60 group-hover:bg-emerald-200 px-1 sm:px-1.5 py-0.5 rounded transition shrink-0">&rarr;</span>
                   </div>
-                  <div class="flex items-baseline justify-between gap-1 mt-2">
-                    <span id="dashPipelineStock" class="text-2xl font-black text-emerald-950 font-mono tracking-tight leading-none">0</span>
-                    <span class="text-[10px] text-emerald-700/90 font-medium">Click to dispatch</span>
+                  <div class="flex items-baseline justify-between gap-1 mt-1 sm:mt-2">
+                    <span id="dashPipelineStock" class="text-lg sm:text-2xl font-black text-emerald-950 font-mono tracking-tight leading-none">0</span>
                   </div>
                 </button>
-                <button type="button" onclick="drilldownPo('completed')" class="group p-3.5 rounded-xl bg-slate-50 hover:bg-slate-100/90 border border-slate-200/90 text-left transition shadow-2xs hover:shadow-xs cursor-pointer flex flex-col justify-between min-h-[84px]">
+                <button type="button" onclick="drilldownPo('completed')" class="group p-2.5 sm:p-3.5 rounded-xl bg-slate-50 hover:bg-slate-100/90 border border-slate-200/90 text-left transition shadow-2xs hover:shadow-xs cursor-pointer flex flex-col justify-between min-h-[58px] sm:min-h-[70px]">
                   <div class="flex items-center justify-between gap-1">
-                    <span class="text-xs font-bold text-slate-800 flex items-center gap-1.5">
+                    <span class="text-[10px] sm:text-xs font-bold text-slate-800 flex items-center gap-1 sm:gap-1.5 truncate">
                       <span>✅</span>
-                      <span>Fulfilled Orders</span>
+                      <span class="truncate">Fulfilled</span>
                     </span>
-                    <span class="text-[10px] font-bold text-slate-600 bg-slate-200/80 group-hover:bg-slate-200 px-1.5 py-0.5 rounded transition shrink-0">&rarr;</span>
+                    <span class="text-[9px] sm:text-[10px] font-bold text-slate-600 bg-slate-200/80 group-hover:bg-slate-200 px-1 sm:px-1.5 py-0.5 rounded transition shrink-0">&rarr;</span>
                   </div>
-                  <div class="flex items-baseline justify-between gap-1 mt-2">
-                    <span id="dashPipelineComp" class="text-2xl font-black text-slate-900 font-mono tracking-tight leading-none">0</span>
-                    <span class="text-[10px] text-slate-500 font-medium">Click for archive</span>
+                  <div class="flex items-baseline justify-between gap-1 mt-1 sm:mt-2">
+                    <span id="dashPipelineComp" class="text-lg sm:text-2xl font-black text-slate-900 font-mono tracking-tight leading-none">0</span>
                   </div>
                 </button>
               </div>
@@ -493,64 +518,59 @@
                   <span class="w-7 h-7 rounded-lg bg-blue-50 border border-blue-100/80 flex items-center justify-center text-sm shrink-0">🚚</span>
                   <div>
                     <h4 class="text-xs font-bold uppercase tracking-wider text-slate-800">Gate Receipts & Reconciliation</h4>
-                    <p class="text-[11px] text-slate-400 font-medium">Inward verification, shortages & quality logs</p>
                   </div>
                 </div>
                 <button type="button" onclick="switchAdminTab('dispatches'); window.scrollTo({ top: 0, behavior: 'smooth' });" class="px-2.5 py-1 rounded-lg text-xs font-bold text-blue-600 hover:text-blue-800 hover:bg-blue-50 transition border border-transparent hover:border-blue-100 flex items-center gap-1 cursor-pointer shrink-0">
                   <span>View All Dispatches &rarr;</span>
                 </button>
               </div>
-              <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-                <button type="button" onclick="drilldownShipment('transit')" class="group p-3.5 rounded-xl bg-blue-50/70 hover:bg-blue-100/80 border border-blue-200/80 text-left transition shadow-2xs hover:shadow-xs cursor-pointer flex flex-col justify-between min-h-[84px]">
+              <div class="grid grid-cols-2 gap-2 sm:gap-2.5">
+                <button type="button" onclick="drilldownShipment('transit')" class="group p-2.5 sm:p-3.5 rounded-xl bg-blue-50/70 hover:bg-blue-100/80 border border-blue-200/80 text-left transition shadow-2xs hover:shadow-xs cursor-pointer flex flex-col justify-between min-h-[58px] sm:min-h-[70px]">
                   <div class="flex items-center justify-between gap-1">
-                    <span class="text-xs font-bold text-blue-900 flex items-center gap-1.5">
+                    <span class="text-[10px] sm:text-xs font-bold text-blue-900 flex items-center gap-1 sm:gap-1.5 truncate">
                       <span>🚚</span>
-                      <span>In Transit Shipments</span>
+                      <span class="truncate">In Transit</span>
                     </span>
-                    <span class="text-[10px] font-bold text-blue-700 bg-blue-200/60 group-hover:bg-blue-200 px-1.5 py-0.5 rounded transition shrink-0">&rarr;</span>
+                    <span class="text-[9px] sm:text-[10px] font-bold text-blue-700 bg-blue-200/60 group-hover:bg-blue-200 px-1 sm:px-1.5 py-0.5 rounded transition shrink-0">&rarr;</span>
                   </div>
-                  <div class="flex items-baseline justify-between gap-1 mt-2">
-                    <span id="dashAuditTransit" class="text-2xl font-black text-blue-950 font-mono tracking-tight leading-none">0</span>
-                    <span class="text-[10px] text-blue-700/90 font-medium">Awaiting gate count</span>
+                  <div class="flex items-baseline justify-between gap-1 mt-1 sm:mt-2">
+                    <span id="dashAuditTransit" class="text-lg sm:text-2xl font-black text-blue-950 font-mono tracking-tight leading-none">0</span>
                   </div>
                 </button>
-                <button type="button" onclick="drilldownShipment('shortages')" class="group p-3.5 rounded-xl bg-rose-50/70 hover:bg-rose-100/80 border border-rose-200/80 text-left transition shadow-2xs hover:shadow-xs cursor-pointer flex flex-col justify-between min-h-[84px]">
+                <button type="button" onclick="drilldownShipment('shortages')" class="group p-2.5 sm:p-3.5 rounded-xl bg-rose-50/70 hover:bg-rose-100/80 border border-rose-200/80 text-left transition shadow-2xs hover:shadow-xs cursor-pointer flex flex-col justify-between min-h-[58px] sm:min-h-[70px]">
                   <div class="flex items-center justify-between gap-1">
-                    <span class="text-xs font-bold text-rose-900 flex items-center gap-1.5">
+                    <span class="text-[10px] sm:text-xs font-bold text-rose-900 flex items-center gap-1 sm:gap-1.5 truncate">
                       <span>⚠️</span>
-                      <span>Shortage Discrepancies</span>
+                      <span class="truncate">Shortages</span>
                     </span>
-                    <span class="text-[10px] font-bold text-rose-700 bg-rose-200/60 group-hover:bg-rose-200 px-1.5 py-0.5 rounded transition shrink-0">&rarr;</span>
+                    <span class="text-[9px] sm:text-[10px] font-bold text-rose-700 bg-rose-200/60 group-hover:bg-rose-200 px-1 sm:px-1.5 py-0.5 rounded transition shrink-0">&rarr;</span>
                   </div>
-                  <div class="flex items-baseline justify-between gap-1 mt-2">
-                    <span id="dashAuditShortages" class="text-2xl font-black text-rose-950 font-mono tracking-tight leading-none">0</span>
-                    <span class="text-[10px] text-rose-700/90 font-medium">Shortfall detected</span>
+                  <div class="flex items-baseline justify-between gap-1 mt-1 sm:mt-2">
+                    <span id="dashAuditShortages" class="text-lg sm:text-2xl font-black text-rose-950 font-mono tracking-tight leading-none">0</span>
                   </div>
                 </button>
-                <button type="button" onclick="drilldownShipment('damaged')" class="group p-3.5 rounded-xl bg-amber-50/70 hover:bg-amber-100/80 border border-amber-200/80 text-left transition shadow-2xs hover:shadow-xs cursor-pointer flex flex-col justify-between min-h-[84px]">
+                <button type="button" onclick="drilldownShipment('damaged')" class="group p-2.5 sm:p-3.5 rounded-xl bg-amber-50/70 hover:bg-amber-100/80 border border-amber-200/80 text-left transition shadow-2xs hover:shadow-xs cursor-pointer flex flex-col justify-between min-h-[58px] sm:min-h-[70px]">
                   <div class="flex items-center justify-between gap-1">
-                    <span class="text-xs font-bold text-amber-900 flex items-center gap-1.5">
+                    <span class="text-[10px] sm:text-xs font-bold text-amber-900 flex items-center gap-1 sm:gap-1.5 truncate">
                       <span>📦</span>
-                      <span>Damaged / Rejected</span>
+                      <span class="truncate">Damaged</span>
                     </span>
-                    <span class="text-[10px] font-bold text-amber-700 bg-amber-200/60 group-hover:bg-amber-200 px-1.5 py-0.5 rounded transition shrink-0">&rarr;</span>
+                    <span class="text-[9px] sm:text-[10px] font-bold text-amber-700 bg-amber-200/60 group-hover:bg-amber-200 px-1 sm:px-1.5 py-0.5 rounded transition shrink-0">&rarr;</span>
                   </div>
-                  <div class="flex items-baseline justify-between gap-1 mt-2">
-                    <span id="dashAuditDamaged" class="text-2xl font-black text-amber-950 font-mono tracking-tight leading-none">0</span>
-                    <span class="text-[10px] text-amber-700/90 font-medium">Quality reject logs</span>
+                  <div class="flex items-baseline justify-between gap-1 mt-1 sm:mt-2">
+                    <span id="dashAuditDamaged" class="text-lg sm:text-2xl font-black text-amber-950 font-mono tracking-tight leading-none">0</span>
                   </div>
                 </button>
-                <button type="button" onclick="switchAdminTab('scorecards'); window.scrollTo({ top: 0, behavior: 'smooth' });" class="group p-3.5 rounded-xl bg-purple-50/70 hover:bg-purple-100/80 border border-purple-200/80 text-left transition shadow-2xs hover:shadow-xs cursor-pointer flex flex-col justify-between min-h-[84px]">
+                <button type="button" onclick="switchAdminTab('scorecards'); window.scrollTo({ top: 0, behavior: 'smooth' });" class="group p-2.5 sm:p-3.5 rounded-xl bg-purple-50/70 hover:bg-purple-100/80 border border-purple-200/80 text-left transition shadow-2xs hover:shadow-xs cursor-pointer flex flex-col justify-between min-h-[58px] sm:min-h-[70px]">
                   <div class="flex items-center justify-between gap-1">
-                    <span class="text-xs font-bold text-purple-900 flex items-center gap-1.5">
+                    <span class="text-[10px] sm:text-xs font-bold text-purple-900 flex items-center gap-1 sm:gap-1.5 truncate">
                       <span>📊</span>
-                      <span>Supplier Scorecards</span>
+                      <span class="truncate">Scorecards</span>
                     </span>
-                    <span class="text-[10px] font-bold text-purple-700 bg-purple-200/60 group-hover:bg-purple-200 px-1.5 py-0.5 rounded transition shrink-0">&rarr;</span>
+                    <span class="text-[9px] sm:text-[10px] font-bold text-purple-700 bg-purple-200/60 group-hover:bg-purple-200 px-1 sm:px-1.5 py-0.5 rounded transition shrink-0">&rarr;</span>
                   </div>
-                  <div class="flex items-baseline justify-between gap-1 mt-2">
-                    <span id="dashAuditVendors" class="text-2xl font-black text-purple-950 font-mono tracking-tight leading-none">0</span>
-                    <span class="text-[10px] text-purple-700/90 font-medium">Performance audits</span>
+                  <div class="flex items-baseline justify-between gap-1 mt-1 sm:mt-2">
+                    <span id="dashAuditVendors" class="text-lg sm:text-2xl font-black text-purple-950 font-mono tracking-tight leading-none">0</span>
                   </div>
                 </button>
               </div>
@@ -567,9 +587,20 @@
           <!-- All Orders Overview Table with Manufacturing Stage & Sample Proofs -->
           <div class="bg-white rounded-2xl border border-slate-200 shadow-xs overflow-hidden">
             <div class="p-4 border-b border-slate-100 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-              <div>
-                <h2 class="text-sm font-bold text-slate-900">Purchase Orders, Line Allocations & Manufacturing Stages</h2>
-                <span class="text-xs text-slate-500">Live multi-vendor tracker with production readiness & approved sample proofs</span>
+              <div class="flex items-center justify-between">
+                <div>
+                  <h2 class="text-sm font-bold text-slate-900">Purchase Orders, Line Allocations & Manufacturing Stages</h2>
+                  <span class="text-xs text-slate-500">Live multi-vendor tracker with production readiness & approved sample proofs</span>
+                </div>
+                <!-- Mobile View Switcher (Cards vs Table) -->
+                <div class="flex items-center gap-1 md:hidden bg-slate-100 p-0.5 rounded-xl border border-slate-200 shrink-0">
+                  <button type="button" id="btnPoViewCards" onclick="setPoMobileView('cards')" class="px-2.5 py-1 rounded-lg text-[10px] font-bold bg-slate-900 text-white shadow-2xs cursor-pointer">
+                    <span>🗂️ Cards</span>
+                  </button>
+                  <button type="button" id="btnPoViewTable" onclick="setPoMobileView('table')" class="px-2.5 py-1 rounded-lg text-[10px] font-bold text-slate-600 hover:bg-slate-200 cursor-pointer">
+                    <span>▤ Table</span>
+                  </button>
+                </div>
               </div>
               <!-- Production Stage Filter Toolbar -->
               <div class="flex items-center gap-2 overflow-x-auto text-xs w-full sm:w-auto no-scrollbar">
@@ -618,11 +649,20 @@
                 <span>💳 Cards</span>
               </button>
             </div>
-            <div class="mobile-scroll-hint">
+
+            <!-- Mobile Orders Cards Container (Zero horizontal scrolling on phone) -->
+            <div id="adminPoCardsContainer" class="block md:hidden p-3 space-y-3 bg-slate-50/40">
+              <!-- Dynamically populated via JS -->
+            </div>
+
+            <!-- Mobile Table Scroll Hint (Shown only when in Table mode on mobile) -->
+            <div id="adminPoScrollHint" class="mobile-scroll-hint hidden">
               <span>👈 Swipe table sideways for all columns</span>
               <span class="text-blue-600 font-bold">Actions pinned 👉</span>
             </div>
-            <div class="overflow-x-auto">
+
+            <!-- Desktop Orders Table Wrapper -->
+            <div id="adminPoTableWrapper" class="hidden md:block overflow-x-auto">
               <table class="w-full text-left text-xs table-sticky-actions">
                 <thead class="bg-slate-50/90 text-slate-500 font-bold uppercase tracking-wider text-[11px] border-b border-slate-200/80">
                   <tr>
@@ -654,12 +694,20 @@
           <!-- Gate Receiving & Invoice Verification Table -->
           <div class="bg-white rounded-2xl border border-slate-200 shadow-xs overflow-hidden">
             <div class="p-4 border-b border-slate-100 flex flex-col md:flex-row md:items-center justify-between gap-3">
-              <div>
+              <div class="flex items-center justify-between w-full md:w-auto">
                 <div class="flex items-center gap-2">
                   <h2 class="text-sm font-bold text-slate-900">Warehouse Receiving, Invoices & Discrepancy Log</h2>
                   <span class="badge-pill badge-emerald text-[10px]">Audit Engine</span>
                 </div>
-                <p class="text-xs text-slate-500 mt-0.5">Filter discrepancies, cross-verify invoices, record damaged cartons, and reconcile physical inventory.</p>
+                <!-- Mobile View Switcher (Cards vs Table) -->
+                <div class="flex items-center gap-1 md:hidden bg-slate-100 p-0.5 rounded-xl border border-slate-200 shrink-0">
+                  <button type="button" id="btnAdminDispatchesViewCards" onclick="setAdminDispatchesMobileView('cards')" class="px-2.5 py-1 rounded-lg text-[10px] font-bold bg-slate-900 text-white shadow-2xs cursor-pointer">
+                    <span>🗂️ Cards</span>
+                  </button>
+                  <button type="button" id="btnAdminDispatchesViewTable" onclick="setAdminDispatchesMobileView('table')" class="px-2.5 py-1 rounded-lg text-[10px] font-bold text-slate-600 hover:bg-slate-200 cursor-pointer">
+                    <span>▤ Table</span>
+                  </button>
+                </div>
               </div>
               <div class="flex flex-wrap items-center gap-2">
                 <button onclick="clearAllShipments()" class="px-3 py-1.5 bg-rose-50 hover:bg-rose-100 text-rose-700 text-xs font-bold rounded-xl border border-rose-200 transition flex items-center gap-1 shadow-2xs">
@@ -720,11 +768,19 @@
               </button>
             </div>
 
-            <div class="mobile-scroll-hint">
+            <!-- Mobile Shipments Cards Container (Zero horizontal scrolling on phone) -->
+            <div id="adminShipmentsCardsContainer" class="block md:hidden p-3 space-y-3 bg-slate-50/40">
+              <!-- Dynamically populated via JS -->
+            </div>
+
+            <!-- Mobile Table Scroll Hint (Shown only when in Table mode on mobile) -->
+            <div id="adminShipmentsScrollHint" class="mobile-scroll-hint hidden">
               <span>👈 Swipe sideways for all columns</span>
               <span class="text-blue-600 font-bold">Actions pinned 👉</span>
             </div>
-            <div class="overflow-x-auto">
+
+            <!-- Desktop Shipments Table Wrapper -->
+            <div id="adminShipmentsTableWrapper" class="hidden md:block overflow-x-auto">
               <table class="w-full text-left text-xs table-sticky-actions">
                 <thead class="bg-slate-50/90 text-slate-500 font-bold uppercase tracking-wider text-[11px] border-b border-slate-200/80">
                   <tr>
@@ -766,23 +822,23 @@
               <span class="badge-pill badge-purple">Live Audited</span>
             </div>
 
-            <!-- High-level Fleet Stats -->
-            <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
-              <div class="bg-slate-50 p-4 rounded-2xl border border-slate-200">
-                <span class="text-slate-500 block text-[11px] font-semibold">Active Suppliers</span>
-                <span id="scorecardActiveSuppliersTab" class="text-2xl font-black text-slate-900 font-mono mt-1 block">0</span>
+            <!-- High-level Fleet Stats (Compact 2x2 on Mobile) -->
+            <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-3 text-xs">
+              <div class="bg-slate-50 p-2.5 sm:p-4 rounded-xl sm:rounded-2xl border border-slate-200">
+                <span class="text-slate-500 block text-[10px] sm:text-[11px] font-semibold truncate">Active Suppliers</span>
+                <span id="scorecardActiveSuppliersTab" class="text-base sm:text-2xl font-black text-slate-900 font-mono mt-0.5 sm:mt-1 block truncate">0</span>
               </div>
-              <div class="bg-slate-50 p-4 rounded-2xl border border-slate-200">
-                <span class="text-slate-500 block text-[11px] font-semibold">Fleet Accuracy</span>
-                <span id="scorecardFleetAccuracyTab" class="text-2xl font-black text-emerald-600 font-mono mt-1 block">0%</span>
+              <div class="bg-slate-50 p-2.5 sm:p-4 rounded-xl sm:rounded-2xl border border-slate-200">
+                <span class="text-slate-500 block text-[10px] sm:text-[11px] font-semibold truncate">Fleet Accuracy</span>
+                <span id="scorecardFleetAccuracyTab" class="text-base sm:text-2xl font-black text-emerald-600 font-mono mt-0.5 sm:mt-1 block truncate">0%</span>
               </div>
-              <div class="bg-slate-50 p-4 rounded-2xl border border-slate-200">
-                <span class="text-slate-500 block text-[11px] font-semibold">Shortage Incidents</span>
-                <span id="scorecardTotalShortagesTab" class="text-2xl font-black text-rose-600 font-mono mt-1 block">0</span>
+              <div class="bg-slate-50 p-2.5 sm:p-4 rounded-xl sm:rounded-2xl border border-slate-200">
+                <span class="text-slate-500 block text-[10px] sm:text-[11px] font-semibold truncate">Shortages</span>
+                <span id="scorecardTotalShortagesTab" class="text-base sm:text-2xl font-black text-rose-600 font-mono mt-0.5 sm:mt-1 block truncate">0</span>
               </div>
-              <div class="bg-slate-50 p-4 rounded-2xl border border-slate-200">
-                <span class="text-slate-500 block text-[11px] font-semibold">Damaged Goods Reported</span>
-                <span id="scorecardTotalDamagedTab" class="text-2xl font-black text-amber-600 font-mono mt-1 block">0 units</span>
+              <div class="bg-slate-50 p-2.5 sm:p-4 rounded-xl sm:rounded-2xl border border-slate-200">
+                <span class="text-slate-500 block text-[10px] sm:text-[11px] font-semibold truncate">Damaged Goods</span>
+                <span id="scorecardTotalDamagedTab" class="text-base sm:text-2xl font-black text-amber-600 font-mono mt-0.5 sm:mt-1 block truncate">0 units</span>
               </div>
             </div>
 
@@ -806,11 +862,22 @@
         <div id="adminPaneVendors" class="space-y-6 hidden">
 
           <div class="bg-white rounded-3xl border border-slate-200 shadow-xs p-6 space-y-6">
-            <div class="flex items-center justify-between border-b border-slate-100 pb-4">
-              <div>
-                <span class="text-xs text-blue-600 font-bold uppercase tracking-wider block">Supplier Management</span>
-                <h3 class="text-lg font-black text-slate-900 mt-0.5">Authorized Suppliers & Login Credentials</h3>
-                <p class="text-xs text-slate-500 mt-0.5">Provision secure portal accounts and manage supplier access.</p>
+            <div class="flex flex-col sm:flex-row sm:items-center justify-between border-b border-slate-100 pb-4 gap-3">
+              <div class="flex items-center justify-between w-full sm:w-auto">
+                <div>
+                  <span class="text-xs text-blue-600 font-bold uppercase tracking-wider block">Supplier Management</span>
+                  <h3 class="text-base sm:text-lg font-black text-slate-900 mt-0.5">Authorized Suppliers & Login Credentials</h3>
+                  <p class="text-xs text-slate-500 mt-0.5">Provision secure portal accounts and manage supplier access.</p>
+                </div>
+                <!-- Mobile View Switcher (Cards vs Table) -->
+                <div class="flex items-center gap-1 md:hidden bg-slate-100 p-0.5 rounded-xl border border-slate-200 shrink-0 self-start">
+                  <button type="button" id="btnVendorListViewCards" onclick="setVendorListMobileView('cards')" class="px-2.5 py-1 rounded-lg text-[10px] font-bold bg-slate-900 text-white shadow-2xs cursor-pointer">
+                    <span>🗂️ Cards</span>
+                  </button>
+                  <button type="button" id="btnVendorListViewTable" onclick="setVendorListMobileView('table')" class="px-2.5 py-1 rounded-lg text-[10px] font-bold text-slate-600 hover:bg-slate-200 cursor-pointer">
+                    <span>▤ Table</span>
+                  </button>
+                </div>
               </div>
               <button onclick="exportEncryptedVault()" class="text-xs px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold rounded-xl border border-slate-300 transition flex items-center gap-1.5 cursor-pointer shadow-2xs">
                 <svg class="w-3.5 h-3.5 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
@@ -818,7 +885,18 @@
               </button>
             </div>
 
-            <div class="border border-slate-200 rounded-2xl overflow-x-auto shadow-xs">
+            <!-- Mobile Supplier Directory Cards Container -->
+            <div id="vendorListCardsContainer" class="block md:hidden space-y-3">
+              <!-- Dynamically populated via JS -->
+            </div>
+
+            <!-- Mobile Table Scroll Hint (Shown only when in Table mode on mobile) -->
+            <div id="vendorListScrollHint" class="mobile-scroll-hint hidden mb-2">
+              <span>👈 Swipe table sideways for all columns</span>
+            </div>
+
+            <!-- Desktop Supplier Directory Table Wrapper -->
+            <div id="vendorListTableWrapper" class="hidden md:block border border-slate-200 rounded-2xl overflow-x-auto shadow-xs">
               <table class="w-full text-left text-xs min-w-[560px] sm:min-w-0">
                 <thead class="bg-slate-100 text-slate-600 font-semibold border-b border-slate-200">
                   <tr>
@@ -858,9 +936,6 @@
               <span>Warehouse Gate Inward Command</span>
             </div>
             <h1 class="text-2xl sm:text-3xl font-black tracking-tight">Gate Physical Inspection & Verification</h1>
-            <p class="text-xs sm:text-sm text-slate-300 max-w-2xl font-normal leading-relaxed">
-              Inspect offloaded cartons from trucks. Enter carton & physical counts for both <strong class="text-white font-semibold">Labels</strong> and accompanying <strong class="text-purple-300 font-semibold">Thermal Transfer Ribbons</strong>, record defect evidence, and sign off inward gate passes.
-            </p>
             <div class="pt-2 max-w-md">
               <div class="relative">
                 <input type="text" id="gateSearchInput" oninput="render()" placeholder="Scan or search Invoice #, Order #, Vendor, SKU, or Ribbons..." class="w-full text-xs px-4 py-3 pl-10 rounded-xl bg-white/10 border border-white/20 text-white placeholder-slate-400 outline-none focus:ring-2 focus:ring-emerald-400 transition font-medium">
@@ -870,51 +945,63 @@
           </div>
         </div>
 
-        <!-- Gatekeeper Metric Summary Scorecard -->
-        <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
-          <div class="bg-white p-4 rounded-2xl border border-slate-200 shadow-xs flex flex-col justify-between">
-            <div class="flex items-center justify-between">
-              <span class="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Inward Shipments</span>
-              <span class="w-8 h-8 rounded-xl bg-slate-100 text-slate-700 flex items-center justify-center text-sm font-bold">🚛</span>
+        <!-- Mobile Gate Metric Summary Dropdown Trigger -->
+        <button type="button" onclick="toggleGateKpiMobile()" class="w-full md:hidden bg-white/10 hover:bg-white/15 border border-white/20 p-3 rounded-2xl flex items-center justify-between transition cursor-pointer shadow-2xs text-white">
+          <div class="flex items-center gap-2.5">
+            <span class="text-base">📊</span>
+            <div class="text-left">
+              <span class="text-xs font-bold text-white block">Inward Gate Metrics (4 KPIs)</span>
+              <span class="text-[10px] text-slate-300 font-mono" id="gateKpiQuickSummary">Tap to expand overview</span>
             </div>
-            <div class="mt-3">
-              <span id="gateStatTotalShipments" class="text-2xl font-black text-slate-900 font-mono">0</span>
-              <span class="text-xs text-slate-400 block mt-0.5 font-medium"><span id="gateStatPendingShipments" class="text-amber-600 font-bold">0</span> awaiting gate count</span>
+          </div>
+          <span id="gateKpiChevron" class="text-xs font-bold text-emerald-400 transition-transform duration-200">▼</span>
+        </button>
+
+        <!-- Gatekeeper Metric Summary Scorecard (Collapsible Dropdown on Mobile, Grid on Desktop) -->
+        <div id="gateKpiContainer" class="hidden md:grid grid-cols-2 lg:grid-cols-4 gap-2.5 sm:gap-4">
+          <div class="bg-white p-3 sm:p-4 rounded-xl sm:rounded-2xl border border-slate-200 shadow-2xs sm:shadow-xs flex flex-col justify-between">
+            <div class="flex items-center justify-between mb-1">
+              <span class="text-[10px] sm:text-[11px] font-bold text-slate-500 uppercase tracking-wider truncate mr-1">Inward Shipments</span>
+              <span class="w-7 h-7 sm:w-8 sm:h-8 rounded-lg sm:rounded-xl bg-slate-100 text-slate-700 flex items-center justify-center text-xs sm:text-sm font-bold shrink-0">🚛</span>
+            </div>
+            <div class="mt-1 sm:mt-2">
+              <span id="gateStatTotalShipments" class="text-lg sm:text-2xl font-black text-slate-900 font-mono">0</span>
+              <span class="text-[10px] sm:text-xs text-slate-400 block mt-0.5 font-medium truncate"><span id="gateStatPendingShipments" class="text-amber-600 font-bold">0</span> awaiting</span>
             </div>
           </div>
 
-          <div class="bg-white p-4 rounded-2xl border border-slate-200 shadow-xs flex flex-col justify-between">
-            <div class="flex items-center justify-between">
-              <span class="text-[11px] font-bold text-slate-500 uppercase tracking-wider">🏷️ Label Units</span>
-              <span class="w-8 h-8 rounded-xl bg-blue-50 text-blue-700 flex items-center justify-center text-sm font-bold">🏷️</span>
+          <div class="bg-white p-3 sm:p-4 rounded-xl sm:rounded-2xl border border-slate-200 shadow-2xs sm:shadow-xs flex flex-col justify-between">
+            <div class="flex items-center justify-between mb-1">
+              <span class="text-[10px] sm:text-[11px] font-bold text-slate-500 uppercase tracking-wider truncate mr-1">🏷️ Label Units</span>
+              <span class="w-7 h-7 sm:w-8 sm:h-8 rounded-lg sm:rounded-xl bg-blue-50 text-blue-700 flex items-center justify-center text-xs sm:text-sm font-bold shrink-0">🏷️</span>
             </div>
-            <div class="mt-3">
-              <span id="gateStatVerifiedLabels" class="text-2xl font-black text-blue-700 font-mono">0</span>
-              <span class="text-xs text-slate-400 block mt-0.5 font-medium">good units verified inward</span>
+            <div class="mt-1 sm:mt-2">
+              <span id="gateStatVerifiedLabels" class="text-lg sm:text-2xl font-black text-blue-700 font-mono">0</span>
+              <span class="text-[10px] sm:text-xs text-slate-400 block mt-0.5 font-medium truncate">good verified</span>
             </div>
           </div>
 
-          <div class="bg-white p-4 rounded-2xl border border-purple-200 bg-gradient-to-br from-white to-purple-50/40 shadow-xs flex flex-col justify-between ring-1 ring-purple-100">
-            <div class="flex items-center justify-between">
-              <span class="text-[11px] font-bold text-purple-900 uppercase tracking-wider flex items-center gap-1">
-                <span>🎗️ Ribbon Rolls</span>
+          <div class="bg-white p-3 sm:p-4 rounded-xl sm:rounded-2xl border border-purple-200 bg-gradient-to-br from-white to-purple-50/40 shadow-2xs sm:shadow-xs flex flex-col justify-between ring-1 ring-purple-100">
+            <div class="flex items-center justify-between mb-1">
+              <span class="text-[10px] sm:text-[11px] font-bold text-purple-900 uppercase tracking-wider flex items-center gap-1 truncate mr-1">
+                <span>🎗️ Ribbons</span>
               </span>
-              <span class="w-8 h-8 rounded-xl bg-purple-100 text-purple-700 flex items-center justify-center text-sm font-bold">🎗️</span>
+              <span class="w-7 h-7 sm:w-8 sm:h-8 rounded-lg sm:rounded-xl bg-purple-100 text-purple-700 flex items-center justify-center text-xs sm:text-sm font-bold shrink-0">🎗️</span>
             </div>
-            <div class="mt-3">
-              <span id="gateStatVerifiedRibbons" class="text-2xl font-black text-purple-800 font-mono">0</span>
-              <span class="text-xs text-purple-700 block mt-0.5 font-medium"><span id="gateStatPendingRibbons" class="font-bold text-purple-900">0</span> rolls awaiting gate count</span>
+            <div class="mt-1 sm:mt-2">
+              <span id="gateStatVerifiedRibbons" class="text-lg sm:text-2xl font-black text-purple-800 font-mono">0</span>
+              <span class="text-[10px] sm:text-xs text-purple-700 block mt-0.5 font-medium truncate"><span id="gateStatPendingRibbons" class="font-bold text-purple-900">0</span> rolls awaiting</span>
             </div>
           </div>
 
-          <div class="bg-white p-4 rounded-2xl border border-slate-200 shadow-xs flex flex-col justify-between">
-            <div class="flex items-center justify-between">
-              <span class="text-[11px] font-bold text-slate-500 uppercase tracking-wider">⚠️ Damaged / Defect</span>
-              <span class="w-8 h-8 rounded-xl bg-rose-50 text-rose-700 flex items-center justify-center text-sm font-bold">⚠️</span>
+          <div class="bg-white p-3 sm:p-4 rounded-xl sm:rounded-2xl border border-slate-200 shadow-2xs sm:shadow-xs flex flex-col justify-between">
+            <div class="flex items-center justify-between mb-1">
+              <span class="text-[10px] sm:text-[11px] font-bold text-slate-500 uppercase tracking-wider truncate mr-1">⚠️ Damaged</span>
+              <span class="w-7 h-7 sm:w-8 sm:h-8 rounded-lg sm:rounded-xl bg-rose-50 text-rose-700 flex items-center justify-center text-xs sm:text-sm font-bold shrink-0">⚠️</span>
             </div>
-            <div class="mt-3">
-              <span id="gateStatDamagedTotal" class="text-2xl font-black text-rose-600 font-mono">0</span>
-              <span class="text-xs text-slate-400 block mt-0.5 font-medium"><span id="gateStatDamagedRibbons" class="text-rose-700 font-bold">0</span> damaged ribbon rolls</span>
+            <div class="mt-1 sm:mt-2">
+              <span id="gateStatDamagedTotal" class="text-lg sm:text-2xl font-black text-rose-600 font-mono">0</span>
+              <span class="text-[10px] sm:text-xs text-slate-400 block mt-0.5 font-medium truncate"><span id="gateStatDamagedRibbons" class="text-rose-700 font-bold">0</span> ribbon rolls</span>
             </div>
           </div>
         </div>
@@ -922,9 +1009,17 @@
         <!-- Inward Inspection Log Table -->
         <div class="bg-white rounded-2xl border border-slate-200 shadow-xs overflow-hidden">
           <div class="p-4 border-b border-slate-100 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-            <div>
+            <div class="flex items-center justify-between w-full sm:w-auto">
               <h2 class="text-sm font-bold text-slate-900">Incoming Deliveries & Inspection Queue</h2>
-              <p class="text-xs text-slate-500 mt-0.5">Click "Verify Inward" to count label cartons and accompanying ribbon rolls.</p>
+              <!-- Mobile View Switcher (Cards vs Table) -->
+              <div class="flex items-center gap-1 md:hidden bg-slate-100 p-0.5 rounded-xl border border-slate-200 shrink-0">
+                <button type="button" id="btnGateViewCards" onclick="setGateMobileView('cards')" class="px-2.5 py-1 rounded-lg text-[10px] font-bold bg-slate-900 text-white shadow-2xs cursor-pointer">
+                  <span>🗂️ Cards</span>
+                </button>
+                <button type="button" id="btnGateViewTable" onclick="setGateMobileView('table')" class="px-2.5 py-1 rounded-lg text-[10px] font-bold text-slate-600 hover:bg-slate-200 cursor-pointer">
+                  <span>▤ Table</span>
+                </button>
+              </div>
             </div>
             <div class="flex flex-wrap items-center gap-1.5 text-xs">
               <span class="text-[11px] font-bold text-slate-400 uppercase tracking-wider mr-1">Filter:</span>
@@ -971,11 +1066,19 @@
             </button>
           </div>
 
-          <div class="mobile-scroll-hint">
+          <!-- Mobile Inward Deliveries Cards Container (Zero horizontal scrolling on phone) -->
+          <div id="gateShipmentsCardsContainer" class="block md:hidden p-3 space-y-3 bg-slate-50/40">
+            <!-- Dynamically populated via JS -->
+          </div>
+
+          <!-- Mobile Table Scroll Hint (Shown only when in Table mode on mobile) -->
+          <div id="gateShipmentsScrollHint" class="mobile-scroll-hint hidden">
             <span>👈 Swipe table to view all columns</span>
             <span class="text-emerald-600 font-bold">Verify button pinned 👉</span>
           </div>
-          <div class="overflow-x-auto">
+
+          <!-- Desktop Inward Deliveries Table Wrapper -->
+          <div id="gateShipmentsTableWrapper" class="hidden md:block overflow-x-auto">
             <table class="w-full text-left text-xs table-sticky-actions">
               <thead class="bg-slate-50/90 text-slate-500 font-bold uppercase tracking-wider text-[11px] border-b border-slate-200/80">
                 <tr>
@@ -1075,10 +1178,9 @@
                 <button type="button" onclick="clearRibbonConsignment()" class="text-[10px] text-slate-600 hover:text-rose-700 font-semibold bg-white hover:bg-rose-50 px-2 py-0.5 rounded-full border border-slate-200 hover:border-rose-300 transition cursor-pointer flex items-center gap-1" title="Clear and keep empty">
                   <span>✕ Keep Empty</span>
                 </button>
-                <span class="text-[10px] text-indigo-600 font-semibold bg-white px-2 py-0.5 rounded-full border border-indigo-200">Optional / If Included</span>
+                <span class="text-[10px] text-indigo-600 font-semibold bg-white px-2 py-0.5 rounded-full border border-indigo-200">Optional</span>
               </div>
             </div>
-            <p class="text-[11px] text-indigo-800 leading-snug">Track thermal transfer ribbon rolls shipped with labels (or sent independently on separate days). Kept empty by default unless values are provided.</p>
             <div id="modalRibbonPoBalance" class="hidden text-[11px] p-2 bg-white/90 border border-indigo-200 rounded-xl flex items-center justify-between font-mono text-indigo-950"></div>
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
               <div>
@@ -1117,7 +1219,7 @@
                   <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
                 </div>
                 <span class="text-xs font-bold text-blue-600 hover:underline">Take photo or upload challan/invoice *</span>
-                <span class="text-[10px] text-slate-400">Required before dispatch • Camera photo or PDF (up to 12MB)</span>
+                <span class="text-[10px] text-slate-400">Camera photo or PDF (up to 12MB)</span>
               </div>
 
               <div id="fileUploadSelected" class="hidden flex items-center justify-between bg-white p-2.5 rounded-xl border border-slate-200">
@@ -1215,7 +1317,6 @@
             <div class="flex items-center justify-between">
               <div>
                 <span class="text-xs font-bold text-slate-800 block">📦 Gate Physical Count Verification</span>
-                <span class="text-[11px] text-slate-500">Verify total boxes offloaded and separate good vs damaged units</span>
               </div>
               <button type="button" onclick="quickMatchReceive()" class="px-2.5 py-1 text-[11px] font-bold text-emerald-700 bg-emerald-100/80 hover:bg-emerald-200 rounded-lg transition flex items-center gap-1">
                 <span>⚡ Quick Match Claimed</span>
@@ -1226,17 +1327,14 @@
               <div>
                 <label class="block text-xs font-semibold text-slate-700 mb-1">Boxes Received *</label>
                 <input type="number" id="inputReceivedBoxes" required min="1" placeholder="e.g. 20" oninput="updateReceiveComparison()" class="w-full text-sm px-3.5 py-2.5 border border-slate-300 rounded-xl focus:ring-2 focus:ring-emerald-500 outline-none bg-white font-mono font-bold">
-                <span class="text-[10px] text-slate-400 mt-1 block">Offloaded cartons</span>
               </div>
               <div>
                 <label class="block text-xs font-semibold text-slate-700 mb-1">Good Units Accepted *</label>
                 <input type="number" id="inputReceivedQty" required min="0" placeholder="e.g. 487" oninput="updateReceiveComparison()" class="w-full text-sm px-3.5 py-2.5 border border-slate-300 rounded-xl focus:ring-2 focus:ring-emerald-500 outline-none bg-white font-mono font-bold text-emerald-700">
-                <span class="text-[10px] text-slate-400 mt-1 block">Usable label units</span>
               </div>
               <div>
                 <label class="block text-xs font-semibold text-slate-700 mb-1">Damaged / Rejected Units</label>
                 <input type="number" id="inputDamagedQty" min="0" value="0" placeholder="0" oninput="updateReceiveComparison()" class="w-full text-sm px-3.5 py-2.5 border border-slate-300 rounded-xl focus:ring-2 focus:ring-rose-500 outline-none bg-white font-mono font-bold text-rose-600">
-                <span class="text-[10px] text-slate-400 mt-1 block">Crushed, wet, or defect</span>
               </div>
             </div>
 
@@ -1247,7 +1345,6 @@
                   <span class="text-sm">⚠️</span>
                   <span>Damage & Rejection Evidence Log</span>
                 </span>
-                <span class="text-[10px] font-semibold text-rose-700 bg-rose-100 px-2 py-0.5 rounded-full">Dispute Prevention</span>
               </div>
               <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
@@ -1302,7 +1399,7 @@
                 <span class="text-base shrink-0">🎗️</span>
                 <div>
                   <span class="font-bold block text-purple-950">Ribbons Accompanied With This Label Shipment</span>
-                  <span class="text-[11px] text-purple-800 leading-tight block mt-0.5" id="gateRibbonPromptDetails">Vendor shipped ribbon rolls alongside cartons. Gatekeeper must count physical rolls and verify quality!</span>
+                  <span class="text-[11px] text-purple-800 leading-tight block mt-0.5" id="gateRibbonPromptDetails"></span>
                 </div>
               </div>
               <div id="gateRibbonAuditComparison" class="text-xs p-2.5 rounded-xl bg-white/90 border border-indigo-200/80 font-medium hidden">
@@ -1312,12 +1409,10 @@
                 <div>
                   <label class="block text-[11px] font-bold text-indigo-900 mb-1">Ribbon Rolls Accepted *</label>
                   <input type="number" id="inputReceivedRibbons" min="0" value="" placeholder="0" oninput="updateReceiveComparison()" class="w-full text-xs px-3 py-2 border border-indigo-300 rounded-xl bg-white font-mono font-bold text-indigo-900 focus:ring-2 focus:ring-purple-400 outline-none">
-                  <span class="text-[10px] text-indigo-600 block mt-0.5">Physical good condition rolls</span>
                 </div>
                 <div>
                   <label class="block text-[11px] font-bold text-rose-800 mb-1">Damaged Ribbon Rolls</label>
                   <input type="number" id="inputDamagedRibbons" min="0" value="" placeholder="0" oninput="updateReceiveComparison()" class="w-full text-xs px-3 py-2 border border-rose-300 rounded-xl bg-white font-mono font-bold text-rose-700 focus:ring-2 focus:ring-rose-400 outline-none">
-                  <span class="text-[10px] text-rose-500 block mt-0.5">Crushed or defective rolls</span>
                 </div>
               </div>
             </div>
@@ -1432,7 +1527,6 @@
           <span class="text-xl">🔒</span>
           <div>
             <p class="text-xs font-bold text-rose-900" id="passwordConfirmDesc">Please confirm your identity by entering your administrative password.</p>
-            <p class="text-[11px] text-rose-700 mt-0.5">This action cannot be undone and will be permanently recorded in the system audit logs.</p>
           </div>
         </div>
 
@@ -1480,11 +1574,10 @@
             </div>
           </div>
 
-          <!-- Delivery Deadline & Buyer Instructions (Supplier will report In-Stock vs Production Readiness) -->
+          <!-- Delivery Deadline & Buyer Instructions -->
           <div class="bg-slate-50/90 p-4 rounded-2xl border border-slate-200 space-y-3">
             <div class="flex items-center justify-between">
               <span class="text-xs font-bold uppercase tracking-wider text-slate-800 block">Delivery Deadline & Buyer Instructions</span>
-              <span class="text-[10px] text-slate-500 font-medium bg-white border border-slate-200 px-2 py-0.5 rounded-full">Supplier confirms readiness</span>
             </div>
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div>
@@ -1496,17 +1589,12 @@
                 <input type="text" id="newPoBuyerNotes" placeholder="e.g. Urgent run for festive sale; adhere to 2026 color standard" class="w-full text-xs px-3.5 py-2.5 border border-slate-300 rounded-xl outline-none focus:ring-2 focus:ring-blue-500 bg-white">
               </div>
             </div>
-            <div class="p-2.5 bg-blue-50/70 border border-blue-200/80 rounded-xl flex items-center gap-2 text-[11px] text-blue-900 font-medium">
-              <span class="text-sm">ℹ️</span>
-              <span><strong>Supplier Workflow:</strong> The assigned supplier will inspect their warehouse and update whether they already have goods <strong>In Stock</strong> or will put them <strong>In Production</strong>.</span>
-            </div>
           </div>
 
           <div>
             <div class="flex items-center justify-between mb-2.5">
               <div>
                 <span class="text-xs font-bold uppercase tracking-wider text-slate-700 block">Order Line Items (Categories & Models)</span>
-                <span class="text-[11px] text-slate-400">Select Category & Model. Specifications are automatic (or specify custom details when Custom is selected).</span>
               </div>
               <button type="button" onclick="addNewItemRow()" class="px-3 py-1.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 text-xs font-bold rounded-lg transition border border-indigo-200 flex items-center gap-1 cursor-pointer shadow-2xs">
                 <span>+ Add Another Item</span>
@@ -1571,10 +1659,6 @@
               <input type="text" id="newVendorPassword" required placeholder="Enter or generate password" class="w-full text-xs px-3.5 py-2.5 border border-slate-300 rounded-xl outline-none focus:ring-2 focus:ring-blue-500 bg-white font-mono">
             </div>
           </div>
-          <div class="p-3 bg-blue-50/70 border border-blue-200/80 rounded-xl text-xs text-blue-800 flex items-start gap-2.5">
-            <svg class="w-4 h-4 text-blue-600 shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 00-2 2zm10-10V7a4 4 0 00-8 0v4h8z"/></svg>
-            <span>Supplier accounts are provisioned with secure salted SHA-256 credentials for role-based access to their allocated orders.</span>
-          </div>
           <div class="flex justify-end items-center gap-2 pt-3 border-t border-slate-200">
             <button type="button" onclick="closeModal('vendorManageModal')" class="px-4 py-2.5 text-xs font-semibold text-slate-600 hover:bg-slate-100 rounded-xl transition cursor-pointer">
               Cancel
@@ -1607,8 +1691,7 @@
       <div class="p-5 sm:p-6 overflow-y-auto flex-1 min-h-[280px]" id="invoicePreviewContent">
         <!-- Rendered dynamically -->
       </div>
-      <div class="p-4 px-6 bg-slate-50 border-t border-slate-200 flex justify-between items-center text-xs flex-shrink-0">
-        <span class="text-slate-500 font-medium">Document securely attached to dispatch record</span>
+      <div class="p-4 px-6 bg-slate-50 border-t border-slate-200 flex justify-end items-center text-xs flex-shrink-0">
         <button onclick="closeModal('invoicePreviewModal')" class="px-5 py-2.5 bg-slate-900 hover:bg-slate-800 active:bg-slate-950 text-white font-bold rounded-xl transition shadow-xs cursor-pointer">Close</button>
       </div>
     </div>
@@ -1628,23 +1711,23 @@
       </div>
 
       <div class="p-6 space-y-6 overflow-y-auto flex-1">
-        <!-- High-level Fleet Stats -->
-        <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
-          <div class="bg-slate-50 p-3.5 rounded-2xl border border-slate-200">
-            <span class="text-slate-500 block text-[11px] font-semibold">Active Suppliers</span>
-            <span id="scorecardActiveSuppliers" class="text-xl font-black text-slate-900 font-mono mt-0.5 block">0</span>
+        <!-- High-level Fleet Stats (Compact 2x2 on Mobile) -->
+        <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-3 text-xs">
+          <div class="bg-slate-50 p-2.5 sm:p-3.5 rounded-xl sm:rounded-2xl border border-slate-200">
+            <span class="text-slate-500 block text-[10px] sm:text-[11px] font-semibold truncate">Active Suppliers</span>
+            <span id="scorecardActiveSuppliers" class="text-base sm:text-xl font-black text-slate-900 font-mono mt-0.5 block truncate">0</span>
           </div>
-          <div class="bg-slate-50 p-3.5 rounded-2xl border border-slate-200">
-            <span class="text-slate-500 block text-[11px] font-semibold">Fleet Accuracy</span>
-            <span id="scorecardFleetAccuracy" class="text-xl font-black text-emerald-600 font-mono mt-0.5 block">0%</span>
+          <div class="bg-slate-50 p-2.5 sm:p-3.5 rounded-xl sm:rounded-2xl border border-slate-200">
+            <span class="text-slate-500 block text-[10px] sm:text-[11px] font-semibold truncate">Fleet Accuracy</span>
+            <span id="scorecardFleetAccuracy" class="text-base sm:text-xl font-black text-emerald-600 font-mono mt-0.5 block truncate">0%</span>
           </div>
-          <div class="bg-slate-50 p-3.5 rounded-2xl border border-slate-200">
-            <span class="text-slate-500 block text-[11px] font-semibold">Shortage Incidents</span>
-            <span id="scorecardTotalShortages" class="text-xl font-black text-rose-600 font-mono mt-0.5 block">0</span>
+          <div class="bg-slate-50 p-2.5 sm:p-3.5 rounded-xl sm:rounded-2xl border border-slate-200">
+            <span class="text-slate-500 block text-[10px] sm:text-[11px] font-semibold truncate">Shortages</span>
+            <span id="scorecardTotalShortages" class="text-base sm:text-xl font-black text-rose-600 font-mono mt-0.5 block truncate">0</span>
           </div>
-          <div class="bg-slate-50 p-3.5 rounded-2xl border border-slate-200">
-            <span class="text-slate-500 block text-[11px] font-semibold">Damaged Goods Reported</span>
-            <span id="scorecardTotalDamaged" class="text-xl font-black text-amber-600 font-mono mt-0.5 block">0 units</span>
+          <div class="bg-slate-50 p-2.5 sm:p-3.5 rounded-xl sm:rounded-2xl border border-slate-200">
+            <span class="text-slate-500 block text-[10px] sm:text-[11px] font-semibold truncate">Damaged Goods</span>
+            <span id="scorecardTotalDamaged" class="text-base sm:text-xl font-black text-amber-600 font-mono mt-0.5 block truncate">0 units</span>
           </div>
         </div>
 
@@ -1652,7 +1735,6 @@
         <div class="space-y-3">
           <div class="flex items-center justify-between">
             <span class="text-xs font-bold uppercase tracking-wider text-slate-700 block">Performance Cards by Supplier</span>
-            <span class="text-[11px] text-slate-400">Calculated from verified gate inward audits</span>
           </div>
           <div id="vendorScorecardsList" class="grid grid-cols-1 md:grid-cols-2 gap-4">
             <!-- Dynamically populated via JS -->
@@ -1660,8 +1742,7 @@
         </div>
       </div>
 
-      <div class="p-4 px-6 bg-slate-50 border-t border-slate-200 flex justify-between items-center text-xs flex-shrink-0">
-        <span class="text-slate-500 font-medium">Use objective accuracy data to guide supplier allocations</span>
+      <div class="p-4 px-6 bg-slate-50 border-t border-slate-200 flex justify-end items-center text-xs flex-shrink-0">
         <button onclick="closeModal('vendorScorecardModal')" class="px-5 py-2.5 bg-slate-900 hover:bg-slate-800 active:bg-slate-950 text-white font-bold rounded-xl transition shadow-xs">Close</button>
       </div>
     </div>
@@ -1850,11 +1931,10 @@
           </div>
         </div>
 
-        <!-- 6-Month Color & Cipher Period Selector (Jan-Jun H1 vs Jul-Dec H2) -->
+        <!-- 6-Month Color & Security Period Selector (Jan-Jun H1 vs Jul-Dec H2) -->
         <div class="flex flex-col sm:flex-row sm:items-center justify-between p-2.5 bg-slate-50 border border-slate-200 rounded-2xl gap-2">
           <div class="flex items-center gap-1.5">
             <span class="text-xs font-bold text-slate-800">6-Month Cycle:</span>
-            <span class="text-[10px] text-slate-500 font-medium">Color & Security Year Code change every 6 months</span>
           </div>
           <div class="flex items-center gap-1 bg-white p-1 rounded-xl border border-slate-200 self-start sm:self-auto">
             <button type="button" id="btnSamplePeriodH1" onclick="switchSampleModalPeriod('H1')" class="px-3 py-1 rounded-lg text-xs font-bold transition flex items-center gap-1 bg-slate-900 text-white cursor-pointer shadow-2xs">
@@ -1885,7 +1965,6 @@
               <span class="w-6 h-6 rounded-lg bg-indigo-100 text-indigo-700 flex items-center justify-center text-xs font-bold">📸</span>
               <span class="text-xs font-bold text-slate-800" id="sampleUploadBoxTitle">Upload Approved Physical Sample Proof Photo</span>
             </div>
-            <span class="text-[10px] text-slate-400 font-medium">Auto-compressed & secured in database</span>
           </div>
 
           <div class="grid grid-cols-1 sm:grid-cols-12 gap-3 items-center">
@@ -1910,23 +1989,9 @@
         <div>
           <div class="flex items-center justify-between mb-2">
             <span class="text-xs font-bold uppercase tracking-wider text-slate-700 block">Manufacturing & Physical Specifications</span>
-            <span class="text-[11px] text-slate-400">Universal standard for suppliers & gate security</span>
           </div>
           <div class="grid grid-cols-2 sm:grid-cols-4 gap-2.5 text-xs" id="sampleSpecsGrid">
             <!-- Dynamically populated via JS -->
-          </div>
-        </div>
-
-        <!-- Gate Inspection & Supplier Compliance Notice -->
-        <div class="p-3.5 bg-blue-50/70 border border-blue-200 rounded-2xl flex items-start gap-3 text-xs text-blue-900">
-          <div class="w-8 h-8 rounded-xl bg-blue-100 border border-blue-200 text-blue-700 flex items-center justify-center font-bold text-sm shrink-0">
-            🔍
-          </div>
-          <div class="space-y-0.5 leading-relaxed">
-            <span class="font-bold block">Production & Receiving Quality Check:</span>
-            <p class="text-[11px] text-blue-800 font-medium">
-              Suppliers must print according to the core size, labels-across (UPS), and barcode dimensions shown above. Warehouse Gate Security verifies incoming rolls against this master sample before signing the receipt pass.
-            </p>
           </div>
         </div>
       </div>
@@ -1978,7 +2043,6 @@
           <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
             <div>
               <h4 class="text-sm font-bold text-slate-900">Configured Financial Years & Master Color Codes</h4>
-              <p class="text-xs text-slate-500">Every year has a unique master color band to identify inventory age and prevent cross-year counterfeiting.</p>
             </div>
             <button type="button" onclick="toggleNewYearForm()" class="btn-gradient-primary px-3.5 py-2 text-white text-xs font-bold rounded-xl shadow-2xs transition flex items-center gap-1.5 self-start sm:self-auto cursor-pointer">
               <span>+ Add New Financial Year</span>
@@ -1999,7 +2063,7 @@
               <div class="grid grid-cols-1 sm:grid-cols-4 gap-3">
                 <div>
                   <label class="block text-[11px] font-bold text-slate-700 mb-1">Financial Year *</label>
-                  <input type="number" id="inputYearNumber" required min="2020" max="2040" placeholder="e.g. 2028" class="w-full text-xs px-3 py-2 border border-slate-300 rounded-xl bg-white font-mono font-bold outline-none focus:ring-2 focus:ring-indigo-500">
+                  <input type="number" id="inputYearNumber" required min="2020" max="2040" placeholder="e.g. 2028" oninput="updateFormSecurityYearCodes(this.value)" onchange="updateFormSecurityYearCodes(this.value)" class="w-full text-xs px-3 py-2 border border-slate-300 rounded-xl bg-white font-mono font-bold outline-none focus:ring-2 focus:ring-indigo-500">
                 </div>
                 <div class="sm:col-span-3">
                   <label class="block text-[11px] font-bold text-slate-700 mb-1">Color Scheme Title (Optional &bull; Auto-defaults to Pantone Code)</label>
@@ -2032,9 +2096,8 @@
                         <span class="w-2.5 h-2.5 rounded-full bg-sky-600"></span>
                         <span>1st 6-Months (H1: Jan–Jun) Pantone Shade *</span>
                       </span>
-                      <span class="text-[10px] text-sky-800 font-medium">Master annual core band shade for the first half of the financial year</span>
                     </div>
-                    <span class="text-[10px] font-mono font-bold px-2 py-0.5 rounded bg-sky-100 text-sky-900 border border-sky-200">H1 Rotation</span>
+                    <span class="text-[10px] font-mono font-bold px-2 py-0.5 rounded bg-sky-100 text-sky-900 border border-sky-200 inline-flex items-center gap-1"><span>H1</span> &bull; <span id="formH1CardSecurityCode" class="text-emerald-700 font-black">CODE: HR</span></span>
                   </div>
 
                   <div class="space-y-2 pt-1">
@@ -2044,12 +2107,12 @@
                       <input type="text" id="inputYearPantoneCode" list="pantoneSuggestionsList" value="PANTONE 2192 C" oninput="handlePantoneInput(this.value)" onchange="handlePantoneInput(this.value)" placeholder="e.g. PANTONE 2192 C, 186 C, 300 C, Black 6 C" class="w-full text-xs px-3 py-2 border border-sky-300 rounded-xl bg-white font-mono font-bold outline-none focus:ring-2 focus:ring-sky-500 text-sky-950 shadow-2xs">
                     </div>
 
-                    <div class="flex items-center justify-between gap-2 pt-1">
-                      <div class="flex items-center gap-2 flex-1">
-                        <input type="color" id="inputYearPrimaryPicker" value="#009FDA" onchange="document.getElementById('inputYearPrimaryHex').value = this.value; onManualHexChange();" class="w-8 h-8 p-0.5 rounded-lg border border-slate-300 cursor-pointer shadow-2xs shrink-0">
-                        <input type="text" id="inputYearPrimaryHex" value="#009FDA" required oninput="document.getElementById('inputYearPrimaryPicker').value = this.value; onManualHexChange();" class="w-full text-xs px-2.5 py-1.5 border border-slate-300 rounded-xl font-mono uppercase bg-white font-bold tracking-wider">
+                    <div class="flex flex-wrap items-center justify-between gap-2 pt-1">
+                      <div class="flex items-center gap-2 flex-1 min-w-[145px]">
+                        <input type="color" id="inputYearPrimaryPicker" value="#009FDA" onchange="document.getElementById('inputYearPrimaryHex').value = this.value; onManualHexChange();" class="w-8 h-8 p-0.5 rounded-lg border border-slate-300 cursor-pointer shadow-2xs shrink-0" title="Click to pick custom color">
+                        <input type="text" id="inputYearPrimaryHex" value="#009FDA" required oninput="document.getElementById('inputYearPrimaryPicker').value = this.value; onManualHexChange();" placeholder="#HEX" class="w-full min-w-[90px] text-xs px-2.5 py-1.5 border border-slate-300 rounded-xl font-mono uppercase bg-white font-bold tracking-wider shadow-2xs">
                       </div>
-                      <span id="pantoneSyncStatusBadge" class="text-[10px] font-bold px-2 py-1 rounded-lg bg-emerald-100 text-emerald-800 border border-emerald-200 shrink-0">
+                      <span id="pantoneSyncStatusBadge" class="text-[10px] font-bold px-2 py-1 rounded-lg bg-emerald-100 text-emerald-800 border border-emerald-200 shrink-0 self-center">
                         ✓ H1 Synced
                       </span>
                     </div>
@@ -2064,12 +2127,14 @@
                         <span class="w-2.5 h-2.5 rounded-full bg-indigo-400"></span>
                         <span>2nd 6-Months (H2: Jul–Dec) Pantone Shade (Optional / Pending)</span>
                       </span>
-                      <span class="text-[10px] text-indigo-800 font-medium">Keep empty until designated for 2nd half-year specification</span>
                     </div>
-                    <button type="button" onclick="clearH2Shade()" class="text-[10px] font-bold px-2.5 py-1 rounded-lg bg-slate-100 hover:bg-rose-50 text-slate-600 hover:text-rose-700 border border-slate-200 transition cursor-pointer flex items-center gap-1" title="Clear H2 shade and keep empty">
-                      <span>✕</span>
-                      <span>Keep Empty</span>
-                    </button>
+                    <div class="flex items-center gap-1.5">
+                      <span id="formH2CardSecurityCode" class="text-[10px] font-mono font-bold px-2 py-0.5 rounded bg-indigo-100 text-indigo-900 border border-indigo-200">H2 &bull; CODE: 2HR</span>
+                      <button type="button" onclick="clearH2Shade()" class="text-[10px] font-bold px-2.5 py-1 rounded-lg bg-slate-100 hover:bg-rose-50 text-slate-600 hover:text-rose-700 border border-slate-200 transition cursor-pointer flex items-center gap-1" title="Clear H2 shade and keep empty">
+                        <span>✕</span>
+                        <span>Keep Empty</span>
+                      </button>
+                    </div>
                   </div>
 
                   <div class="space-y-2 pt-1">
@@ -2079,12 +2144,12 @@
                       <input type="text" id="inputYearH2PantoneCode" list="pantoneSuggestionsList" value="" oninput="handlePantoneH2Input(this.value)" onchange="handlePantoneH2Input(this.value)" placeholder="Leave empty until specified (e.g. PANTONE code)" class="w-full text-xs px-3 py-2 border border-indigo-300 rounded-xl bg-white font-mono font-bold outline-none focus:ring-2 focus:ring-indigo-500 text-indigo-950 shadow-2xs">
                     </div>
 
-                    <div class="flex items-center justify-between gap-2 pt-1">
-                      <div class="flex items-center gap-2 flex-1">
-                        <input type="color" id="inputYearH2Picker" value="#ffffff" onchange="document.getElementById('inputYearH2Hex').value = this.value; onManualH2HexChange();" class="w-8 h-8 p-0.5 rounded-lg border border-slate-300 cursor-pointer shadow-2xs shrink-0">
-                        <input type="text" id="inputYearH2Hex" value="" placeholder="(Pending)" oninput="document.getElementById('inputYearH2Picker').value = this.value; onManualH2HexChange();" class="w-full text-xs px-2.5 py-1.5 border border-slate-300 rounded-xl font-mono uppercase bg-white font-bold tracking-wider">
+                    <div class="flex flex-wrap items-center justify-between gap-2 pt-1">
+                      <div class="flex items-center gap-2 flex-1 min-w-[145px]">
+                        <input type="color" id="inputYearH2Picker" value="#ffffff" onchange="document.getElementById('inputYearH2Hex').value = this.value; onManualH2HexChange();" class="w-8 h-8 p-0.5 rounded-lg border border-slate-300 cursor-pointer shadow-2xs shrink-0" title="Click to pick custom color">
+                        <input type="text" id="inputYearH2Hex" value="" placeholder="(Pending)" oninput="document.getElementById('inputYearH2Picker').value = this.value; onManualH2HexChange();" class="w-full min-w-[90px] text-xs px-2.5 py-1.5 border border-slate-300 rounded-xl font-mono uppercase bg-white font-bold tracking-wider shadow-2xs">
                       </div>
-                      <span id="pantoneH2SyncStatusBadge" class="text-[10px] font-bold px-2 py-1 rounded-lg bg-slate-100 text-slate-600 border border-slate-200 shrink-0">
+                      <span id="pantoneH2SyncStatusBadge" class="text-[10px] font-bold px-2 py-1 rounded-lg bg-slate-100 text-slate-600 border border-slate-200 shrink-0 self-center">
                         Pending Specification
                       </span>
                     </div>
@@ -2094,6 +2159,8 @@
 
               <!-- Comprehensive Pantone Autocomplete Datalist (Official PMS Codes Only) -->
               <datalist id="pantoneSuggestionsList">
+                <option value="PANTONE 4278 C">PANTONE 4278 C</option>
+                <option value="PANTONE 4625 C">PANTONE 4625 C</option>
                 <option value="PANTONE 2192 C">PANTONE 2192 C</option>
                 <option value="PANTONE 2194 C">PANTONE 2194 C</option>
                 <option value="PANTONE 2190 C">PANTONE 2190 C</option>
@@ -2127,23 +2194,23 @@
               </datalist>
 
               <!-- Automated 6-Month Security Year Imprint Info Card -->
-              <div class="p-3.5 bg-slate-900 text-white rounded-2xl space-y-2 border border-slate-800">
+              <div class="p-3.5 bg-slate-900 text-white rounded-2xl space-y-2 border border-slate-800 shadow-2xs">
                 <div class="flex items-center justify-between">
                   <span class="text-xs font-bold text-sky-400 flex items-center gap-1.5">
                     <span>🛡️ Automated Security Year Imprint Standard</span>
                   </span>
-                  <span class="text-[10px] font-mono text-slate-400 font-bold bg-slate-800 px-2 py-0.5 rounded">6-Month Rotation</span>
+                  <span id="formSecurityYearLabel" class="text-[10px] font-mono text-slate-300 font-bold bg-slate-800 px-2.5 py-0.5 rounded-full border border-slate-700">FY 2026 Security Mandate</span>
                 </div>
                 <div class="text-[11px] text-slate-300 flex flex-wrap items-center justify-between gap-2 pt-1 border-t border-slate-800/80">
-                  <span>1st 6 Months (Jan–Jun): <strong class="text-emerald-400 font-mono">H1 Code</strong></span>
-                  <span>2nd 6 Months (Jul–Dec): <strong class="text-amber-400 font-mono">H2 Code</strong></span>
-                  <span class="text-slate-400 text-[10px]">Encrypted security code auto-calculated per financial year</span>
+                  <div class="flex items-center gap-1.5">
+                    <span>1st 6 Months (Jan–Jun):</span>
+                    <strong id="formH1SecurityCodeDisplay" class="text-emerald-400 font-mono text-xs px-2 py-0.5 rounded bg-emerald-950/80 border border-emerald-500/40">HR</strong>
+                  </div>
+                  <div class="flex items-center gap-1.5">
+                    <span>2nd 6 Months (Jul–Dec):</span>
+                    <strong id="formH2SecurityCodeDisplay" class="text-amber-400 font-mono text-xs px-2 py-0.5 rounded bg-amber-950/80 border border-amber-500/40">2HR</strong>
+                  </div>
                 </div>
-              </div>
-
-              <div>
-                <label class="block text-[11px] font-bold text-slate-700 mb-1">Roll Core & Packaging Guidelines</label>
-                <input type="text" id="inputYearGuidelines" placeholder="e.g. Core band must feature this approved Pantone color standard with security code imprint." class="w-full text-xs px-3 py-2 border border-slate-300 rounded-xl bg-white outline-none focus:ring-2 focus:ring-indigo-500 font-medium">
               </div>
 
               <div class="flex items-center justify-end gap-2 pt-2 border-t border-indigo-100">
@@ -2164,7 +2231,6 @@
           <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-slate-50 p-4 rounded-2xl border border-slate-200">
             <div>
               <h4 class="text-sm font-bold text-slate-900">Master Product Proofs Matrix</h4>
-              <p class="text-xs text-slate-500">View and upload approved physical roll photographs across all catalog SKUs for the selected year.</p>
             </div>
             <!-- Year Selector & Category Filter -->
             <div class="flex items-center gap-2 flex-wrap">
@@ -2194,8 +2260,7 @@
         </div>
       </div>
 
-      <div class="p-4 px-6 bg-slate-50 border-t border-slate-200 flex justify-between items-center text-xs flex-shrink-0">
-        <span class="text-slate-500 text-[11px]">Any approved sample photo uploaded here is universally visible to Admins, Suppliers, and Gate Security.</span>
+      <div class="p-4 px-6 bg-slate-50 border-t border-slate-200 flex justify-end items-center text-xs flex-shrink-0">
         <button onclick="closeModal('annualColorCodeModal')" class="px-5 py-2.5 bg-slate-900 hover:bg-slate-800 text-white font-bold rounded-xl transition shadow-xs cursor-pointer">
           Done
         </button>
