@@ -16,7 +16,7 @@
 
   <!-- Modular Scripts: Encrypted Credential Vault, Auth & Core Business Logic -->
   <script src="js/vault.js"></script>
-  <script src="js/app.js?v=20261030_readonly"></script>
+  <script src="js/app.js?v=20261030_gate_ui"></script>
   <script src="js/auth.js"></script>
   <!-- Anti-Flash Authentication State Evaluator -->
   <script>
@@ -1121,13 +1121,13 @@
           <div class="p-4 border-b border-slate-100 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
             <div class="flex items-center justify-between w-full sm:w-auto">
               <h2 class="text-sm font-bold text-slate-900">Incoming Deliveries & Inspection Queue</h2>
-              <!-- Mobile View Switcher (Cards vs Table) -->
-              <div class="flex items-center gap-1 md:hidden bg-slate-100 p-0.5 rounded-xl border border-slate-200 shrink-0">
-                <button type="button" id="btnGateViewCards" onclick="setGateMobileView('cards')" class="px-2.5 py-1 rounded-lg text-[10px] font-bold bg-slate-900 text-white shadow-2xs cursor-pointer">
-                  <span>🗂️ Cards</span>
+              <!-- View Switcher (Cards vs Table) for Desktop & Mobile -->
+              <div class="flex items-center gap-1 bg-slate-100 p-1 rounded-xl border border-slate-200 shrink-0">
+                <button type="button" id="btnGateViewTable" onclick="setGateMobileView('table')" class="px-3 py-1.5 rounded-lg text-xs font-bold bg-slate-900 text-white shadow-2xs transition cursor-pointer">
+                  <span>▤ Table View</span>
                 </button>
-                <button type="button" id="btnGateViewTable" onclick="setGateMobileView('table')" class="px-2.5 py-1 rounded-lg text-[10px] font-bold text-slate-600 hover:bg-slate-200 cursor-pointer">
-                  <span>▤ Table</span>
+                <button type="button" id="btnGateViewCards" onclick="setGateMobileView('cards')" class="px-3 py-1.5 rounded-lg text-xs font-bold text-slate-600 hover:bg-slate-200 transition cursor-pointer">
+                  <span>🗂️ Cards View</span>
                 </button>
               </div>
             </div>
@@ -1213,7 +1213,7 @@
           </div>
 
           <!-- Mobile Inward Deliveries Cards Container (Zero horizontal scrolling on phone) -->
-          <div id="gateShipmentsCardsContainer" class="block md:hidden p-3 space-y-3 bg-slate-50/40">
+          <div id="gateShipmentsCardsContainer" class="hidden p-3 sm:p-4 space-y-3 lg:space-y-0 lg:grid lg:grid-cols-2 lg:gap-3.5 bg-slate-50/40">
             <!-- Dynamically populated via JS -->
           </div>
 
@@ -1223,22 +1223,19 @@
             <span class="text-emerald-600 font-bold">Verify button pinned 👉</span>
           </div>
 
-          <!-- Desktop Inward Deliveries Table Wrapper -->
-          <div id="gateShipmentsTableWrapper" class="hidden md:block overflow-x-auto">
+          <!-- Desktop Inward Deliveries Table Wrapper (Consolidated 8-Column Layout + Sticky Action) -->
+          <div id="gateShipmentsTableWrapper" class="overflow-x-auto max-h-[calc(100vh-270px)] overflow-y-auto rounded-b-2xl">
             <table class="w-full text-left text-xs table-sticky-actions">
-              <thead class="bg-slate-50/90 text-slate-500 font-bold uppercase tracking-wider text-[11px] border-b border-slate-200/80">
+              <thead class="sticky top-0 z-20 bg-slate-100/95 backdrop-blur-xs text-slate-600 font-bold uppercase tracking-wider text-[11px] border-b border-slate-200 shadow-2xs">
                 <tr>
-                  <th class="p-3">Ref ID</th>
-                  <th class="p-3">Order #</th>
-                  <th class="p-3">Vendor</th>
-                  <th class="p-3">Invoice #</th>
-                  <th class="p-3">Dispatch Date</th>
-                  <th class="p-3 min-w-[260px]">Item / SKU Description</th>
-                  <th class="p-3 text-right">Vendor Claimed</th>
-                  <th class="p-3 text-right">Physical Count</th>
-                  <th class="p-3 text-center">Invoice Proof</th>
-                  <th class="p-3 text-center">Audit Status</th>
-                  <th class="p-3 text-center">Action</th>
+                  <th class="p-3 whitespace-nowrap">Shipment & PO</th>
+                  <th class="p-3 whitespace-nowrap">Vendor & Invoice</th>
+                  <th class="p-3 min-w-[220px]">Item / SKU Description</th>
+                  <th class="p-3 text-right whitespace-nowrap">Vendor Sent</th>
+                  <th class="p-3 text-right whitespace-nowrap">Physical Count</th>
+                  <th class="p-3 text-center whitespace-nowrap">Proof</th>
+                  <th class="p-3 text-center whitespace-nowrap">Audit Status</th>
+                  <th class="p-3 text-center whitespace-nowrap sticky right-0 bg-slate-100 z-30 shadow-[-4px_0_8px_-2px_rgba(0,0,0,0.06)]">Action</th>
                 </tr>
               </thead>
               <tbody id="gateShipmentsTableBody" class="divide-y divide-slate-100">
@@ -1997,6 +1994,15 @@
             <span class="text-slate-500 font-medium text-[11px]" id="updateProdVendorDisplay">—</span>
           </div>
           <div id="updateProdCurrentBadge"></div>
+        </div>
+
+        <!-- Target Item / Scope Selector for Individual SKU Readiness -->
+        <div id="updateProdItemScopeWrapper" class="space-y-1">
+          <label class="block text-xs font-bold text-slate-700 mb-1">Target Item / Scope *</label>
+          <select id="updateProdItemSelect" onchange="handleProdItemScopeChange(this.value)" class="w-full text-xs px-3.5 py-2.5 border border-indigo-300 rounded-xl outline-none focus:ring-2 focus:ring-indigo-500 bg-white font-bold text-indigo-950 shadow-2xs">
+            <option value="all">📦 All Items (Full Order)</option>
+          </select>
+          <span class="text-[10px] text-slate-500 block mt-0.5" id="updateProdScopeHint">Select a specific item to track its individual readiness, or choose All Items.</span>
         </div>
 
         <!-- Buyer Deadline & Special Instructions (From Admin) -->
