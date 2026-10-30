@@ -16,7 +16,7 @@
 
   <!-- Modular Scripts: Encrypted Credential Vault, Auth & Core Business Logic -->
   <script src="js/vault.js"></script>
-  <script src="js/app.js?v=20261029_2hr_live"></script>
+  <script src="js/app.js?v=20261030_readonly"></script>
   <script src="js/auth.js"></script>
   <!-- Anti-Flash Authentication State Evaluator -->
   <script>
@@ -107,10 +107,12 @@
     <header class="glass-nav sticky top-0 z-40 shadow-xs">
       <div class="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
         
-        <!-- Brand & Vendor Badge -->
-        <div class="flex items-center gap-2.5 sm:gap-3 min-w-0">
-          <div class="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-gradient-to-tr from-blue-600 via-indigo-600 to-violet-500 flex items-center justify-center text-white font-black text-base sm:text-lg shadow-md shadow-indigo-500/25 shrink-0">
-            LT
+        <!-- Brand & Interactive Home Button (Click to load Home Page on any screen) -->
+        <button type="button" onclick="navigateToHome()" title="Home Dashboard & Overview" class="flex items-center gap-2.5 sm:gap-3 min-w-0 text-left cursor-pointer group hover:opacity-95 active:scale-[0.98] transition">
+          <div class="relative w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-gradient-to-tr from-blue-600 via-indigo-600 to-violet-500 flex items-center justify-center text-white font-black text-base sm:text-lg shadow-md shadow-indigo-500/25 shrink-0 group-hover:shadow-indigo-500/40 transition">
+            <span>LT</span>
+            <!-- Home Indicator badge on mobile -->
+            <span class="absolute -bottom-1 -right-1 w-4 h-4 bg-white rounded-full flex items-center justify-center text-[9px] shadow-xs border border-indigo-200">🏠</span>
           </div>
           <div class="min-w-0">
             <div class="flex items-center gap-1.5 sm:gap-2">
@@ -119,9 +121,12 @@
                 <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span> Cloud Synced
               </span>
             </div>
-            <span class="text-sm sm:text-base font-extrabold text-slate-900 tracking-tight block truncate">LabelTrack Network</span>
+            <span class="text-sm sm:text-base font-extrabold text-slate-900 tracking-tight block truncate group-hover:text-blue-600 transition flex items-center gap-1.5">
+              <span>LabelTrack Network</span>
+              <span class="text-[9px] font-bold text-indigo-700 bg-indigo-50 border border-indigo-200 px-1.5 py-0.2 rounded md:hidden">Home</span>
+            </span>
           </div>
-        </div>
+        </button>
 
         <!-- Role Toggle / Admin View Switcher / User Badge / Logout -->
         <div class="flex items-center gap-1.5 sm:gap-3 shrink-0">
@@ -220,9 +225,44 @@
           </div>
         </div>
 
-        <!-- Filter & Search Toolbar (Professional Segmented Controls) -->
+        <!-- Mobile Dropdown Filters (Zero Horizontal Scrolling on Phone) -->
+        <div class="grid grid-cols-2 gap-2 md:hidden">
+          <div>
+            <label class="block text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1 ml-0.5">Order Status:</label>
+            <div class="relative bg-white rounded-xl border border-slate-300 shadow-2xs overflow-hidden focus-within:ring-2 focus-within:ring-blue-500">
+              <select id="vendorMobileFilterSelect" onchange="setFilter(this.value)" class="w-full text-xs font-bold py-2.5 pl-2.5 pr-7 bg-transparent text-slate-900 outline-none appearance-none cursor-pointer">
+                <option value="all">📋 All Orders (0)</option>
+                <option value="pending">⚡ Action Needed (0)</option>
+                <option value="in_stock">📦 Ready in Stock (0)</option>
+                <option value="in_production">🏭 In Production (0)</option>
+                <option value="completed">✅ Completed (0)</option>
+              </select>
+              <div class="absolute inset-y-0 right-0 flex items-center px-2 pointer-events-none text-slate-500">
+                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
+              </div>
+            </div>
+          </div>
+
+          <div>
+            <label class="block text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1 ml-0.5">Category:</label>
+            <div class="relative bg-white rounded-xl border border-slate-300 shadow-2xs overflow-hidden focus-within:ring-2 focus-within:ring-blue-500">
+              <select id="vendorMobileCatSelect" onchange="setCategoryFilter(this.value)" class="w-full text-xs font-bold py-2.5 pl-2.5 pr-7 bg-transparent text-slate-900 outline-none appearance-none cursor-pointer">
+                <option value="all">All Categories</option>
+                <option value="labels">🏷️ Labels</option>
+                <option value="tags">🔖 Tags</option>
+                <option value="ribbons">🎗️ Ribbons</option>
+                <option value="cards">💳 Cards</option>
+              </select>
+              <div class="absolute inset-y-0 right-0 flex items-center px-2 pointer-events-none text-slate-500">
+                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Filter & Search Toolbar (Desktop Segmented Controls & Search) -->
         <div class="flex flex-col sm:flex-row items-center justify-between gap-3 bg-white p-2.5 rounded-2xl border border-slate-200 shadow-xs">
-          <div class="nav-tab-container inline-flex p-1 bg-slate-100 rounded-xl border border-slate-200/70 w-full sm:w-auto overflow-x-auto">
+          <div class="hidden md:inline-flex nav-tab-container p-1 bg-slate-100 rounded-xl border border-slate-200/70 overflow-x-auto">
             <button onclick="setFilter('all')" id="filterBtnAll" class="nav-tab-btn nav-tab-btn-active-primary px-3.5 py-1.5 text-xs font-bold rounded-lg transition flex items-center gap-1.5 flex-shrink-0 cursor-pointer">
               <span>All Orders</span>
               <span class="bg-slate-800 text-slate-200 px-1.5 py-0.5 rounded-full text-[10px] font-mono" id="countAll">0</span>
@@ -251,8 +291,8 @@
           </div>
         </div>
 
-        <!-- Product Category Filter Bar -->
-        <div class="flex items-center gap-2 overflow-x-auto pb-1 text-xs no-scrollbar">
+        <!-- Product Category Filter Bar (Desktop Segmented Controls) -->
+        <div class="hidden md:flex items-center gap-2 overflow-x-auto pb-1 text-xs no-scrollbar">
           <span class="text-[11px] font-bold text-slate-400 uppercase tracking-wider whitespace-nowrap">Category:</span>
           <button type="button" onclick="setCategoryFilter('all')" class="cat-filter-btn-all px-3 py-1.5 rounded-xl font-bold transition flex items-center gap-1.5 bg-slate-900 text-white shadow-2xs flex-shrink-0 cursor-pointer">
             <span>All Categories</span>
@@ -602,8 +642,8 @@
                   </button>
                 </div>
               </div>
-              <!-- Production Stage Filter Toolbar -->
-              <div class="flex items-center gap-2 overflow-x-auto text-xs w-full sm:w-auto no-scrollbar">
+              <!-- Production Stage Filter Toolbar (Desktop Segmented Controls) -->
+              <div class="hidden md:flex items-center gap-2 overflow-x-auto text-xs w-full sm:w-auto no-scrollbar">
                 <span class="text-[11px] font-bold text-slate-400 uppercase tracking-wider whitespace-nowrap">Stage:</span>
                 <div class="nav-tab-container p-0.5 bg-slate-100 rounded-xl flex items-center gap-1 border border-slate-200/80 overflow-x-auto w-full sm:w-auto no-scrollbar">
                   <button type="button" onclick="setAdminPoFilter('all')" id="adminPoFilterAll" class="nav-tab-btn nav-tab-btn-active-primary px-3 py-1 rounded-lg text-xs font-bold transition flex items-center gap-1.5 cursor-pointer flex-shrink-0">
@@ -630,8 +670,43 @@
               </div>
             </div>
 
-            <!-- Category Quick Filter Bar for Admin Purchase Orders -->
-            <div class="px-4 sm:px-5 py-2 bg-slate-50/40 border-b border-slate-100 flex items-center gap-2 overflow-x-auto text-xs no-scrollbar">
+            <!-- Mobile Filter Dropdowns for Admin POs (Zero Horizontal Scrolling on Phone) -->
+            <div class="grid grid-cols-2 gap-2 p-3 bg-slate-50/60 border-b border-slate-100 md:hidden">
+              <div>
+                <label class="block text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1 ml-0.5">Stage:</label>
+                <div class="relative bg-white rounded-xl border border-slate-300 shadow-2xs overflow-hidden focus-within:ring-2 focus-within:ring-blue-500">
+                  <select id="adminPoMobileFilterSelect" onchange="setAdminPoFilter(this.value)" class="w-full text-xs font-bold py-2.5 pl-2.5 pr-7 bg-transparent text-slate-900 outline-none appearance-none cursor-pointer">
+                    <option value="all">All (0)</option>
+                    <option value="pending">⏳ Awaiting Supplier (0)</option>
+                    <option value="in_stock">📦 In Stock (0)</option>
+                    <option value="in_production">🏭 In Production (0)</option>
+                    <option value="completed">✅ Fulfilled (0)</option>
+                  </select>
+                  <div class="absolute inset-y-0 right-0 flex items-center px-2 pointer-events-none text-slate-500">
+                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
+                  </div>
+                </div>
+              </div>
+
+              <div>
+                <label class="block text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1 ml-0.5">Category:</label>
+                <div class="relative bg-white rounded-xl border border-slate-300 shadow-2xs overflow-hidden focus-within:ring-2 focus-within:ring-blue-500">
+                  <select id="adminPoMobileCatSelect" onchange="setCategoryFilter(this.value)" class="w-full text-xs font-bold py-2.5 pl-2.5 pr-7 bg-transparent text-slate-900 outline-none appearance-none cursor-pointer">
+                    <option value="all">All Categories</option>
+                    <option value="labels">🏷️ Labels</option>
+                    <option value="tags">🔖 Tags</option>
+                    <option value="ribbons">🎗️ Ribbons</option>
+                    <option value="cards">💳 Cards</option>
+                  </select>
+                  <div class="absolute inset-y-0 right-0 flex items-center px-2 pointer-events-none text-slate-500">
+                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Category Quick Filter Bar for Admin Purchase Orders (Desktop) -->
+            <div class="hidden md:flex px-4 sm:px-5 py-2 bg-slate-50/40 border-b border-slate-100 items-center gap-2 overflow-x-auto text-xs no-scrollbar">
               <span class="text-[11px] font-bold text-slate-400 uppercase tracking-wider whitespace-nowrap">Filter By Category:</span>
               <button type="button" onclick="setCategoryFilter('all')" class="cat-filter-btn-all px-3 py-1 rounded-xl text-xs font-bold transition flex items-center gap-1.5 bg-slate-900 text-white shadow-2xs flex-shrink-0">
                 <span>All Categories</span>
@@ -720,8 +795,43 @@
               </div>
             </div>
 
-            <!-- Quick Audit Filters Bar -->
-            <div class="px-4 py-2.5 bg-slate-50/70 border-b border-slate-100 flex flex-wrap items-center justify-between gap-2 text-xs">
+            <!-- Mobile Filter Dropdowns for Dispatches (Zero Horizontal Scrolling on Phone) -->
+            <div class="grid grid-cols-2 gap-2 p-3 bg-slate-50/60 border-b border-slate-100 md:hidden">
+              <div>
+                <label class="block text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1 ml-0.5">Quick Filter:</label>
+                <div class="relative bg-white rounded-xl border border-slate-300 shadow-2xs overflow-hidden focus-within:ring-2 focus-within:ring-blue-500">
+                  <select id="adminShipmentsMobileFilterSelect" onchange="setShipmentFilter(this.value)" class="w-full text-xs font-bold py-2.5 pl-2.5 pr-7 bg-transparent text-slate-900 outline-none appearance-none cursor-pointer">
+                    <option value="all">All Dispatches (0)</option>
+                    <option value="shortages">⚠️ Shortages Only (0)</option>
+                    <option value="damaged">📦 Damaged / Rejected (0)</option>
+                    <option value="today">📅 Today's Deliveries (0)</option>
+                    <option value="transit">⏳ In Transit (0)</option>
+                  </select>
+                  <div class="absolute inset-y-0 right-0 flex items-center px-2 pointer-events-none text-slate-500">
+                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
+                  </div>
+                </div>
+              </div>
+
+              <div>
+                <label class="block text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1 ml-0.5">Category:</label>
+                <div class="relative bg-white rounded-xl border border-slate-300 shadow-2xs overflow-hidden focus-within:ring-2 focus-within:ring-blue-500">
+                  <select id="adminShipmentsMobileCatSelect" onchange="setCategoryFilter(this.value)" class="w-full text-xs font-bold py-2.5 pl-2.5 pr-7 bg-transparent text-slate-900 outline-none appearance-none cursor-pointer">
+                    <option value="all">All Categories</option>
+                    <option value="labels">🏷️ Labels</option>
+                    <option value="tags">🔖 Tags</option>
+                    <option value="ribbons">🎗️ Ribbons</option>
+                    <option value="cards">💳 Cards</option>
+                  </select>
+                  <div class="absolute inset-y-0 right-0 flex items-center px-2 pointer-events-none text-slate-500">
+                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Quick Audit Filters Bar (Desktop) -->
+            <div class="hidden md:flex px-4 py-2.5 bg-slate-50/70 border-b border-slate-100 flex-wrap items-center justify-between gap-2 text-xs">
               <div class="flex flex-wrap items-center gap-1.5">
                 <span class="text-[11px] font-bold text-slate-400 uppercase tracking-wider mr-1">Quick Filters:</span>
                 <button type="button" onclick="setShipmentFilter('all')" id="filterShipAll" class="px-3 py-1 rounded-xl text-xs font-bold bg-slate-900 text-white shadow-2xs transition flex items-center gap-1.5">
@@ -748,8 +858,8 @@
               <div class="text-[11px] text-slate-400 font-mono" id="shipmentsFilterStatusLabel">Showing all records</div>
             </div>
 
-            <!-- Category Quick Filter Bar for Dispatches -->
-            <div class="px-4 py-2 bg-slate-50/40 border-b border-slate-100 flex items-center gap-2 overflow-x-auto text-xs no-scrollbar">
+            <!-- Category Quick Filter Bar for Dispatches (Desktop) -->
+            <div class="hidden md:flex px-4 py-2 bg-slate-50/40 border-b border-slate-100 items-center gap-2 overflow-x-auto text-xs no-scrollbar">
               <span class="text-[11px] font-bold text-slate-400 uppercase tracking-wider whitespace-nowrap">Filter By Category:</span>
               <button type="button" onclick="setCategoryFilter('all')" class="cat-filter-btn-all px-3 py-1 rounded-xl text-xs font-bold transition flex items-center gap-1.5 bg-slate-900 text-white shadow-2xs flex-shrink-0 cursor-pointer">
                 <span>All Categories</span>
@@ -1021,7 +1131,8 @@
                 </button>
               </div>
             </div>
-            <div class="flex flex-wrap items-center gap-1.5 text-xs">
+            <!-- Desktop Filter Toolbar -->
+            <div class="hidden md:flex flex-wrap items-center gap-1.5 text-xs">
               <span class="text-[11px] font-bold text-slate-400 uppercase tracking-wider mr-1">Filter:</span>
               <button type="button" onclick="setGateFilter('all')" class="px-3.5 py-1.5 rounded-xl font-bold text-xs transition bg-slate-900 text-white shadow-2xs flex items-center gap-1.5 flex-shrink-0 cursor-pointer" id="gateFilterAll">
                 <span>All Inward</span>
@@ -1046,8 +1157,43 @@
             </div>
           </div>
 
-          <!-- Category Quick Filter Bar for Gatekeeper -->
-          <div class="px-4 py-2 bg-slate-50/50 border-b border-slate-100 flex items-center gap-2 overflow-x-auto text-xs no-scrollbar">
+          <!-- Mobile Filter Dropdowns for Gatekeeper (Zero Horizontal Scrolling on Phone) -->
+          <div class="grid grid-cols-2 gap-2 p-3 bg-slate-50/60 border-b border-slate-100 md:hidden">
+            <div>
+              <label class="block text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1 ml-0.5">Inward Status:</label>
+              <div class="relative bg-white rounded-xl border border-slate-300 shadow-2xs overflow-hidden focus-within:ring-2 focus-within:ring-blue-500">
+                <select id="gateMobileFilterSelect" onchange="setGateFilter(this.value)" class="w-full text-xs font-bold py-2.5 pl-2.5 pr-7 bg-transparent text-slate-900 outline-none appearance-none cursor-pointer">
+                  <option value="all">All Inward (0)</option>
+                  <option value="transit">⏳ Awaiting Count (0)</option>
+                  <option value="ribbons">🎗️ With Ribbons (0)</option>
+                  <option value="today">📅 Today (0)</option>
+                  <option value="damaged">⚠️ Damage / Rejections (0)</option>
+                </select>
+                <div class="absolute inset-y-0 right-0 flex items-center px-2 pointer-events-none text-slate-500">
+                  <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
+                </div>
+              </div>
+            </div>
+
+            <div>
+              <label class="block text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1 ml-0.5">Category:</label>
+              <div class="relative bg-white rounded-xl border border-slate-300 shadow-2xs overflow-hidden focus-within:ring-2 focus-within:ring-blue-500">
+                <select id="gateMobileCatSelect" onchange="setCategoryFilter(this.value)" class="w-full text-xs font-bold py-2.5 pl-2.5 pr-7 bg-transparent text-slate-900 outline-none appearance-none cursor-pointer">
+                  <option value="all">All Categories</option>
+                  <option value="labels">🏷️ Labels</option>
+                  <option value="tags">🔖 Tags</option>
+                  <option value="ribbons">🎗️ Ribbons</option>
+                  <option value="cards">💳 Cards</option>
+                </select>
+                <div class="absolute inset-y-0 right-0 flex items-center px-2 pointer-events-none text-slate-500">
+                  <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Category Quick Filter Bar for Gatekeeper (Desktop) -->
+          <div class="hidden md:flex px-4 py-2 bg-slate-50/50 border-b border-slate-100 items-center gap-2 overflow-x-auto text-xs no-scrollbar">
             <span class="text-[11px] font-bold text-slate-400 uppercase tracking-wider whitespace-nowrap">Category:</span>
             <button type="button" onclick="setCategoryFilter('all')" class="cat-filter-btn-all px-3 py-1 rounded-xl text-xs font-bold transition flex items-center gap-1.5 bg-slate-900 text-white shadow-2xs flex-shrink-0 cursor-pointer">
               <span>All Categories</span>
@@ -1923,7 +2069,7 @@
       <div class="p-6 space-y-5 overflow-y-auto flex-1">
         <!-- Annual Financial Year Selector Tabs -->
         <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 pb-2 border-b border-slate-100">
-          <div class="flex items-center gap-1.5 overflow-x-auto pb-1 sm:pb-0" id="sampleModalYearTabs">
+          <div class="flex flex-wrap items-center gap-1.5" id="sampleModalYearTabs">
             <!-- Dynamically populated via JS: 2025, 2026, 2027 tabs -->
           </div>
           <div id="sampleModalYearManageBtnContainer" class="shrink-0">
@@ -2023,7 +2169,7 @@
 
       <!-- Navigation Sub-Tabs -->
       <div class="px-4 sm:px-6 pt-3.5 pb-2 bg-slate-50/80 border-b border-slate-200 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 flex-shrink-0">
-        <div class="nav-tab-container p-1 bg-slate-200/80 rounded-xl flex items-center gap-1 w-full sm:w-auto overflow-x-auto no-scrollbar">
+        <div class="nav-tab-container p-1 bg-slate-200/80 rounded-xl grid grid-cols-2 sm:flex sm:items-center gap-1 w-full sm:w-auto">
           <button type="button" onclick="switchAnnualManagerTab('mandates')" id="annualTabBtnMandates" class="nav-tab-btn nav-tab-btn-active px-3.5 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1.5 flex-shrink-0">
             <span>🎨 Annual Color Mandates</span>
           </button>
@@ -2044,7 +2190,7 @@
             <div>
               <h4 class="text-sm font-bold text-slate-900">Configured Financial Years & Master Color Codes</h4>
             </div>
-            <button type="button" onclick="toggleNewYearForm()" class="btn-gradient-primary px-3.5 py-2 text-white text-xs font-bold rounded-xl shadow-2xs transition flex items-center gap-1.5 self-start sm:self-auto cursor-pointer">
+            <button type="button" id="btnAddNewAnnualYear" onclick="toggleNewYearForm()" class="btn-gradient-primary px-3.5 py-2 text-white text-xs font-bold rounded-xl shadow-2xs transition flex items-center gap-1.5 self-start sm:self-auto cursor-pointer">
               <span>+ Add New Financial Year</span>
             </button>
           </div>
