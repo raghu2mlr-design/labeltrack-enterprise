@@ -90,7 +90,8 @@ function resolveBasePantoneHex(rawInput) {
     '3425': '#065F46', '3425C': '#065F46',
     '2685': '#7C3AED', '2685C': '#7C3AED',
     '1585': '#EA580C', '1585C': '#EA580C',
-    '4625': '#4F302B', '4625C': '#4F302B',
+    '4625': '#553B30', '4625C': '#553B30',
+    '4278': '#7F7E83', '4278C': '#7F7E83',
     '300': '#005EB8', '300C': '#005EB8',
     '186': '#C8102E', '186C': '#C8102E'
   };
@@ -186,6 +187,28 @@ function updatePantoneSuggestions(query) {
   }
 }
 
+function hslToHex(h, s, l) {
+  s /= 100;
+  l /= 100;
+  const k = n => (n + h / 30) % 12;
+  const a = s * Math.min(l, 1 - l);
+  const f = n =>
+    l - a * Math.max(-1, Math.min(k(n) - 3, Math.min(9 - k(n), 1)));
+  const toHex = x => Math.round(x * 255).toString(16).padStart(2, '0').toUpperCase();
+  return `#${toHex(f(0))}${toHex(f(8))}${toHex(f(4))}`;
+}
+
+function generatePantoneFallbackHex(input) {
+  if (!input) return '#009FDA';
+  const clean = String(input).trim().toUpperCase();
+  let hash = 0;
+  for (let i = 0; i < clean.length; i++) {
+    hash = clean.charCodeAt(i) + ((hash << 5) - hash);
+  }
+  const h = Math.abs(hash) % 360;
+  return hslToHex(h, 60, 45);
+}
+
 function handlePantoneInput(val) {
   if (!val || !val.trim()) return;
   const hex = resolvePantoneToHex(val);
@@ -200,19 +223,18 @@ function handlePantoneInput(val) {
     if (picker) picker.value = hex;
     if (liveSwatch) liveSwatch.style.backgroundColor = hex;
     if (badge) {
-      badge.className = 'text-[10px] font-bold px-2.5 py-0.5 rounded-full bg-emerald-100 text-emerald-800 border border-emerald-200 inline-flex items-center gap-1 self-start sm:self-auto shadow-2xs';
-      badge.innerHTML = `✓ Exact Match: ${hex}`;
+      badge.className = 'text-[10px] font-bold px-2 py-1 rounded-lg bg-emerald-100 text-emerald-800 border border-emerald-200 shrink-0 shadow-2xs';
+      badge.innerHTML = `✓ ${hex}`;
     }
     updatePantoneSuggestions(val);
     if (nameInput && (!nameInput.value || nameInput.value.toUpperCase().startsWith('PANTONE') || nameInput.value.includes('Standard') || nameInput.value.includes('Scheme'))) {
       const cleanLabel = String(val).replace(/^PANTONE\s*/i, '').trim().toUpperCase();
       nameInput.value = cleanLabel ? `PANTONE ${cleanLabel}` : '';
     }
-    updatePantoneSuggestions(val);
   } else if (typeof fetch === 'function') {
     if (badge) {
-      badge.className = 'text-[10px] font-bold px-2.5 py-0.5 rounded-full bg-sky-100 text-sky-800 border border-sky-200 inline-flex items-center gap-1 self-start sm:self-auto';
-      badge.innerHTML = '🔍 Searching Pantone Database...';
+      badge.className = 'text-[10px] font-bold px-2 py-1 rounded-lg bg-sky-100 text-sky-800 border border-sky-200 shrink-0';
+      badge.innerHTML = '🔍 Searching...';
     }
     fetch(`/api/pantone?q=${encodeURIComponent(val)}`)
       .then(res => res.json())
@@ -221,12 +243,27 @@ function handlePantoneInput(val) {
           PANTONE_MASTER_MAP[val.toUpperCase()] = data.hex;
           PANTONE_MASTER_MAP[val.replace(/[^\w\d]/g, '').toUpperCase()] = data.hex;
           handlePantoneInput(val);
-        } else if (badge) {
-          badge.className = 'text-[10px] font-bold px-2.5 py-0.5 rounded-full bg-slate-100 text-slate-600 border border-slate-200 inline-flex items-center gap-1 self-start sm:self-auto';
-          badge.innerHTML = '✏️ Enter custom hex or valid code';
+        } else {
+          const fallback = generatePantoneFallbackHex(val);
+          if (hexInput) hexInput.value = fallback;
+          if (picker) picker.value = fallback;
+          if (liveSwatch) liveSwatch.style.backgroundColor = fallback;
+          if (badge) {
+            badge.className = 'text-[10px] font-bold px-2 py-1 rounded-lg bg-amber-50 text-amber-800 border border-amber-200 shrink-0';
+            badge.innerHTML = '✏️ Custom Hex';
+          }
         }
       })
-      .catch(() => {});
+      .catch(() => {
+        const fallback = generatePantoneFallbackHex(val);
+        if (hexInput) hexInput.value = fallback;
+        if (picker) picker.value = fallback;
+        if (liveSwatch) liveSwatch.style.backgroundColor = fallback;
+        if (badge) {
+          badge.className = 'text-[10px] font-bold px-2 py-1 rounded-lg bg-amber-50 text-amber-800 border border-amber-200 shrink-0';
+          badge.innerHTML = '✏️ Custom Hex';
+        }
+      });
   }
 }
 
@@ -244,7 +281,7 @@ function handlePantoneH2Input(val) {
       liveSwatch.textContent = '—';
     }
     if (badge) {
-      badge.className = 'text-[10px] font-bold px-2.5 py-0.5 rounded-full bg-slate-100 text-slate-600 border border-slate-200 inline-flex items-center gap-1 self-start sm:self-auto';
+      badge.className = 'text-[10px] font-bold px-2 py-1 rounded-lg bg-slate-100 text-slate-600 border border-slate-200 shrink-0';
       badge.innerHTML = 'Pending Specification';
     }
     return;
@@ -259,14 +296,14 @@ function handlePantoneH2Input(val) {
       liveSwatch.textContent = '';
     }
     if (badge) {
-      badge.className = 'text-[10px] font-bold px-2.5 py-0.5 rounded-full bg-emerald-100 text-emerald-800 border border-emerald-200 inline-flex items-center gap-1 self-start sm:self-auto shadow-2xs';
-      badge.innerHTML = `✓ Exact Match: ${hex}`;
+      badge.className = 'text-[10px] font-bold px-2 py-1 rounded-lg bg-emerald-100 text-emerald-800 border border-emerald-200 shrink-0 shadow-2xs';
+      badge.innerHTML = `✓ ${hex}`;
     }
     updatePantoneSuggestions(val);
   } else if (typeof fetch === 'function') {
     if (badge) {
-      badge.className = 'text-[10px] font-bold px-2.5 py-0.5 rounded-full bg-sky-100 text-sky-800 border border-sky-200 inline-flex items-center gap-1 self-start sm:self-auto';
-      badge.innerHTML = '🔍 Searching Pantone Database...';
+      badge.className = 'text-[10px] font-bold px-2 py-1 rounded-lg bg-sky-100 text-sky-800 border border-sky-200 shrink-0';
+      badge.innerHTML = '🔍 Searching...';
     }
     fetch(`/api/pantone?q=${encodeURIComponent(val)}`)
       .then(res => res.json())
@@ -275,12 +312,33 @@ function handlePantoneH2Input(val) {
           PANTONE_MASTER_MAP[val.toUpperCase()] = data.hex;
           PANTONE_MASTER_MAP[val.replace(/[^\w\d]/g, '').toUpperCase()] = data.hex;
           handlePantoneH2Input(val);
-        } else if (badge) {
-          badge.className = 'text-[10px] font-bold px-2.5 py-0.5 rounded-full bg-slate-100 text-slate-600 border border-slate-200 inline-flex items-center gap-1 self-start sm:self-auto';
-          badge.innerHTML = '✏️ Enter custom hex or valid code';
+        } else {
+          const fallback = generatePantoneFallbackHex(val);
+          if (hexInput) hexInput.value = fallback;
+          if (picker) picker.value = fallback;
+          if (liveSwatch) {
+            liveSwatch.style.backgroundColor = fallback;
+            liveSwatch.textContent = '';
+          }
+          if (badge) {
+            badge.className = 'text-[10px] font-bold px-2 py-1 rounded-lg bg-amber-50 text-amber-800 border border-amber-200 shrink-0';
+            badge.innerHTML = '✏️ Custom Hex';
+          }
         }
       })
-      .catch(() => {});
+      .catch(() => {
+        const fallback = generatePantoneFallbackHex(val);
+        if (hexInput) hexInput.value = fallback;
+        if (picker) picker.value = fallback;
+        if (liveSwatch) {
+          liveSwatch.style.backgroundColor = fallback;
+          liveSwatch.textContent = '';
+        }
+        if (badge) {
+          badge.className = 'text-[10px] font-bold px-2 py-1 rounded-lg bg-amber-50 text-amber-800 border border-amber-200 shrink-0';
+          badge.innerHTML = '✏️ Custom Hex';
+        }
+      });
   }
 }
 
@@ -290,8 +348,8 @@ function onManualHexChange() {
   const hex = document.getElementById('inputYearPrimaryHex')?.value;
   if (liveSwatch && hex) liveSwatch.style.backgroundColor = hex;
   if (badge) {
-    badge.className = 'text-[10px] font-bold px-2 py-0.5 rounded-full bg-blue-100 text-blue-800 border border-blue-200 inline-flex items-center gap-1 self-start sm:self-auto';
-    badge.innerHTML = '✏️ Custom Hex Palette';
+    badge.className = 'text-[10px] font-bold px-2 py-1 rounded-lg bg-blue-100 text-blue-800 border border-blue-200 shrink-0';
+    badge.innerHTML = '✏️ Custom Hex';
   }
 }
 
@@ -299,10 +357,13 @@ function onManualH2HexChange() {
   const badge = document.getElementById('pantoneH2SyncStatusBadge');
   const liveSwatch = document.getElementById('pantoneH2InputLiveSwatch');
   const hex = document.getElementById('inputYearH2Hex')?.value;
-  if (liveSwatch && hex) liveSwatch.style.backgroundColor = hex;
+  if (liveSwatch && hex) {
+    liveSwatch.style.backgroundColor = hex;
+    liveSwatch.textContent = '';
+  }
   if (badge) {
-    badge.className = 'text-[10px] font-bold px-2 py-0.5 rounded-full bg-blue-100 text-blue-800 border border-blue-200 inline-flex items-center gap-1 self-start sm:self-auto';
-    badge.innerHTML = '✏️ Custom Hex Palette';
+    badge.className = 'text-[10px] font-bold px-2 py-1 rounded-lg bg-blue-100 text-blue-800 border border-blue-200 shrink-0';
+    badge.innerHTML = '✏️ Custom Hex';
   }
 }
 
@@ -330,7 +391,7 @@ function clearH2Shade() {
 // ==========================================
 // AUTOMATED 6-MONTH SECURITY IMPRINT CODE ENGINE
 // ==========================================
-const SECURITY_CIPHER_MAP = {
+const SECURITY_SYMBOL_MAP = {
   '1': 'C',
   '2': 'H',
   '3': 'A',
@@ -347,19 +408,45 @@ function getSecurityYearCode(year, period) {
   const yStr = String(year || 2026);
   const d1 = yStr.charAt(yStr.length - 2) || '2';
   const d2 = yStr.charAt(yStr.length - 1) || '6';
-  const c1 = SECURITY_CIPHER_MAP[d1] || 'H';
-  const c2 = SECURITY_CIPHER_MAP[d2] || 'R';
+  const c1 = SECURITY_SYMBOL_MAP[d1] || 'H';
+  const c2 = SECURITY_SYMBOL_MAP[d2] || 'R';
   const baseCode = `${c1}${c2}`;
   if (period === 'H2' || period === '2' || period === 'Jul-Dec') {
     return `2${baseCode}`;
   }
   return baseCode;
 }
+
+function updateFormSecurityYearCodes(year) {
+  const y = Number(year) || 2026;
+  const h1Code = getSecurityYearCode(y, 'H1');
+  const h2Code = getSecurityYearCode(y, 'H2');
+
+  const labelEl = document.getElementById('formSecurityYearLabel');
+  if (labelEl) labelEl.textContent = `FY ${y} Security Mandate`;
+
+  const h1El = document.getElementById('formH1SecurityCodeDisplay');
+  if (h1El) h1El.textContent = h1Code;
+
+  const h2El = document.getElementById('formH2SecurityCodeDisplay');
+  if (h2El) h2El.textContent = h2Code;
+
+  const h1CardEl = document.getElementById('formH1CardSecurityCode');
+  if (h1CardEl) h1CardEl.textContent = `H1 • CODE: ${h1Code}`;
+
+  const h2CardEl = document.getElementById('formH2CardSecurityCode');
+  if (h2CardEl) h2CardEl.textContent = `H2 • CODE: ${h2Code}`;
+}
 const LEGACY_SECRET_KEYWORD_RE = new RegExp(String.fromCharCode(67, 72, 65, 78, 68, 82, 84, 69, 88, 79) + "|" + String.fromCharCode(67, 104, 97, 110, 100, 114, 116, 101, 120, 111) + "\\s*", "gi");
 
-let currentSampleModalPeriod = 'H1';
+function getCurrentCalendarPeriod() {
+  // Calendar month 0-11: Months 0-5 (Jan-Jun) = H1, Months 6-11 (Jul-Dec) = H2
+  return (new Date().getMonth() >= 6) ? 'H2' : 'H1';
+}
+
+let currentSampleModalPeriod = getCurrentCalendarPeriod();
 function switchSampleModalPeriod(period) {
-  currentSampleModalPeriod = period || 'H1';
+  currentSampleModalPeriod = period || getCurrentCalendarPeriod();
   const btnH1 = document.getElementById('btnSamplePeriodH1');
   const btnH2 = document.getElementById('btnSamplePeriodH2');
   if (btnH1 && btnH2) {
@@ -470,7 +557,7 @@ const MODEL_SPECS_MAP = {
 // ==========================================
 const DEFAULT_ANNUAL_COLOR_CONFIG = {
   activeYear: 2026,
-  activePeriod: 'H1',
+  activePeriod: (new Date().getMonth() >= 6 ? 'H2' : 'H1'),
   years: [
     {
       year: 2025,
@@ -552,7 +639,13 @@ function updateAnnualColorUI() {
   if (dot) dot.style.backgroundColor = yearConfig.hexColor;
 
   const badgeText = document.getElementById('adminActiveYearColorBadgeText');
-  if (badgeText) badgeText.textContent = `🎨 Annual Color Proofs (${activeYear})`;
+  if (badgeText) badgeText.innerHTML = `<span class="sm:hidden">🎨 Proofs (${activeYear})</span><span class="hidden sm:inline">🎨 Annual Color Proofs (${activeYear})</span>`;
+
+  const vDot = document.getElementById('vendorActiveYearColorDot');
+  if (vDot) vDot.style.backgroundColor = yearConfig.hexColor;
+
+  const vBadgeText = document.getElementById('vendorActiveYearColorBadgeText');
+  if (vBadgeText) vBadgeText.innerHTML = `<span class="sm:hidden">🎨 Proofs & Codes (${activeYear})</span><span class="hidden sm:inline">🎨 Annual Proofs & Codes (${activeYear})</span>`;
 
   const activePill = document.getElementById('annualActiveYearPill');
   if (activePill) {
@@ -654,7 +747,7 @@ function generateSampleArtworkSvg(modelName, customSpecs, yearObj, periodParam) 
   const specs = customSpecs || MODEL_SPECS_MAP[model] || '';
   const period = periodParam || currentSampleModalPeriod || 'H1';
   const targetYear = yearObj?.year || currentSampleModalYear || 2026;
-  const cipherCode = getSecurityYearCode(targetYear, period);
+  const securityYearCode = getSecurityYearCode(targetYear, period);
   const hasH2 = (period === 'H2' && yearObj?.h2?.hex);
   const pantoneColor = hasH2 ? yearObj.h2.hex : (yearObj?.h1?.hex || yearObj?.hexColor || '#009FDA');
   const pantoneCode = (period === 'H2' && yearObj?.h2?.pantone) ? yearObj.h2.pantone : (period === 'H2' ? 'Pending Specification' : (yearObj?.h1?.pantone || yearObj?.pantoneCode || 'PANTONE 2192 C'));
@@ -725,7 +818,7 @@ function generateSampleArtworkSvg(modelName, customSpecs, yearObj, periodParam) 
           <text x="75" y="173" font-family="system-ui, sans-serif" font-size="7" font-weight="bold" fill="#1d4ed8" text-anchor="middle">UPS 1 (LEFT)</text>
           <!-- Security Imprint Code (Point 4 & 15) -->
           <rect x="145" y="162" width="65" height="15" rx="3" fill="#0f172a"/>
-          <text x="177" y="173" font-family="monospace" font-size="8" font-weight="bold" fill="#38bdf8" text-anchor="middle">CODE: ${cipherCode}</text>
+          <text x="177" y="173" font-family="monospace" font-size="8" font-weight="bold" fill="#38bdf8" text-anchor="middle">CODE: ${securityYearCode}</text>
         </g>
 
         <!-- Right Label (UPS 2) -->
@@ -773,7 +866,7 @@ function generateSampleArtworkSvg(modelName, customSpecs, yearObj, periodParam) 
           <text x="282" y="173" font-family="system-ui, sans-serif" font-size="7" font-weight="bold" fill="#1d4ed8" text-anchor="middle">UPS 2 (RIGHT)</text>
           <!-- Security Imprint Code (Point 4 & 15) -->
           <rect x="350" y="162" width="65" height="15" rx="3" fill="#0f172a"/>
-          <text x="382" y="173" font-family="monospace" font-size="8" font-weight="bold" fill="#38bdf8" text-anchor="middle">CODE: ${cipherCode}</text>
+          <text x="382" y="173" font-family="monospace" font-size="8" font-weight="bold" fill="#38bdf8" text-anchor="middle">CODE: ${securityYearCode}</text>
         </g>
 
         <!-- Unwind & Technical Footer Callout -->
@@ -1155,6 +1248,7 @@ function openSampleArtworkModal(itemOrDescription, customUrl, selectedYear) {
   currentSampleModalCustomUrl = customUrl || '';
   currentSampleModalSpecs = activeSpecs;
   currentSampleModalYear = Number(selectedYear) || getActiveYear();
+  currentSampleModalPeriod = getCurrentCalendarPeriod();
 
   renderSampleModalContent();
   openModal('sampleArtworkModal');
@@ -1177,9 +1271,22 @@ function renderSampleModalContent() {
   const yearObj = getYearColorConfig(year);
   const activeFiscalYear = getActiveYear();
   const isAdmin = state.currentUser && (state.currentUser.role === 'admin' || state.currentUser.role === 'store_manager');
-  const activePeriod = currentSampleModalPeriod || 'H1';
+  const activePeriod = currentSampleModalPeriod || getCurrentCalendarPeriod();
   const hasH2 = !!(yearObj.h2 && yearObj.h2.pantone);
   const activePeriodObj = (activePeriod === 'H2' && hasH2) ? yearObj.h2 : (yearObj.h1 || yearObj);
+
+  // Synchronize 6-Month Period Switcher Button Styling (H1 vs H2)
+  const btnH1 = document.getElementById('btnSamplePeriodH1');
+  const btnH2 = document.getElementById('btnSamplePeriodH2');
+  if (btnH1 && btnH2) {
+    if (activePeriod === 'H1') {
+      btnH1.className = 'px-3 py-1 rounded-lg text-xs font-bold transition flex items-center gap-1 bg-slate-900 text-white cursor-pointer shadow-2xs';
+      btnH2.className = 'px-3 py-1 rounded-lg text-xs font-bold transition flex items-center gap-1 text-slate-600 hover:bg-slate-100 cursor-pointer';
+    } else {
+      btnH2.className = 'px-3 py-1 rounded-lg text-xs font-bold transition flex items-center gap-1 bg-slate-900 text-white cursor-pointer shadow-2xs';
+      btnH1.className = 'px-3 py-1 rounded-lg text-xs font-bold transition flex items-center gap-1 text-slate-600 hover:bg-slate-100 cursor-pointer';
+    }
+  }
 
   // 1. Header Titles
   const titleEl = document.getElementById('sampleArtworkTitle');
@@ -1274,13 +1381,9 @@ function renderSampleModalContent() {
                 <span class="pantone-swatch"><span class="w-2.5 h-2.5 rounded-full" style="background-color: ${activePeriodObj.hex || yearObj.hexColor};"></span>${activePeriodObj.pantone || yearObj.pantoneCode || 'PANTONE 2192 C'}</span>
                 ${(activePeriodObj.name && activePeriodObj.name !== (activePeriodObj.pantone || yearObj.pantoneCode)) ? `<span>${escapeHtml(activePeriodObj.name)}</span>` : ''}
               `}
-              <span class="cipher-pill">🔐 CODE: ${getSecurityYearCode(year, activePeriod)}</span>
+              <span class="security-code-pill">🔐 CODE: ${getSecurityYearCode(year, activePeriod)}</span>
             </div>
-            <p class="text-[11px] text-slate-600 font-medium mt-0.5 leading-snug">
-              ${isH2Pending 
-                ? 'Pantone shade for Jul–Dec ' + year + ' remains unassigned and kept empty until explicitly specified.' 
-                : escapeHtml(yearObj.guidelines || `All FY ${year} product shipments must follow this approved annual color scheme on roll core markings and outer cartons.`)}
-            </p>
+            ${yearObj.guidelines ? `<p class="text-[11px] text-slate-600 font-medium mt-0.5 leading-snug">${escapeHtml(yearObj.guidelines)}</p>` : ''}
           </div>
         </div>
         <!-- Side-by-side Dual Shades (H1 vs H2) Selector Switch -->
@@ -1600,6 +1703,13 @@ function renderAnnualColorRegistry() {
   const grid = document.getElementById('annualYearsGrid');
   if (!grid) return;
 
+  const isAdmin = state.currentUser && (state.currentUser.role === 'admin' || state.currentUser.role === 'store_manager');
+  const addYearBtn = document.querySelector('button[onclick="toggleNewYearForm()"]');
+  if (addYearBtn) {
+    if (isAdmin) addYearBtn.classList.remove('hidden');
+    else addYearBtn.classList.add('hidden');
+  }
+
   const activeYear = getActiveYear();
   const years = (state.annualColorConfig && Array.isArray(state.annualColorConfig.years))
     ? [...state.annualColorConfig.years].sort((a, b) => b.year - a.year)
@@ -1648,7 +1758,10 @@ function renderAnnualColorRegistry() {
               <div class="flex items-center gap-2 p-2 rounded-lg bg-white border border-slate-200 shadow-2xs min-w-0">
                 <span class="w-6 h-6 rounded-md border border-slate-300 shadow-2xs shrink-0" style="background-color: ${y.h1 ? y.h1.hex : y.hexColor};"></span>
                 <div class="min-w-0 flex-1">
-                  <span class="text-[9px] font-extrabold uppercase tracking-wider text-slate-400 block">H1 (Jan–Jun)</span>
+                  <div class="flex items-center justify-between gap-1">
+                    <span class="text-[9px] font-extrabold uppercase tracking-wider text-slate-400 block">H1 (Jan–Jun)</span>
+                    <span class="font-mono text-[9px] text-emerald-800 bg-emerald-100 border border-emerald-200 px-1 py-0.2 rounded font-black shrink-0">🔐 ${(y.h1 && y.h1.code) || getSecurityYearCode(y.year, 'H1')}</span>
+                  </div>
                   <span class="font-bold text-slate-900 text-[11px] block truncate">${escapeHtml((y.h1 && y.h1.pantone) || y.pantoneCode || 'PANTONE 2192 C')}</span>
                   <span class="font-mono text-[9px] text-slate-500 block truncate">${(y.h1 && y.h1.hex) || y.hexColor}</span>
                 </div>
@@ -1658,14 +1771,20 @@ function renderAnnualColorRegistry() {
                 ${(y.h2 && y.h2.pantone) ? `
                   <span class="w-6 h-6 rounded-md border border-slate-300 shadow-2xs shrink-0" style="background-color: ${y.h2.hex};"></span>
                   <div class="min-w-0 flex-1">
-                    <span class="text-[9px] font-extrabold uppercase tracking-wider text-slate-400 block">H2 (Jul–Dec)</span>
+                    <div class="flex items-center justify-between gap-1">
+                      <span class="text-[9px] font-extrabold uppercase tracking-wider text-slate-400 block">H2 (Jul–Dec)</span>
+                      <span class="font-mono text-[9px] text-amber-800 bg-amber-100 border border-amber-200 px-1 py-0.2 rounded font-black shrink-0">🔐 ${(y.h2 && y.h2.code) || getSecurityYearCode(y.year, 'H2')}</span>
+                    </div>
                     <span class="font-bold text-slate-900 text-[11px] block truncate">${escapeHtml(y.h2.pantone)}</span>
                     <span class="font-mono text-[9px] text-slate-500 block truncate">${y.h2.hex}</span>
                   </div>
                 ` : `
                   <span class="w-6 h-6 rounded-md border border-dashed border-slate-300 bg-slate-50 shadow-2xs shrink-0 flex items-center justify-center text-[10px] text-slate-400 font-bold">—</span>
                   <div class="min-w-0 flex-1">
-                    <span class="text-[9px] font-extrabold uppercase tracking-wider text-slate-400 block">H2 (Jul–Dec)</span>
+                    <div class="flex items-center justify-between gap-1">
+                      <span class="text-[9px] font-extrabold uppercase tracking-wider text-slate-400 block">H2 (Jul–Dec)</span>
+                      <span class="font-mono text-[9px] text-slate-600 bg-slate-100 border border-slate-200 px-1 py-0.2 rounded font-bold shrink-0">🔐 ${getSecurityYearCode(y.year, 'H2')}</span>
+                    </div>
                     <span class="font-semibold text-slate-500 text-[11px] block italic truncate">Pending Specification</span>
                     <span class="font-mono text-[9px] text-slate-400 block">Not Assigned</span>
                   </div>
@@ -1673,9 +1792,10 @@ function renderAnnualColorRegistry() {
               </div>
             </div>
 
+            ${y.guidelines ? `
             <p class="text-xs text-slate-600 font-medium leading-relaxed">
-              ${escapeHtml(y.guidelines || 'Standard core marking and verification guideline for this financial year.')}
-            </p>
+              ${escapeHtml(y.guidelines)}
+            </p>` : ''}
 
             <div class="pt-2 border-t border-slate-100 flex items-center justify-between text-xs text-slate-500">
               <span class="font-medium">Uploaded Proofs:</span>
@@ -1753,6 +1873,11 @@ function toggleNewYearForm(show, yearToEdit) {
     if (primaryHex) primaryHex.value = h1HexVal;
     const liveSwatch = document.getElementById('pantoneInputLiveSwatch');
     if (liveSwatch) liveSwatch.style.backgroundColor = h1HexVal;
+    const h1Badge = document.getElementById('pantoneSyncStatusBadge');
+    if (h1Badge) {
+      h1Badge.className = 'text-[10px] font-bold px-2 py-1 rounded-lg bg-emerald-100 text-emerald-800 border border-emerald-200 shrink-0';
+      h1Badge.textContent = '✓ ' + h1HexVal;
+    }
 
     const hasValidH2 = yObj.h2 && yObj.h2.pantone && !yObj.h2.pantone.includes('Shade') && !yObj.h2.pantone.includes('(') && !yObj.h2.pantone.includes('Companion');
     if (hasValidH2) {
@@ -1776,6 +1901,7 @@ function toggleNewYearForm(show, yearToEdit) {
     if (colorNameInput) colorNameInput.value = (yObj.colorName || '').trim();
     if (statusSelect) statusSelect.value = yObj.status || 'upcoming';
     if (guidelinesInput) guidelinesInput.value = (yObj.guidelines || '').trim();
+    updateFormSecurityYearCodes(yearToEdit);
   } else {
     if (heading) heading.textContent = 'Register New Financial Year Color Standard';
     if (origYearInput) origYearInput.value = '';
@@ -1795,6 +1921,7 @@ function toggleNewYearForm(show, yearToEdit) {
     if (colorNameInput) colorNameInput.value = 'PANTONE 2192 C';
     if (statusSelect) statusSelect.value = 'upcoming';
     if (guidelinesInput) guidelinesInput.value = '';
+    updateFormSecurityYearCodes(yearInput ? yearInput.value : (getActiveYear() + 1));
   }
 }
 
@@ -2072,6 +2199,10 @@ async function handleMatrixQuickUpload(modelName, year, fileInput) {
 // ==========================================
 function renderAdminTabsUI() {
   const activeTab = state.adminActiveTab || 'dashboard';
+  const mobileSelect = document.getElementById('adminMobileTabSelect');
+  if (mobileSelect) {
+    mobileSelect.value = activeTab;
+  }
   const tabs = ['dashboard', 'orders', 'dispatches', 'scorecards', 'vendors'];
   tabs.forEach(t => {
     const btn = document.getElementById(`adminTabBtn${t.charAt(0).toUpperCase() + t.slice(1)}`);
@@ -2148,6 +2279,202 @@ function setAdminPoFilter(filter) {
   state.adminPoFilter = filter || 'all';
   renderAdminPoFilterUI();
   render();
+}
+
+let poMobileViewMode = 'cards';
+function setPoMobileView(mode) {
+  poMobileViewMode = mode || 'cards';
+  const cardsEl = document.getElementById('adminPoCardsContainer');
+  const tableWrapperEl = document.getElementById('adminPoTableWrapper');
+  const hintEl = document.getElementById('adminPoScrollHint');
+  const btnCards = document.getElementById('btnPoViewCards');
+  const btnTable = document.getElementById('btnPoViewTable');
+
+  if (cardsEl && tableWrapperEl) {
+    if (poMobileViewMode === 'cards') {
+      cardsEl.classList.remove('hidden');
+      cardsEl.classList.add('block');
+      tableWrapperEl.classList.remove('block');
+      tableWrapperEl.classList.add('hidden', 'md:block');
+      if (hintEl) hintEl.classList.add('hidden');
+      if (btnCards) {
+        btnCards.className = 'px-2.5 py-1 rounded-lg text-[10px] font-bold bg-slate-900 text-white shadow-2xs cursor-pointer';
+      }
+      if (btnTable) {
+        btnTable.className = 'px-2.5 py-1 rounded-lg text-[10px] font-bold text-slate-600 hover:bg-slate-200 cursor-pointer';
+      }
+    } else {
+      cardsEl.classList.add('hidden');
+      cardsEl.classList.remove('block');
+      tableWrapperEl.classList.remove('hidden');
+      tableWrapperEl.classList.add('block');
+      if (hintEl) hintEl.classList.remove('hidden');
+      if (btnCards) {
+        btnCards.className = 'px-2.5 py-1 rounded-lg text-[10px] font-bold text-slate-600 hover:bg-slate-200 cursor-pointer';
+      }
+      if (btnTable) {
+        btnTable.className = 'px-2.5 py-1 rounded-lg text-[10px] font-bold bg-slate-900 text-white shadow-2xs cursor-pointer';
+      }
+    }
+  }
+}
+
+let adminDispatchesMobileViewMode = 'cards';
+function setAdminDispatchesMobileView(mode) {
+  adminDispatchesMobileViewMode = mode || 'cards';
+  const cardsEl = document.getElementById('adminShipmentsCardsContainer');
+  const tableWrapperEl = document.getElementById('adminShipmentsTableWrapper');
+  const hintEl = document.getElementById('adminShipmentsScrollHint');
+  const btnCards = document.getElementById('btnAdminDispatchesViewCards');
+  const btnTable = document.getElementById('btnAdminDispatchesViewTable');
+
+  if (cardsEl && tableWrapperEl) {
+    if (adminDispatchesMobileViewMode === 'cards') {
+      cardsEl.classList.remove('hidden');
+      cardsEl.classList.add('block');
+      tableWrapperEl.classList.remove('block');
+      tableWrapperEl.classList.add('hidden', 'md:block');
+      if (hintEl) hintEl.classList.add('hidden');
+      if (btnCards) btnCards.className = 'px-2.5 py-1 rounded-lg text-[10px] font-bold bg-slate-900 text-white shadow-2xs cursor-pointer';
+      if (btnTable) btnTable.className = 'px-2.5 py-1 rounded-lg text-[10px] font-bold text-slate-600 hover:bg-slate-200 cursor-pointer';
+    } else {
+      cardsEl.classList.add('hidden');
+      cardsEl.classList.remove('block');
+      tableWrapperEl.classList.remove('hidden');
+      tableWrapperEl.classList.add('block');
+      if (hintEl) hintEl.classList.remove('hidden');
+      if (btnCards) btnCards.className = 'px-2.5 py-1 rounded-lg text-[10px] font-bold text-slate-600 hover:bg-slate-200 cursor-pointer';
+      if (btnTable) btnTable.className = 'px-2.5 py-1 rounded-lg text-[10px] font-bold bg-slate-900 text-white shadow-2xs cursor-pointer';
+    }
+  }
+}
+
+function toggleVendorKpiMobile() {
+  const container = document.getElementById('vendorKpiContainer');
+  const chevron = document.getElementById('vendorKpiChevron');
+  if (container) {
+    const isHidden = container.classList.contains('hidden');
+    if (isHidden) {
+      container.classList.remove('hidden');
+      container.classList.add('grid');
+      if (chevron) chevron.style.transform = 'rotate(180deg)';
+    } else {
+      container.classList.add('hidden');
+      container.classList.remove('grid');
+      if (chevron) chevron.style.transform = 'rotate(0deg)';
+    }
+  }
+}
+
+function toggleAdminKpiMobile() {
+  const container = document.getElementById('adminKpiContainer');
+  const chevron = document.getElementById('adminKpiChevron');
+  if (container) {
+    const isHidden = container.classList.contains('hidden');
+    if (isHidden) {
+      container.classList.remove('hidden');
+      container.classList.add('grid');
+      if (chevron) chevron.style.transform = 'rotate(180deg)';
+    } else {
+      container.classList.add('hidden');
+      container.classList.remove('grid');
+      if (chevron) chevron.style.transform = 'rotate(0deg)';
+    }
+  }
+}
+
+function toggleGateKpiMobile() {
+  const container = document.getElementById('gateKpiContainer');
+  const chevron = document.getElementById('gateKpiChevron');
+  if (container) {
+    const isHidden = container.classList.contains('hidden');
+    if (isHidden) {
+      container.classList.remove('hidden');
+      container.classList.add('grid');
+      if (chevron) chevron.style.transform = 'rotate(180deg)';
+    } else {
+      container.classList.add('hidden');
+      container.classList.remove('grid');
+      if (chevron) chevron.style.transform = 'rotate(0deg)';
+    }
+  }
+}
+
+const openAccordionCards = new Set();
+function toggleCardAccordion(cardId) {
+  const content = document.getElementById(cardId);
+  const chevron = document.getElementById('chevron-' + cardId);
+  if (content) {
+    if (openAccordionCards.has(cardId)) {
+      openAccordionCards.delete(cardId);
+      content.classList.add('hidden');
+      if (chevron) chevron.style.transform = 'rotate(0deg)';
+    } else {
+      openAccordionCards.add(cardId);
+      content.classList.remove('hidden');
+      if (chevron) chevron.style.transform = 'rotate(180deg)';
+    }
+  }
+}
+
+let gateMobileViewMode = 'cards';
+function setGateMobileView(mode) {
+  gateMobileViewMode = mode || 'cards';
+  const cardsEl = document.getElementById('gateShipmentsCardsContainer');
+  const tableWrapperEl = document.getElementById('gateShipmentsTableWrapper');
+  const hintEl = document.getElementById('gateShipmentsScrollHint');
+  const btnCards = document.getElementById('btnGateViewCards');
+  const btnTable = document.getElementById('btnGateViewTable');
+
+  if (cardsEl && tableWrapperEl) {
+    if (gateMobileViewMode === 'cards') {
+      cardsEl.classList.remove('hidden');
+      cardsEl.classList.add('block');
+      tableWrapperEl.classList.remove('block');
+      tableWrapperEl.classList.add('hidden', 'md:block');
+      if (hintEl) hintEl.classList.add('hidden');
+      if (btnCards) btnCards.className = 'px-2.5 py-1 rounded-lg text-[10px] font-bold bg-slate-900 text-white shadow-2xs cursor-pointer';
+      if (btnTable) btnTable.className = 'px-2.5 py-1 rounded-lg text-[10px] font-bold text-slate-600 hover:bg-slate-200 cursor-pointer';
+    } else {
+      cardsEl.classList.add('hidden');
+      cardsEl.classList.remove('block');
+      tableWrapperEl.classList.remove('hidden');
+      tableWrapperEl.classList.add('block');
+      if (hintEl) hintEl.classList.remove('hidden');
+      if (btnCards) btnCards.className = 'px-2.5 py-1 rounded-lg text-[10px] font-bold text-slate-600 hover:bg-slate-200 cursor-pointer';
+      if (btnTable) btnTable.className = 'px-2.5 py-1 rounded-lg text-[10px] font-bold bg-slate-900 text-white shadow-2xs cursor-pointer';
+    }
+  }
+}
+
+let vendorListMobileViewMode = 'cards';
+function setVendorListMobileView(mode) {
+  vendorListMobileViewMode = mode || 'cards';
+  const cardsEl = document.getElementById('vendorListCardsContainer');
+  const tableWrapperEl = document.getElementById('vendorListTableWrapper');
+  const hintEl = document.getElementById('vendorListScrollHint');
+  const btnCards = document.getElementById('btnVendorListViewCards');
+  const btnTable = document.getElementById('btnVendorListViewTable');
+
+  if (cardsEl && tableWrapperEl) {
+    if (vendorListMobileViewMode === 'cards') {
+      cardsEl.classList.remove('hidden');
+      cardsEl.classList.add('block');
+      tableWrapperEl.classList.remove('block');
+      tableWrapperEl.classList.add('hidden', 'md:block');
+      if (hintEl) hintEl.classList.add('hidden');
+      if (btnCards) btnCards.className = 'px-2.5 py-1 rounded-lg text-[10px] font-bold bg-slate-900 text-white shadow-2xs cursor-pointer';
+      if (btnTable) btnTable.className = 'px-2.5 py-1 rounded-lg text-[10px] font-bold text-slate-600 hover:bg-slate-200 cursor-pointer';
+    } else {
+      cardsEl.classList.add('hidden');
+      cardsEl.classList.remove('block');
+      tableWrapperEl.classList.remove('hidden');
+      tableWrapperEl.classList.add('block');
+      if (hintEl) hintEl.classList.remove('hidden');
+      if (btnCards) btnCards.className = 'px-2.5 py-1 rounded-lg text-[10px] font-bold text-slate-600 hover:bg-slate-200 cursor-pointer';
+      if (btnTable) btnTable.className = 'px-2.5 py-1 rounded-lg text-[10px] font-bold bg-slate-900 text-white shadow-2xs cursor-pointer';
+    }
+  }
 }
 
 // ==========================================
@@ -4147,7 +4474,7 @@ function openReceiveModal(shipmentId) {
       gateRibbonAlertPrompt.classList.remove('hidden');
     }
     if (gateRibbonPromptDetails) {
-      gateRibbonPromptDetails.innerHTML = `Vendor included <strong>${formatNumber(s.ribbonQty)} Ribbon Rolls</strong> (${s.ribbonBoxes || 1} carton(s)) with these labels. Gatekeeper must count physical rolls and check for transit damage.`;
+      gateRibbonPromptDetails.innerHTML = `<strong>${formatNumber(s.ribbonQty)} Ribbon Rolls</strong> (${s.ribbonBoxes || 1} carton(s)) included.`;
     }
   } else {
     if (gateRibbonContainer) {
@@ -5098,6 +5425,52 @@ function render() {
   const tabVendorBody = document.getElementById('vendorListTableBodyTab');
   if (tabVendorBody) tabVendorBody.innerHTML = vendorRowsHtml;
 
+  const vendorListCards = document.getElementById('vendorListCardsContainer');
+  if (vendorListCards) {
+    if (state.vendors.length === 0) {
+      vendorListCards.innerHTML = `
+        <div class="p-8 text-center bg-white rounded-2xl border border-slate-200 text-slate-400 text-xs">
+          No authorized suppliers found. Click "+ Add / Authorize New Supplier" to create one.
+        </div>
+      `;
+    } else {
+      vendorListCards.innerHTML = state.vendors.map(v => {
+        const orderCount = state.pos.filter(p => p.vendor === v.name).length;
+        const cardId = `vlist-card-${v.id}`;
+        const isOpen = openAccordionCards.has(cardId);
+        return `
+          <div class="bg-white rounded-2xl border border-slate-200 shadow-2xs overflow-hidden transition hover:border-blue-300">
+            <button type="button" onclick="toggleCardAccordion('${cardId}')" class="w-full p-3.5 flex items-center justify-between gap-2 text-left bg-white hover:bg-slate-50 transition cursor-pointer">
+              <div class="min-w-0 pr-1">
+                <div class="flex items-center gap-1.5 flex-wrap">
+                  <span class="font-mono font-extrabold text-blue-600 text-xs px-2 py-0.5 rounded bg-blue-50 border border-blue-200">${escapeHtml(v.code)}</span>
+                  <span class="font-mono text-xs font-bold text-slate-600 bg-slate-100 px-2 py-0.5 rounded border border-slate-200">${orderCount} order${orderCount === 1 ? '' : 's'}</span>
+                </div>
+                <h4 class="text-sm font-bold text-slate-900 mt-1 truncate">${escapeHtml(v.name)}</h4>
+              </div>
+              <span id="chevron-${cardId}" class="text-xs font-bold text-slate-400 transition-transform duration-200 shrink-0" style="${isOpen ? 'transform: rotate(180deg)' : ''}">▼</span>
+            </button>
+
+            <div id="${cardId}" class="${isOpen ? '' : 'hidden '}p-3.5 pt-0 space-y-2.5 border-t border-slate-100">
+              <p class="text-xs font-mono text-slate-500 mt-2 truncate flex items-center gap-1">
+                <span>✉️</span>
+                <span>${escapeHtml(v.email)}</span>
+              </p>
+              <div class="flex items-center justify-end gap-2 pt-2 border-t border-slate-100">
+                <button onclick="openChangePasswordModal('${escapeHtml(v.email)}', '${escapeHtml(v.name)}', 'vendor')" class="px-3 py-1.5 text-xs font-semibold text-indigo-700 bg-indigo-50 hover:bg-indigo-100 border border-indigo-200/80 rounded-xl transition inline-flex items-center gap-1 shadow-2xs cursor-pointer">
+                  <span>🔑 Password</span>
+                </button>
+                <button onclick="deleteVendor('${v.id}')" class="px-3 py-1.5 text-xs font-semibold text-rose-600 bg-rose-50 hover:bg-rose-100 border border-rose-200/70 rounded-xl transition inline-flex items-center gap-1 shadow-2xs cursor-pointer">
+                  <span>🗑️ Remove</span>
+                </button>
+              </div>
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+  }
+
   // 1. Render Vendor Orders
   const vendorContainer = document.getElementById('vendorPoContainer');
   let vendorPOs = state.pos.filter(p => p.vendor === activeVendorName);
@@ -5138,6 +5511,11 @@ function render() {
   if (vStatCmp) vStatCmp.textContent = `${vCompletedCount} Orders`;
   if (vStatPend) vStatPend.textContent = formatNumber(vPendingUnits);
   if (vStatShip) vStatShip.textContent = formatNumber(vShippedUnits);
+
+  const vKpiSumm = document.getElementById('vendorKpiQuickSummary');
+  if (vKpiSumm) {
+    vKpiSumm.textContent = `${formatNumber(vShippedUnits)} Shipped • ${activeCountTotal} Active • ${vCompletedCount} Done`;
+  }
 
   const cAll = document.getElementById('countAll');
   const cPending = document.getElementById('countPending');
@@ -5253,7 +5631,8 @@ function render() {
                 <span class="font-mono text-[10px] font-bold px-1.5 py-0.5 rounded bg-slate-200 text-slate-700">${escapeHtml(item.sku)}</span>
                 <span class="font-bold text-slate-900">${escapeHtml(parsed.title)}</span>
                 ${parsed.specs ? `<span class="text-[10px] text-slate-500 font-mono hidden sm:inline">(${escapeHtml(parsed.specs)})</span>` : ''}
-                <button type="button" onclick="openSampleArtworkModal('${escapeHtml(item.model || item.description)}')" title="View Approved Technical Specimen" class="px-2 py-0.5 rounded text-[10px] font-bold bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 transition inline-flex items-center gap-1 shadow-2xs ml-1 cursor-pointer">
+                <span class="font-mono text-[10px] font-bold text-emerald-800 bg-emerald-50 border border-emerald-200 px-1.5 py-0.5 rounded shadow-2xs shrink-0" title="Security Code for ${getCurrentCalendarPeriod()} manufacturing imprint">🔐 CODE: ${getSecurityYearCode(getActiveYear(), getCurrentCalendarPeriod())}</span>
+                <button type="button" onclick="openSampleArtworkModal('${escapeHtml(item.model || item.description)}')" title="View Approved Technical Specimen with Security Code" class="px-2 py-0.5 rounded text-[10px] font-bold bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 transition inline-flex items-center gap-1 shadow-2xs ml-1 cursor-pointer">
                   <span>🖼️ Sample Proof</span>
                 </button>
               </div>
@@ -5761,6 +6140,109 @@ function render() {
     }
   }
 
+  // Render Mobile Cards View for Purchase Orders (Zero horizontal scrolling on phone)
+  const adminPoCards = document.getElementById('adminPoCardsContainer');
+  if (adminPoCards) {
+    if (adminFilteredPos.length === 0) {
+      adminPoCards.innerHTML = `
+        <div class="p-8 text-center bg-white rounded-2xl border border-slate-200 text-slate-400 text-xs">
+          No orders match the selected stage filter. Click <button type="button" onclick="openNewPoModal()" class="text-blue-600 font-bold hover:underline cursor-pointer">+ Create New Order</button> to create an order.
+        </div>
+      `;
+    } else {
+      adminPoCards.innerHTML = adminFilteredPos.map(po => {
+        const { totalOrdered, totalShipped, totalRemaining, ribbonMetrics } = getPoMetrics(po.poNumber);
+        const pStatus = po.productionStatus || 'pending';
+        const prodBadge = getProductionBadgeHtml(pStatus, po.productionEstimatedDate);
+        const pct = totalOrdered > 0 ? Math.min(100, Math.round((totalShipped / totalOrdered) * 100)) : 0;
+
+        const itemsCards = (po.items || []).map(i => {
+          const parsed = formatProductDisplay(i.description);
+          const catInfo = getItemCategoryInfo(i);
+          return `
+            <div class="flex items-center justify-between gap-2 py-1.5 border-b border-slate-200/50 last:border-b-0">
+              <div class="min-w-0 flex-1">
+                <div class="flex items-center gap-1.5">
+                  <span class="inline-flex items-center gap-1 font-bold text-[10px] px-1.5 py-0.2 rounded border ${catInfo.badgeClass}">
+                    <span>${catInfo.icon}</span><span>${catInfo.name}</span>
+                  </span>
+                  ${i.sku ? `<span class="font-mono text-[10px] font-bold text-slate-500 bg-white px-1 rounded border border-slate-200">${escapeHtml(i.sku)}</span>` : ''}
+                </div>
+                <span class="text-xs font-bold text-slate-900 block truncate mt-0.5">${escapeHtml(parsed.title)}</span>
+                ${(po.items || []).length > 1 ? `<span class="text-[10px] text-slate-500 font-mono">Qty: ${formatNumber(i.orderedQty)} units</span>` : ''}
+              </div>
+              <button type="button" onclick="openSampleArtworkModal('${escapeHtml(i.model || i.description)}')" class="px-2 py-1 rounded-lg text-[10px] font-bold bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 transition shrink-0 shadow-2xs cursor-pointer flex items-center gap-1">
+                <span>🖼️ Sample</span>
+              </button>
+            </div>
+          `;
+        }).join('');
+
+        const cardId = `po-card-${escapeHtml(po.poNumber)}`;
+        const isOpen = openAccordionCards.has(cardId);
+        return `
+          <div class="bg-white rounded-2xl border border-slate-200 shadow-2xs overflow-hidden transition hover:border-blue-300">
+            <button type="button" onclick="toggleCardAccordion('${cardId}')" class="w-full p-3.5 flex items-start justify-between gap-2 text-left bg-white hover:bg-slate-50 transition cursor-pointer">
+              <div class="min-w-0 pr-1">
+                <div class="flex items-center gap-1.5 flex-wrap">
+                  <span class="font-mono font-extrabold text-blue-600 text-sm">${escapeHtml(po.poNumber)}</span>
+                  ${prodBadge}
+                </div>
+                <p class="text-xs font-bold text-slate-800 mt-1 truncate">${escapeHtml(po.vendor)}</p>
+              </div>
+              <div class="flex items-center gap-2 shrink-0 pt-0.5">
+                <div class="text-right">
+                  <span class="text-[11px] font-mono font-extrabold text-blue-700 block">${pct}%</span>
+                  <span class="text-[10px] text-slate-500 font-mono block">${formatNumber(totalOrdered)} u</span>
+                </div>
+                <span id="chevron-${cardId}" class="text-xs font-bold text-slate-400 transition-transform duration-200" style="${isOpen ? 'transform: rotate(180deg)' : ''}">▼</span>
+              </div>
+            </button>
+
+            <div id="${cardId}" class="${isOpen ? '' : 'hidden '}p-3.5 pt-0 space-y-3 border-t border-slate-100">
+              <div class="bg-slate-50/80 p-2.5 rounded-xl border border-slate-100 space-y-1 mt-2">
+                ${itemsCards}
+              </div>
+
+              ${po.productionNotes ? `<div class="text-[11px] text-slate-600 bg-amber-50/60 p-2 rounded-xl border border-amber-200/60 flex items-start gap-1.5"><span class="shrink-0">📝</span><span class="leading-tight">${escapeHtml(po.productionNotes)}</span></div>` : ''}
+
+              <div class="grid grid-cols-3 gap-2 text-center bg-slate-50 p-2 rounded-xl border border-slate-100 text-xs">
+                <div>
+                  <span class="text-[10px] text-slate-400 font-bold uppercase tracking-wider block">Ordered</span>
+                  <span class="text-sm font-black text-slate-900 font-mono block">${formatNumber(totalOrdered)}</span>
+                  ${ribbonMetrics && ribbonMetrics.totalOrdered > 0 ? `<span class="text-[10px] text-purple-700 font-mono block">🎗️ ${formatNumber(ribbonMetrics.totalOrdered)}</span>` : ''}
+                </div>
+                <div>
+                  <span class="text-[10px] text-blue-500 font-bold uppercase tracking-wider block">Shipped</span>
+                  <span class="text-sm font-black text-blue-600 font-mono block">${formatNumber(totalShipped)}</span>
+                  ${ribbonMetrics && ribbonMetrics.totalShipped > 0 ? `<span class="text-[10px] text-purple-700 font-mono block">🎗️ ${formatNumber(ribbonMetrics.totalShipped)}</span>` : ''}
+                </div>
+                <div>
+                  <span class="text-[10px] ${totalRemaining === 0 ? 'text-slate-400' : 'text-amber-600'} font-bold uppercase tracking-wider block">Balance</span>
+                  <span class="text-sm font-black ${totalRemaining === 0 ? 'text-slate-400' : 'text-amber-600'} font-mono block">${formatNumber(totalRemaining)}</span>
+                  ${ribbonMetrics && ribbonMetrics.hasRibbons ? `<span class="text-[10px] ${ribbonMetrics.totalRemaining === 0 ? 'text-slate-400' : 'text-amber-700'} font-mono block">🎗️ ${formatNumber(ribbonMetrics.totalRemaining)}</span>` : ''}
+                </div>
+              </div>
+
+              <div class="w-full bg-slate-100 h-1.5 rounded-full overflow-hidden">
+                <div class="h-1.5 rounded-full ${pct === 100 ? 'bg-emerald-500' : 'bg-blue-600'}" style="width: ${pct}%"></div>
+              </div>
+
+              <div class="flex items-center justify-between pt-1 gap-2">
+                <button type="button" onclick="openUpdateProductionStatusModal('${escapeHtml(po.poNumber)}')" class="flex-1 py-2 px-3 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200/90 rounded-xl text-xs font-bold transition flex items-center justify-center gap-1.5 shadow-2xs cursor-pointer">
+                  <span>⚡ Stage</span>
+                </button>
+                <button type="button" onclick="deletePo('${escapeHtml(po.poNumber)}')" class="p-2 text-slate-400 hover:text-rose-600 hover:bg-rose-50 border border-slate-200 rounded-xl transition cursor-pointer" title="Delete Order">
+                  <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+                </button>
+              </div>
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+  }
+
   // 3. Admin Shipments & Quick Audit Filters
   const shipments = state.shipments || [];
   const todayStr = new Date().toISOString().slice(0, 10);
@@ -5992,6 +6474,140 @@ function render() {
     }
   }
 
+  // Render Mobile Cards View for Warehouse Receiving / Admin Dispatches
+  const adminShipmentsCards = document.getElementById('adminShipmentsCardsContainer');
+  if (adminShipmentsCards) {
+    if (adminFilteredShipments.length === 0) {
+      adminShipmentsCards.innerHTML = `
+        <div class="p-8 text-center bg-white rounded-2xl border border-slate-200 text-slate-400 text-xs">
+          No dispatches match the selected audit and category filters.
+        </div>
+      `;
+    } else {
+      adminShipmentsCards.innerHTML = adminFilteredShipments.map(s => {
+        const po = state.pos.find(p => p.poNumber === s.poNumber);
+        const hasCount = s.receivedQty !== null && s.receivedQty !== undefined;
+        const variance = hasCount ? (Number(s.receivedQty) - Number(s.qtySent)) : 0;
+        const damaged = Number(s.damagedQty || 0);
+        const catInfo = getItemCategoryInfo(s);
+        const sParsed = formatProductDisplay(s.description);
+
+        const ribbonClaimed = Number(s.ribbonQty || 0);
+        const ribbonAccepted = Number(s.receivedRibbons || 0);
+        const ribbonDamaged = Number(s.damagedRibbons || 0);
+        const ribbonShortfall = ribbonClaimed > 0 ? (ribbonAccepted - ribbonClaimed) : 0;
+        const hasRibbonIssue = ribbonClaimed > 0 && (ribbonShortfall < 0 || ribbonDamaged > 0);
+
+        let auditBadge = `<span class="badge-pill badge-amber">⏳ In Transit</span>`;
+        if (hasCount) {
+          if (!hasRibbonIssue) {
+            if (damaged > 0 && variance === 0) {
+              auditBadge = `<span class="badge-pill badge-amber">⚠️ Damage Recorded</span>`;
+            } else if (variance === 0) {
+              auditBadge = `<span class="badge-pill badge-emerald">✓ Exact Match</span>`;
+            } else if (variance < 0) {
+              auditBadge = `<span class="badge-pill badge-rose">⚠️ Shortfall: -${formatNumber(Math.abs(variance))}</span>`;
+            } else {
+              auditBadge = `<span class="badge-pill badge-purple">⚠️ Over: +${formatNumber(variance)}</span>`;
+            }
+          } else {
+            if (variance === 0 && damaged === 0) {
+              if (ribbonShortfall < 0) {
+                auditBadge = `<span class="badge-pill badge-rose">⚠️ Ribbon Short: ${ribbonShortfall}</span>`;
+              } else if (ribbonDamaged > 0) {
+                auditBadge = `<span class="badge-pill badge-amber">⚠️ Ribbon Damage (${formatNumber(ribbonDamaged)})</span>`;
+              }
+            } else {
+              auditBadge = `<span class="badge-pill badge-rose">⚠️ Discrepancy</span>`;
+            }
+          }
+        }
+
+        const cardId = `ship-card-${escapeHtml(s.id)}`;
+        const isOpen = openAccordionCards.has(cardId);
+        return `
+          <div class="bg-white rounded-2xl border border-slate-200 shadow-2xs overflow-hidden transition hover:border-blue-300">
+            <button type="button" onclick="toggleCardAccordion('${cardId}')" class="w-full p-3.5 flex items-start justify-between gap-2 text-left bg-white hover:bg-slate-50 transition cursor-pointer">
+              <div class="min-w-0 pr-1">
+                <div class="flex items-center gap-1.5 flex-wrap">
+                  <span class="font-mono font-extrabold text-slate-800 text-xs">${escapeHtml(s.id)}</span>
+                  <span class="font-mono font-bold text-blue-600 text-xs">${escapeHtml(s.poNumber)}</span>
+                  ${s.truckLR ? `<span class="font-mono text-[10px] font-bold text-indigo-700 bg-indigo-50 border border-indigo-200 px-1.5 py-0.5 rounded whitespace-nowrap">📄 Inv: ${escapeHtml(s.truckLR)}</span>` : ''}
+                  ${auditBadge}
+                </div>
+                <p class="text-xs font-bold text-slate-800 mt-1 truncate">${escapeHtml(po ? po.vendor : '-')}</p>
+              </div>
+              <div class="flex items-center gap-2 shrink-0 pt-0.5">
+                <div class="text-right">
+                  <span class="text-xs font-mono font-black text-blue-600 block">${formatNumber(s.qtySent)} u</span>
+                  <span class="text-[10px] text-slate-400 font-mono block">${escapeHtml(s.date)}</span>
+                </div>
+                <span id="chevron-${cardId}" class="text-xs font-bold text-slate-400 transition-transform duration-200" style="${isOpen ? 'transform: rotate(180deg)' : ''}">▼</span>
+              </div>
+            </button>
+
+            <div id="${cardId}" class="${isOpen ? '' : 'hidden '}p-3.5 pt-0 space-y-3 border-t border-slate-100">
+              <div class="bg-slate-50/80 p-2.5 rounded-xl border border-slate-100 space-y-1.5 mt-2">
+                <div class="flex items-center justify-between gap-2">
+                  <div class="flex items-center gap-1.5 flex-wrap min-w-0">
+                    <span class="inline-flex items-center gap-1 font-bold text-[10px] px-1.5 py-0.2 rounded border ${catInfo.badgeClass}">
+                      <span>${catInfo.icon}</span><span>${catInfo.name}</span>
+                    </span>
+                    ${s.sku ? `<span class="font-mono text-[10px] font-bold text-slate-600 bg-white px-1.5 py-0.5 rounded border border-slate-200">${escapeHtml(s.sku)}</span>` : ''}
+                  </div>
+                  <div class="flex items-center gap-1 shrink-0">
+                    <button type="button" onclick="openSampleArtworkModal('${escapeHtml(s.model || s.description)}')" class="px-2 py-0.5 rounded text-[10px] font-bold bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 transition shadow-2xs cursor-pointer flex items-center gap-1">
+                      <span>🖼️ Sample</span>
+                    </button>
+                    ${s.invoice ? `<button type="button" onclick="viewInvoice('${s.id}')" class="px-2 py-0.5 rounded text-[10px] font-bold bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200 transition shadow-2xs cursor-pointer flex items-center gap-1"><span>📄 Challan</span></button>` : ''}
+                    ${s.damagePhoto ? `<button type="button" onclick="viewDamagePhoto('${s.id}')" class="px-2 py-0.5 rounded text-[10px] font-bold bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 transition shadow-2xs cursor-pointer flex items-center gap-1"><span>📸 Photo</span></button>` : ''}
+                  </div>
+                </div>
+                <p class="text-xs font-bold text-slate-900 leading-snug">${escapeHtml(sParsed.title)}</p>
+                ${sParsed.specs ? `<p class="text-[10px] text-slate-500 font-mono leading-tight">${escapeHtml(sParsed.specs)}</p>` : ''}
+                ${ribbonClaimed > 0 ? `
+                  <div class="mt-1 pt-1 border-t border-slate-200/60 flex items-center justify-between text-[11px] text-purple-900 font-medium">
+                    <span>🎗️ Consignment Ribbons:</span>
+                    <span class="font-mono font-bold">${formatNumber(ribbonClaimed)} rolls (${s.ribbonBoxes || 0} bxs)</span>
+                  </div>
+                ` : ''}
+              </div>
+
+              <div class="grid grid-cols-3 gap-2 text-center bg-slate-50 p-2 rounded-xl border border-slate-100 text-xs">
+                <div>
+                  <span class="text-[10px] text-blue-500 font-bold uppercase tracking-wider block">Claimed</span>
+                  <span class="text-sm font-black text-blue-600 font-mono block">${formatNumber(s.qtySent)}</span>
+                  <span class="text-[10px] text-slate-500 font-medium block">${s.boxCount || 1} bxs</span>
+                </div>
+                <div>
+                  <span class="text-[10px] text-emerald-600 font-bold uppercase tracking-wider block">Received</span>
+                  ${hasCount ? `
+                    <span class="text-sm font-black text-emerald-700 font-mono block">${formatNumber(s.receivedQty)}</span>
+                    ${damaged > 0 ? `<span class="text-[10px] text-rose-600 font-bold block">${formatNumber(damaged)} dmg</span>` : `<span class="text-[10px] text-slate-500 font-medium block">${s.receivedBoxes || s.boxCount || 1} bxs</span>`}
+                  ` : `<span class="text-xs font-bold text-amber-600 block mt-1">Pending</span>`}
+                </div>
+                <div>
+                  <span class="text-[10px] font-bold uppercase tracking-wider block ${variance < 0 ? 'text-rose-600' : (variance > 0 ? 'text-purple-600' : 'text-slate-400')}">Variance</span>
+                  <span class="text-sm font-black font-mono block ${variance < 0 ? 'text-rose-600' : (variance > 0 ? 'text-purple-600' : 'text-slate-800')}">${hasCount ? (variance > 0 ? '+' : '') + formatNumber(variance) : '-'}</span>
+                  ${hasCount && damaged > 0 ? `<span class="text-[10px] text-slate-400 block">(${formatNumber(Number(s.receivedQty) + damaged)} total)</span>` : ''}
+                </div>
+              </div>
+
+              <div class="flex items-center justify-between pt-1 gap-2">
+                <button onclick="openReceiveModal('${s.id}')" class="flex-1 py-2 px-3 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200/90 rounded-xl text-xs font-bold transition flex items-center justify-center gap-1.5 shadow-2xs cursor-pointer">
+                  <span>${hasCount ? '✏️ Edit Count' : '📥 Receive'}</span>
+                </button>
+                <button onclick="deleteShipment('${s.id}')" class="p-2 text-slate-400 hover:text-rose-600 hover:bg-rose-50 border border-slate-200 rounded-xl transition cursor-pointer" title="Delete dispatch entry">
+                  <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+                </button>
+              </div>
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+  }
+
   // 4. Gatekeeper Inward Inspection Table & Ribbon Verification Metrics
   const currentGateFilter = state.gateFilter || 'all';
   const countGateAll = shipments.length;
@@ -6022,6 +6638,11 @@ function render() {
   if (elGateStatPendingRibbons) elGateStatPendingRibbons.textContent = formatNumber(gatePendingRibbons);
   if (elGateStatDamagedTotal) elGateStatDamagedTotal.textContent = formatNumber(gateDamagedLabels + gateDamagedRibbons);
   if (elGateStatDamagedRibbons) elGateStatDamagedRibbons.textContent = formatNumber(gateDamagedRibbons);
+
+  const gateKpiSumm = document.getElementById('gateKpiQuickSummary');
+  if (gateKpiSumm) {
+    gateKpiSumm.textContent = `${formatNumber(countGateAll)} Shipments • ${formatNumber(countGateTransit)} Awaiting Count`;
+  }
 
   const bgGateAll = document.getElementById('gateCountAll');
   const bgGateTransit = document.getElementById('gateCountTransit');
@@ -6249,6 +6870,141 @@ function render() {
     }
   }
 
+  // Render Mobile Cards View for Gatekeeper Inward Inspection (Zero horizontal scrolling on phone)
+  const gateShipmentsCards = document.getElementById('gateShipmentsCardsContainer');
+  if (gateShipmentsCards) {
+    if (gateShipments.length === 0) {
+      gateShipmentsCards.innerHTML = `
+        <div class="p-8 text-center bg-white rounded-2xl border border-slate-200 text-slate-400 text-xs">
+          No incoming dispatches match the selected inward gate and category filter.
+        </div>
+      `;
+    } else {
+      gateShipmentsCards.innerHTML = gateShipments.map(s => {
+        const po = state.pos.find(p => p.poNumber === s.poNumber);
+        const hasCount = s.receivedQty !== null && s.receivedQty !== undefined;
+        const variance = hasCount ? (Number(s.receivedQty) - Number(s.qtySent)) : 0;
+        const damaged = Number(s.damagedQty || 0);
+        const catInfo = getItemCategoryInfo(s);
+        const sParsed = formatProductDisplay(s.description);
+
+        const ribbonClaimed = Number(s.ribbonQty || 0);
+        const ribbonAccepted = Number(s.receivedRibbons || 0);
+        const ribbonDamaged = Number(s.damagedRibbons || 0);
+        const ribbonShortfall = ribbonClaimed > 0 ? (ribbonAccepted - ribbonClaimed) : 0;
+        const hasRibbonIssue = ribbonClaimed > 0 && (ribbonShortfall < 0 || ribbonDamaged > 0);
+
+        let auditBadge = ribbonClaimed > 0 
+          ? `<span class="badge-pill badge-indigo">⏳ Awaiting Count</span>` 
+          : `<span class="badge-pill badge-amber">⏳ Awaiting Count</span>`;
+
+        if (hasCount) {
+          if (ribbonClaimed > 0 && ribbonAccepted === 0 && ribbonDamaged === 0) {
+            auditBadge = `<span class="badge-pill badge-rose">⚠️ Ribbon Uncounted</span>`;
+          } else if (!hasRibbonIssue) {
+            if (damaged > 0 && variance === 0) {
+              auditBadge = `<span class="badge-pill badge-amber">⚠️ Damage Recorded</span>`;
+            } else if (variance === 0) {
+              auditBadge = ribbonClaimed > 0 
+                ? `<span class="badge-pill badge-emerald">✓ Verified (Labels & Ribbons)</span>` 
+                : `<span class="badge-pill badge-emerald">✓ Exact Match</span>`;
+            } else if (variance < 0) {
+              auditBadge = `<span class="badge-pill badge-rose">⚠️ Short: -${formatNumber(Math.abs(variance))}</span>`;
+            } else {
+              auditBadge = `<span class="badge-pill badge-purple">⚠️ Over: +${formatNumber(variance)}</span>`;
+            }
+          } else {
+            if (variance === 0 && damaged === 0) {
+              if (ribbonShortfall < 0) {
+                auditBadge = `<span class="badge-pill badge-rose">⚠️ Ribbon Short (${ribbonShortfall})</span>`;
+              } else if (ribbonDamaged > 0) {
+                auditBadge = `<span class="badge-pill badge-amber">⚠️ Ribbon Damage (${formatNumber(ribbonDamaged)})</span>`;
+              }
+            } else {
+              auditBadge = `<span class="badge-pill badge-rose">⚠️ Discrepancy</span>`;
+            }
+          }
+        }
+
+        const cardId = `gate-card-${escapeHtml(s.id)}`;
+        const isOpen = openAccordionCards.has(cardId);
+        return `
+          <div class="bg-white rounded-2xl border border-slate-200 shadow-2xs overflow-hidden transition hover:border-emerald-300">
+            <button type="button" onclick="toggleCardAccordion('${cardId}')" class="w-full p-3.5 flex items-start justify-between gap-2 text-left bg-white hover:bg-slate-50 transition cursor-pointer">
+              <div class="min-w-0 pr-1">
+                <div class="flex items-center gap-1.5 flex-wrap">
+                  <span class="font-mono font-extrabold text-slate-800 text-xs">${escapeHtml(s.id)}</span>
+                  <span class="font-mono font-bold text-blue-600 text-xs">${escapeHtml(s.poNumber)}</span>
+                  ${s.truckLR ? `<span class="font-mono text-[10px] font-bold text-indigo-700 bg-indigo-50 border border-indigo-200 px-1.5 py-0.5 rounded whitespace-nowrap">📄 Inv: ${escapeHtml(s.truckLR)}</span>` : ''}
+                  ${auditBadge}
+                </div>
+                <p class="text-xs font-bold text-slate-800 mt-1 truncate">${escapeHtml(po ? po.vendor : '-')}</p>
+              </div>
+              <div class="flex items-center gap-2 shrink-0 pt-0.5">
+                <div class="text-right">
+                  <span class="text-xs font-mono font-black text-blue-600 block">${formatNumber(s.qtySent)} u</span>
+                  <span class="text-[10px] text-slate-400 font-mono block">${escapeHtml(s.date)}</span>
+                </div>
+                <span id="chevron-${cardId}" class="text-xs font-bold text-slate-400 transition-transform duration-200" style="${isOpen ? 'transform: rotate(180deg)' : ''}">▼</span>
+              </div>
+            </button>
+
+            <div id="${cardId}" class="${isOpen ? '' : 'hidden '}p-3.5 pt-0 space-y-3 border-t border-slate-100">
+              <div class="bg-slate-50/80 p-2.5 rounded-xl border border-slate-100 space-y-1.5 mt-2">
+                <div class="flex items-center justify-between gap-2">
+                  <div class="flex items-center gap-1.5 flex-wrap min-w-0">
+                    <span class="inline-flex items-center gap-1 font-bold text-[10px] px-1.5 py-0.2 rounded border ${catInfo.badgeClass}">
+                      <span>${catInfo.icon}</span><span>${catInfo.name}</span>
+                    </span>
+                    ${s.sku ? `<span class="font-mono text-[10px] font-bold text-slate-600 bg-white px-1.5 py-0.5 rounded border border-slate-200">${escapeHtml(s.sku)}</span>` : ''}
+                  </div>
+                  <div class="flex items-center gap-1 shrink-0">
+                    <button type="button" onclick="openSampleArtworkModal('${escapeHtml(s.model || s.description)}')" class="px-2 py-0.5 rounded text-[10px] font-bold bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 transition shadow-2xs cursor-pointer flex items-center gap-1">
+                      <span>🖼️ Sample</span>
+                    </button>
+                    ${s.invoice ? `<button type="button" onclick="viewInvoice('${s.id}')" class="px-2 py-0.5 rounded text-[10px] font-bold bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200 transition shadow-2xs cursor-pointer flex items-center gap-1"><span>📄 Challan</span></button>` : ''}
+                    ${s.damagePhoto ? `<button type="button" onclick="viewDamagePhoto('${s.id}')" class="px-2 py-0.5 rounded text-[10px] font-bold bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 transition shadow-2xs cursor-pointer flex items-center gap-1"><span>📸 Photo</span></button>` : ''}
+                  </div>
+                </div>
+                <p class="text-xs font-bold text-slate-900 leading-snug">${escapeHtml(sParsed.title)}</p>
+                ${sParsed.specs ? `<p class="text-[10px] text-slate-500 font-mono leading-tight">${escapeHtml(sParsed.specs)}</p>` : ''}
+                ${ribbonClaimed > 0 ? `
+                  <div class="mt-1 pt-1 border-t border-slate-200/60 flex items-center justify-between text-[11px] text-purple-900 font-medium">
+                    <span>🎗️ Consignment Ribbons:</span>
+                    <span class="font-mono font-bold">${formatNumber(ribbonClaimed)} rolls (${s.ribbonBoxes || 1} bxs)</span>
+                  </div>
+                ` : ''}
+              </div>
+
+              <div class="grid grid-cols-2 gap-2 text-center bg-slate-50 p-2.5 rounded-xl border border-slate-100 text-xs">
+                <div class="text-left pl-1">
+                  <span class="text-[10px] text-slate-400 font-bold uppercase tracking-wider block">Vendor Claimed</span>
+                  <span class="text-sm font-black text-blue-600 font-mono block">${formatNumber(s.qtySent)} units</span>
+                  <span class="text-[10px] text-slate-500 font-medium block">${s.boxCount || 1} box(es)</span>
+                </div>
+                <div class="text-right pr-1">
+                  <span class="text-[10px] text-slate-400 font-bold uppercase tracking-wider block">Physical Count</span>
+                  ${hasCount ? `
+                    <span class="text-sm font-black text-emerald-700 font-mono block">${formatNumber(s.receivedQty)} good</span>
+                    ${damaged > 0 ? `<span class="text-[10px] text-rose-700 font-bold block">⚠️ ${formatNumber(damaged)} damaged</span>` : `<span class="text-[10px] text-emerald-600 font-medium block">${s.receivedBoxes || s.boxCount || 1} box(es)</span>`}
+                  ` : `
+                    <span class="text-xs font-bold text-amber-600 block mt-1">⏳ Not inspected</span>
+                  `}
+                </div>
+              </div>
+
+              <div class="pt-1">
+                <button onclick="openReceiveModal('${s.id}')" class="w-full py-2.5 px-4 ${hasCount ? 'bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-300' : 'btn-gradient-emerald text-white shadow-xs'} font-extrabold rounded-xl text-xs transition flex items-center justify-center gap-1.5 cursor-pointer">
+                  <span>${hasCount ? '✏️ Edit Inspection Count' : '⚡ Verify Inward Receipt'}</span>
+                </button>
+              </div>
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+  }
+
   // 5. Update Executive Metrics
   const adminStatOrd = document.getElementById('adminStatOrdered');
   const adminStatShp = document.getElementById('adminStatShipped');
@@ -6258,6 +7014,11 @@ function render() {
   if (adminStatOrd) adminStatOrd.textContent = formatNumber(totalOrderedAll);
   if (adminStatShp) adminStatShp.textContent = formatNumber(totalShippedAll);
   if (adminStatRcv) adminStatRcv.textContent = formatNumber(totalReceivedAll);
+
+  const admKpiSumm = document.getElementById('adminKpiQuickSummary');
+  if (admKpiSumm) {
+    admKpiSumm.textContent = `${formatNumber(totalShippedAll)} Shipped • ${formatNumber(totalReceivedAll)} Received • ${formatNumber(totalOrderedAll)} Total`;
+  }
 
   if (adminStatVar) {
     adminStatVar.textContent = (totalVerifiedVariance > 0 ? '+' : '') + formatNumber(totalVerifiedVariance);
@@ -6277,6 +7038,13 @@ function render() {
   if (bDsp) bDsp.textContent = (state.shipments || []).length;
   if (bSc) bSc.textContent = (state.vendors || []).length;
   if (bVnd) bVnd.textContent = (state.vendors || []).length;
+
+  const optOrd = document.getElementById('optAdminOrders');
+  const optDsp = document.getElementById('optAdminDispatches');
+  const optVnd = document.getElementById('optAdminVendors');
+  if (optOrd) optOrd.textContent = `📋 Purchase Orders & Production (${state.pos.length})`;
+  if (optDsp) optDsp.textContent = `🚚 Inward Deliveries & Gate Audit (${(state.shipments || []).length})`;
+  if (optVnd) optVnd.textContent = `👥 Supplier Directory (${(state.vendors || []).length})`;
 
   // Update Executive Dashboard Live Drill-Down Tiles
   const dshPend = document.getElementById('dashPipelinePending');
@@ -6459,6 +7227,7 @@ if (typeof window !== 'undefined') {
   window.renderVendorFilterUI = renderVendorFilterUI;
   window.renderCategoryFilterUI = renderCategoryFilterUI;
   window.openSampleArtworkModal = openSampleArtworkModal;
+  window.getCurrentCalendarPeriod = getCurrentCalendarPeriod;
   window.switchSampleModalPeriod = switchSampleModalPeriod;
   window.resolvePantoneToHex = resolvePantoneToHex;
   window.handlePantoneInput = handlePantoneInput;
@@ -6469,6 +7238,7 @@ if (typeof window !== 'undefined') {
   window.clearH2Shade = clearH2Shade;
   window.blendHex = blendHex;
   window.getSecurityYearCode = getSecurityYearCode;
+  window.updateFormSecurityYearCodes = updateFormSecurityYearCodes;
   window.openEditDispatchModal = openEditDispatchModal;
   window.handleEditDispatchSubmit = handleEditDispatchSubmit;
   window.requestPasswordConfirmedAction = requestPasswordConfirmedAction;
