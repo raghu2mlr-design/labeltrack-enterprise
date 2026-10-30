@@ -523,7 +523,7 @@ button, input, select, a, [role="button"] {
   justify-content: center;
 }
 
-/* Pantone & Security Cipher Standards */
+/* Pantone & Security Standards */
 .pantone-swatch {
   display: inline-flex;
   align-items: center;
@@ -537,7 +537,7 @@ button, input, select, a, [role="button"] {
   background: #ffffff;
 }
 
-.cipher-pill {
+.security-code-pill {
   display: inline-flex;
   align-items: center;
   gap: 0.3rem;
