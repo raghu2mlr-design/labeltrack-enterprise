@@ -630,6 +630,92 @@ function normalizeModelKey(modelStr) {
     .replace(/^_+|_+$/g, '');
 }
 
+function normalizeYearColorObject(y) {
+  if (!y || typeof y !== 'object') return null;
+  const yearNum = Number(y.year) || 2026;
+
+  // H1 Resolution: Strictly use what was provided by Admin
+  const h1Pantone = (y.h1 && y.h1.pantone) || y.h1Color || y.pantoneCode || 'PANTONE 2192 C';
+  const h1Hex = (y.h1 && y.h1.hex) || y.h1Hex || y.hexColor || '#009FDA';
+  const h1Code = (y.h1 && y.h1.code) || y.h1Code || getSecurityYearCode(yearNum, 'H1');
+  const h1Name = (y.h1 && y.h1.name) || h1Pantone;
+
+  // H2 Resolution: Strictly only valid if Admin explicitly configured it!
+  // If Admin deleted or cleared H2, it remains null / empty and is NEVER fabricated.
+  let rawH2Pantone = (y.h2 && y.h2.pantone) || y.h2Color || '';
+  let rawH2Hex = (y.h2 && y.h2.hex) || y.h2Hex || '';
+
+  const hasValidH2 = Boolean(
+    rawH2Pantone &&
+    !rawH2Pantone.toLowerCase().includes('pending') &&
+    !rawH2Pantone.toLowerCase().includes('leave empty') &&
+    !rawH2Pantone.includes('Shade') &&
+    !rawH2Pantone.includes('(') &&
+    !rawH2Pantone.includes('Companion')
+  );
+
+  const h2Code = hasValidH2 ? ((y.h2 && y.h2.code) || y.h2Code || getSecurityYearCode(yearNum, 'H2')) : '';
+  const h2Name = hasValidH2 ? ((y.h2 && y.h2.name) || rawH2Pantone) : '';
+
+  const isH2Period = getCurrentCalendarPeriod() === 'H2';
+  // If H2 period is active but Admin has NOT given an H2 shade, fall back to H1 instead of inventing a color
+  const activePantone = (isH2Period && hasValidH2) ? rawH2Pantone : h1Pantone;
+  const activeHex = (isH2Period && hasValidH2) ? (rawH2Hex || '#553B30') : h1Hex;
+
+  return {
+    ...y,
+    year: yearNum,
+    status: y.status || (yearNum === 2026 ? 'active' : (yearNum < 2026 ? 'archived' : 'upcoming')),
+    colorName: (y.colorName && !y.colorName.includes('&') && !y.colorName.toUpperCase().startsWith('PANTONE')) ? y.colorName : activePantone,
+    pantoneCode: activePantone,
+    hexColor: activeHex,
+    guidelines: y.guidelines || `FY ${yearNum} approved annual color standard ${activePantone} with 6-month security code imprint.`,
+    h1: {
+      pantone: h1Pantone,
+      hex: h1Hex,
+      name: h1Name,
+      code: h1Code
+    },
+    h2: hasValidH2 ? {
+      pantone: rawH2Pantone,
+      hex: rawH2Hex || '#553B30',
+      name: h2Name,
+      code: h2Code
+    } : null,
+    // Provide flat keys for backward compatibility
+    h1Color: h1Pantone,
+    h1Hex: h1Hex,
+    h1Code: h1Code,
+    h2Color: hasValidH2 ? rawH2Pantone : '',
+    h2Hex: hasValidH2 ? (rawH2Hex || '#553B30') : '',
+    h2Code: hasValidH2 ? h2Code : ''
+  };
+}
+
+function normalizeAnnualColorConfig(cfg) {
+  if (!cfg || typeof cfg !== 'object') {
+    cfg = JSON.parse(JSON.stringify(DEFAULT_ANNUAL_COLOR_CONFIG));
+  }
+
+  // Only fall back to defaults if cfg.years is missing or empty (fresh uninitialized database)
+  if (!Array.isArray(cfg.years) || cfg.years.length === 0) {
+    cfg.years = DEFAULT_ANNUAL_COLOR_CONFIG.years.map(y => normalizeYearColorObject(y));
+  } else {
+    // Strictly preserve Admin configuration! If Admin deleted a year, it MUST NOT be resurrected!
+    cfg.years = cfg.years
+      .map(y => normalizeYearColorObject(y))
+      .filter(Boolean)
+      .sort((a, b) => a.year - b.year);
+  }
+
+  return {
+    ...cfg,
+    activeYear: Number(cfg.activeYear) || 2026,
+    activePeriod: getCurrentCalendarPeriod(),
+    years: cfg.years
+  };
+}
+
 function getProofKey(modelStr, year) {
   const norm = normalizeModelKey(modelStr);
   const y = Number(year) || getActiveYear();
@@ -644,22 +730,35 @@ function getActiveYear() {
 }
 
 function getEffectiveYearColor(yObj, period) {
-  if (!yObj) return { pantone: 'PANTONE 2192 C', hex: '#009FDA', code: 'HR', name: 'PANTONE 2192 C' };
+  if (!yObj) return { pantone: 'Standard Mandate', hex: '#0284c7', code: 'HR', name: 'Standard Mandate', isConfigured: false };
+  const norm = (yObj.h1 && yObj.h2) ? yObj : normalizeYearColorObject(yObj);
   const activePeriod = period || getCurrentCalendarPeriod();
-  const hasH2 = yObj.h2 && yObj.h2.pantone && !yObj.h2.pantone.includes('Shade') && !yObj.h2.pantone.includes('(') && !yObj.h2.pantone.includes('Companion');
+  const hasH2 = norm.h2 && norm.h2.pantone && !norm.h2.pantone.includes('Shade') && !norm.h2.pantone.includes('(') && !norm.h2.pantone.includes('Companion');
   if (activePeriod === 'H2' && hasH2) {
     return {
-      pantone: yObj.h2.pantone,
-      hex: yObj.h2.hex || '#553B30',
-      code: yObj.h2.code || getSecurityYearCode(yObj.year, 'H2'),
-      name: yObj.h2.name || yObj.h2.pantone
+      pantone: norm.h2.pantone,
+      hex: norm.h2.hex || '#553B30',
+      code: norm.h2.code || getSecurityYearCode(norm.year, 'H2'),
+      name: norm.h2.name || norm.h2.pantone,
+      isConfigured: true
+    };
+  }
+  const hasH1 = norm.h1 && norm.h1.pantone;
+  if (hasH1) {
+    return {
+      pantone: norm.h1.pantone,
+      hex: norm.h1.hex || '#009FDA',
+      code: norm.h1.code || getSecurityYearCode(norm.year, 'H1'),
+      name: norm.h1.name || norm.h1.pantone,
+      isConfigured: true
     };
   }
   return {
-    pantone: (yObj.h1 && yObj.h1.pantone) || yObj.pantoneCode || 'PANTONE 2192 C',
-    hex: (yObj.h1 && yObj.h1.hex) || yObj.hexColor || '#009FDA',
-    code: (yObj.h1 && yObj.h1.code) || getSecurityYearCode(yObj.year, 'H1'),
-    name: (yObj.h1 && yObj.h1.name) || yObj.colorName || yObj.pantoneCode || 'PANTONE 2192 C'
+    pantone: norm.pantoneCode || 'Standard Mandate',
+    hex: norm.hexColor || '#0284c7',
+    code: getSecurityYearCode(norm.year, 'H1'),
+    name: norm.colorName || 'Standard Mandate',
+    isConfigured: Boolean(norm.pantoneCode)
   };
 }
 
@@ -669,19 +768,13 @@ function alignActivePeriodConfig() {
   state.annualColorConfig.activePeriod = isH2Period ? 'H2' : 'H1';
   let changed = false;
 
-  state.annualColorConfig.years.forEach(y => {
-    const hasH2 = y.h2 && y.h2.pantone && !y.h2.pantone.includes('Shade') && !y.h2.pantone.includes('(') && !y.h2.pantone.includes('Companion');
-    if (isH2Period && hasH2) {
-      if (y.h2.hex && y.hexColor !== y.h2.hex) { y.hexColor = y.h2.hex; changed = true; }
-      if (y.h2.pantone && y.pantoneCode !== y.h2.pantone) { y.pantoneCode = y.h2.pantone; changed = true; }
-      if (!y.colorName || y.colorName.includes('&') || y.colorName.includes(y.h1?.pantone) || y.colorName.toUpperCase().startsWith('PANTONE')) {
-        if (y.colorName !== y.h2.pantone) { y.colorName = y.h2.pantone; changed = true; }
-      }
-      if (!y.guidelines || y.guidelines.includes('approved annual color standard') || y.guidelines.includes(y.h1?.pantone)) {
-        const targetGuidelines = `FY ${y.year} approved annual color standard ${y.h2.pantone} with 6-month security code imprint.`;
-        if (y.guidelines !== targetGuidelines) { y.guidelines = targetGuidelines; changed = true; }
-      }
+  state.annualColorConfig.years = state.annualColorConfig.years.map(y => {
+    const norm = normalizeYearColorObject(y);
+    if (isH2Period && norm.h2 && norm.h2.pantone) {
+      if (norm.hexColor !== norm.h2.hex) { norm.hexColor = norm.h2.hex; changed = true; }
+      if (norm.pantoneCode !== norm.h2.pantone) { norm.pantoneCode = norm.h2.pantone; changed = true; }
     }
+    return norm;
   });
   return changed;
 }
@@ -694,31 +787,34 @@ function getYearColorConfig(year) {
 
   const found = yearsList.find(y => Number(y.year) === targetYear);
   if (found) {
-    const eff = getEffectiveYearColor(found);
+    const norm = normalizeYearColorObject(found);
+    const eff = getEffectiveYearColor(norm);
     return {
-      ...found,
+      ...norm,
       hexColor: eff.hex,
       pantoneCode: eff.pantone,
-      colorName: (found.colorName && !found.colorName.includes('&') && !found.colorName.startsWith('PANTONE')) ? found.colorName : eff.pantone,
+      colorName: (norm.colorName && !norm.colorName.includes('&') && !norm.colorName.startsWith('PANTONE')) ? norm.colorName : eff.pantone,
       effectiveShade: eff
     };
   }
 
-  const isH2 = getCurrentCalendarPeriod() === 'H2';
-  return {
+  // If year was deleted by Admin or not configured, return unassigned state
+  return normalizeYearColorObject({
     year: targetYear,
-    colorName: isH2 ? "PANTONE 4625 C" : "Standard Cyan & White",
-    hexColor: isH2 ? "#553B30" : "#0284c7",
+    colorName: `FY ${targetYear} Standard`,
+    hexColor: "#0284c7",
     status: (targetYear === getActiveYear() ? "active" : "upcoming"),
-    guidelines: `Annual color mandate for FY ${targetYear}. Suppliers must follow this color scheme.`
-  };
+    guidelines: `Annual color standard for FY ${targetYear}. Suppliers must follow approved specifications.`,
+    h1: null,
+    h2: null
+  });
 }
 
 function updateAnnualColorUI() {
   alignActivePeriodConfig();
   const activeYear = getActiveYear();
   const yearConfig = getYearColorConfig(activeYear);
-  const activeHex = yearConfig.hexColor;
+  const activeHex = yearConfig.hexColor || '#0284c7';
 
   const dot = document.getElementById('adminActiveYearColorDot');
   if (dot) dot.style.backgroundColor = activeHex;
@@ -731,6 +827,13 @@ function updateAnnualColorUI() {
 
   const vBadgeText = document.getElementById('vendorActiveYearColorBadgeText');
   if (vBadgeText) vBadgeText.innerHTML = `<span class="sm:hidden">🎨 Proofs & Codes (${activeYear})</span><span class="hidden sm:inline">🎨 Annual Proofs & Codes (${activeYear})</span>`;
+
+  // Gatekeeper active annual color dot & badge
+  const gDot = document.getElementById('gateActiveYearColorDot');
+  if (gDot) gDot.style.backgroundColor = activeHex;
+
+  const gBadgeText = document.getElementById('gateActiveYearColorBadgeText');
+  if (gBadgeText) gBadgeText.innerHTML = `<span class="sm:hidden">🎨 Color Standards (${activeYear})</span><span class="hidden sm:inline">🎨 Annual Color Standards (${activeYear})</span>`;
 
   const activePill = document.getElementById('annualActiveYearPill');
   if (activePill) {
@@ -1805,9 +1908,20 @@ function renderAnnualColorRegistry() {
   }
 
   const activeYear = getActiveYear();
+  // Strictly display only the years configured by Admin! If Admin deleted a year, it does not appear for Admin, Vendor, or Gatekeeper
   const years = (state.annualColorConfig && Array.isArray(state.annualColorConfig.years))
-    ? [...state.annualColorConfig.years].sort((a, b) => b.year - a.year)
+    ? state.annualColorConfig.years.map(y => normalizeYearColorObject(y)).filter(Boolean).sort((a, b) => b.year - a.year)
     : [];
+
+  if (years.length === 0) {
+    grid.innerHTML = `
+      <div class="col-span-full p-8 text-center bg-white rounded-2xl border border-dashed border-slate-300 text-slate-500">
+        <p class="text-sm font-semibold">No annual color standards configured.</p>
+        <p class="text-xs text-slate-400 mt-1">${isAdmin ? 'Click "+ Add New Financial Year" above to define a mandated color standard.' : 'The operations admin has not published any annual color standards yet.'}</p>
+      </div>
+    `;
+    return;
+  }
 
   grid.innerHTML = years.map(y => {
     const isActive = Number(y.year) === activeYear;
@@ -1974,7 +2088,7 @@ function toggleNewYearForm(show, yearToEdit) {
   const h2Hex = document.getElementById('inputYearH2Hex');
 
   if (yearToEdit) {
-    const yObj = getYearColorConfig(yearToEdit);
+    const yObj = normalizeYearColorObject(getYearColorConfig(yearToEdit));
     if (heading) heading.textContent = `Edit FY ${yearToEdit} Annual Color Standard`;
     if (origYearInput) origYearInput.value = yearToEdit;
     if (yearInput) {
@@ -1996,18 +2110,19 @@ function toggleNewYearForm(show, yearToEdit) {
 
     const hasValidH2 = yObj.h2 && yObj.h2.pantone && !yObj.h2.pantone.includes('Shade') && !yObj.h2.pantone.includes('(') && !yObj.h2.pantone.includes('Companion');
     if (hasValidH2) {
+      const h2HexVal = yObj.h2.hex || '#553B30';
       if (h2Input) h2Input.value = yObj.h2.pantone;
-      if (h2Picker) h2Picker.value = yObj.h2.hex || '#0072CE';
-      if (h2Hex) h2Hex.value = yObj.h2.hex || '#0072CE';
+      if (h2Picker) h2Picker.value = h2HexVal;
+      if (h2Hex) h2Hex.value = h2HexVal;
       const h2Swatch = document.getElementById('pantoneH2InputLiveSwatch');
       if (h2Swatch) {
-        h2Swatch.style.backgroundColor = yObj.h2.hex || '#0072CE';
+        h2Swatch.style.backgroundColor = h2HexVal;
         h2Swatch.textContent = '';
       }
       const h2Badge = document.getElementById('pantoneH2SyncStatusBadge');
       if (h2Badge) {
         h2Badge.className = 'text-[10px] font-bold px-2 py-1 rounded-lg bg-emerald-100 text-emerald-800 border border-emerald-200 shrink-0';
-        h2Badge.textContent = '✓ H2 Configured';
+        h2Badge.textContent = '✓ ' + h2HexVal;
       }
     } else {
       clearH2Shade();
@@ -2110,7 +2225,13 @@ function handleSaveYearColor(event) {
     status,
     guidelines,
     h1: { pantone: h1Pantone, hex: h1Hex, name: h1Pantone, code: h1Code },
-    h2: h2Payload
+    h2: h2Payload,
+    h1Color: h1Pantone,
+    h1Hex: h1Hex,
+    h1Code: h1Code,
+    h2Color: h2Payload ? h2Payload.pantone : '',
+    h2Hex: h2Payload ? h2Payload.hex : '',
+    h2Code: h2Payload ? h2Code : ''
   };
 
   if (origYear) {
@@ -2191,9 +2312,18 @@ function deleteAnnualColorYear(year) {
 
   if (state.annualColorConfig && Array.isArray(state.annualColorConfig.years)) {
     state.annualColorConfig.years = state.annualColorConfig.years.filter(y => Number(y.year) !== targetYear);
+    // Also clean up uploaded sample proofs for the deleted year
+    if (state.sampleProofs) {
+      Object.keys(state.sampleProofs).forEach(k => {
+        if (Number(state.sampleProofs[k]?.year) === targetYear) {
+          delete state.sampleProofs[k];
+        }
+      });
+    }
     saveState();
     showToast(`FY ${targetYear} color standard deleted.`);
     renderAnnualColorRegistry();
+    renderAnnualProofsMatrix();
   }
 }
 
@@ -2202,6 +2332,12 @@ function renderAnnualProofsMatrix(selectedYear, catFilter) {
   const isAdmin = state.currentUser && (state.currentUser.role === 'admin' || state.currentUser.role === 'store_manager');
   if (selectedYear) currentMatrixSelectedYear = Number(selectedYear);
   if (catFilter) currentMatrixCategoryFilter = catFilter;
+
+  if (state.annualColorConfig && Array.isArray(state.annualColorConfig.years)) {
+    if (!state.annualColorConfig.years.some(y => Number(y.year) === currentMatrixSelectedYear)) {
+      currentMatrixSelectedYear = getActiveYear();
+    }
+  }
 
   const yearSelect = document.getElementById('matrixYearSelect');
   if (yearSelect && state.annualColorConfig && Array.isArray(state.annualColorConfig.years)) {
@@ -3354,7 +3490,7 @@ async function fetchCloudState() {
     try {
       const { data: acData } = await supabaseClient.from('annual_colors').select('config_json').eq('id', 'current').single();
       if (acData && acData.config_json) {
-        state.annualColorConfig = acData.config_json;
+        state.annualColorConfig = normalizeAnnualColorConfig(acData.config_json);
       } else {
         const { data: logAc } = await supabaseClient
           .from('audit_logs')
@@ -3363,10 +3499,14 @@ async function fetchCloudState() {
           .order('event_time', { ascending: false })
           .limit(1);
         if (logAc && logAc[0] && logAc[0].metadata) {
-          state.annualColorConfig = logAc[0].metadata;
+          state.annualColorConfig = normalizeAnnualColorConfig(logAc[0].metadata);
+        } else {
+          state.annualColorConfig = normalizeAnnualColorConfig(DEFAULT_ANNUAL_COLOR_CONFIG);
         }
       }
-    } catch(e) {}
+    } catch(e) {
+      state.annualColorConfig = normalizeAnnualColorConfig(state.annualColorConfig || DEFAULT_ANNUAL_COLOR_CONFIG);
+    }
     alignActivePeriodConfig();
 
     // 5. Fetch Sample Proofs from Supabase
