@@ -16,7 +16,7 @@
 
   <!-- Modular Scripts: Encrypted Credential Vault, Auth & Core Business Logic -->
   <script src="js/vault.js"></script>
-  <script src="js/app.js?v=20261031_all_mobile_headers_fixed"></script>
+  <script src="js/app.js?v=20261031_desktop_spacing_perfected"></script>
   <script src="js/auth.js"></script>
   <!-- Anti-Flash Authentication State Evaluator -->
   <script>
@@ -626,45 +626,42 @@
 
           <!-- All Orders Overview Table with Manufacturing Stage & Sample Proofs -->
           <div class="bg-white rounded-2xl border border-slate-200 shadow-xs overflow-hidden">
-            <div class="p-4 border-b border-slate-100 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-              <div class="flex flex-col sm:flex-row sm:items-center justify-between sm:justify-start gap-2.5 sm:gap-4 w-full sm:w-auto">
-                <div>
-                  <h2 class="text-sm sm:text-base font-bold text-slate-900 leading-snug">Purchase Orders, Line Allocations & Manufacturing Stages</h2>
-                  <span class="text-xs text-slate-500 block mt-0.5">Live multi-vendor tracker with production readiness & approved sample proofs</span>
-                </div>
-                <!-- Mobile View Switcher (Cards vs Table) -->
-                <div class="grid grid-cols-2 sm:flex sm:items-center gap-1 md:hidden bg-slate-100 p-1 rounded-xl border border-slate-200 w-full sm:w-auto shrink-0">
-                  <button type="button" id="btnPoViewCards" onclick="setPoMobileView('cards')" class="px-3 py-1.5 rounded-lg text-xs font-bold bg-slate-900 text-white shadow-2xs cursor-pointer text-center flex items-center justify-center gap-1.5">
-                    <span>🗂️ Cards</span>
-                  </button>
-                  <button type="button" id="btnPoViewTable" onclick="setPoMobileView('table')" class="px-3 py-1.5 rounded-lg text-xs font-bold text-slate-600 hover:bg-slate-200 cursor-pointer text-center flex items-center justify-center gap-1.5">
-                    <span>▤ Table</span>
-                  </button>
-                </div>
+            <!-- Header: Title & Subtitle on Left, View Switcher on Right (Desktop) / Underneath on Mobile -->
+            <div class="p-4 border-b border-slate-100 flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white">
+              <div>
+                <h2 class="text-sm sm:text-base font-bold text-slate-900 leading-snug">Purchase Orders, Line Allocations & Manufacturing Stages</h2>
+                <span class="text-xs text-slate-500 block mt-0.5">Live multi-vendor tracker with production readiness & approved sample proofs</span>
               </div>
-              <!-- Production Stage Filter Toolbar (Desktop Segmented Controls) -->
-              <div class="hidden md:flex items-center gap-2 overflow-x-auto text-xs w-full sm:w-auto no-scrollbar">
+              <!-- Mobile View Switcher (Cards vs Table) -->
+              <div class="grid grid-cols-2 sm:flex sm:items-center gap-1 md:hidden bg-slate-100 p-1 rounded-xl border border-slate-200 w-full sm:w-auto shrink-0">
+                <button type="button" id="btnPoViewCards" onclick="setPoMobileView('cards')" class="px-3 py-1.5 rounded-lg text-xs font-bold bg-slate-900 text-white shadow-2xs cursor-pointer text-center flex items-center justify-center gap-1.5">
+                  <span>🗂️ Cards</span>
+                </button>
+                <button type="button" id="btnPoViewTable" onclick="setPoMobileView('table')" class="px-3 py-1.5 rounded-lg text-xs font-bold text-slate-600 hover:bg-slate-200 cursor-pointer text-center flex items-center justify-center gap-1.5">
+                  <span>▤ Table</span>
+                </button>
+              </div>
+            </div>
+
+            <!-- Desktop Production Stage Filter Toolbar (Dedicated Spacious Row) -->
+            <div class="hidden md:flex px-4 py-2.5 bg-slate-50/70 border-b border-slate-100 items-center justify-between text-xs overflow-x-auto no-scrollbar">
+              <div class="flex items-center gap-2">
                 <span class="text-[11px] font-bold text-slate-400 uppercase tracking-wider whitespace-nowrap">Stage:</span>
-                <div class="nav-tab-container p-0.5 bg-slate-100 rounded-xl flex items-center gap-1 border border-slate-200/80 overflow-x-auto w-full sm:w-auto no-scrollbar">
+                <div class="nav-tab-container p-0.5 bg-slate-100 rounded-xl flex items-center gap-1 border border-slate-200/80 overflow-x-auto no-scrollbar">
                   <button type="button" onclick="setAdminPoFilter('all')" id="adminPoFilterAll" class="nav-tab-btn nav-tab-btn-active-primary px-3 py-1 rounded-lg text-xs font-bold transition flex items-center gap-1.5 cursor-pointer flex-shrink-0">
                     <span>All</span>
-                    <span id="adminPoCountAll" class="bg-slate-800 text-slate-200 px-1.5 py-0.2 rounded-full text-[10px] font-mono">0</span>
                   </button>
                   <button type="button" onclick="setAdminPoFilter('pending')" id="adminPoFilterPending" class="nav-tab-btn px-3 py-1 rounded-lg text-xs font-semibold text-slate-600 hover:text-slate-900 transition flex items-center gap-1.5 cursor-pointer flex-shrink-0">
-                    <span>⏳ Awaiting Supplier</span>
-                    <span id="adminPoCountPending" class="bg-amber-100 text-amber-800 px-1.5 py-0.2 rounded-full text-[10px] font-mono font-bold">0</span>
+                    <span>⚡ Action Needed</span>
                   </button>
-                  <button type="button" onclick="setAdminPoFilter('in_stock')" id="adminPoFilterStock" class="nav-tab-btn px-3 py-1 rounded-lg text-xs font-semibold text-slate-600 hover:text-slate-900 transition flex items-center gap-1.5 cursor-pointer flex-shrink-0">
-                    <span>📦 In Stock</span>
-                    <span id="adminPoCountStock" class="bg-emerald-100 text-emerald-800 px-1.5 py-0.2 rounded-full text-[10px] font-mono font-bold">0</span>
-                  </button>
-                  <button type="button" onclick="setAdminPoFilter('in_production')" id="adminPoFilterProd" class="nav-tab-btn px-3 py-1 rounded-lg text-xs font-semibold text-slate-600 hover:text-slate-900 transition flex items-center gap-1.5 cursor-pointer flex-shrink-0">
+                  <button type="button" onclick="setAdminPoFilter('in_production')" id="adminPoFilterInProd" class="nav-tab-btn px-3 py-1 rounded-lg text-xs font-semibold text-slate-600 hover:text-slate-900 transition flex items-center gap-1.5 cursor-pointer flex-shrink-0">
                     <span>🏭 In Production</span>
-                    <span id="adminPoCountProd" class="bg-indigo-100 text-indigo-800 px-1.5 py-0.2 rounded-full text-[10px] font-mono font-bold">0</span>
                   </button>
-                  <button type="button" onclick="setAdminPoFilter('completed')" id="adminPoFilterComp" class="nav-tab-btn px-3 py-1 rounded-lg text-xs font-semibold text-slate-600 hover:text-slate-900 transition flex items-center gap-1.5 cursor-pointer flex-shrink-0">
-                    <span>✅ Fulfilled</span>
-                    <span id="adminPoCountComp" class="bg-slate-200 text-slate-600 px-1.5 py-0.2 rounded-full text-[10px] font-mono">0</span>
+                  <button type="button" onclick="setAdminPoFilter('in_stock')" id="adminPoFilterInStock" class="nav-tab-btn px-3 py-1 rounded-lg text-xs font-semibold text-slate-600 hover:text-slate-900 transition flex items-center gap-1.5 cursor-pointer flex-shrink-0">
+                    <span>📦 In Stock</span>
+                  </button>
+                  <button type="button" onclick="setAdminPoFilter('completed')" id="adminPoFilterCompleted" class="nav-tab-btn px-3 py-1 rounded-lg text-xs font-semibold text-slate-600 hover:text-slate-900 transition flex items-center gap-1.5 cursor-pointer flex-shrink-0">
+                    <span>✓ Completed</span>
                   </button>
                 </div>
               </div>
@@ -1118,44 +1115,49 @@
 
         <!-- Inward Inspection Log Table -->
         <div class="bg-white rounded-2xl border border-slate-200 shadow-xs overflow-hidden">
-          <div class="p-4 border-b border-slate-100 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-            <div class="flex flex-col sm:flex-row sm:items-center justify-between sm:justify-start gap-2.5 sm:gap-4 w-full sm:w-auto">
-              <div>
-                <h2 class="text-sm sm:text-base font-bold text-slate-900 leading-snug">Incoming Deliveries & Inspection Queue</h2>
-              </div>
-              <!-- View Switcher (Cards vs Table) for Desktop & Mobile -->
-              <div class="grid grid-cols-2 sm:flex sm:items-center gap-1 bg-slate-100 p-1 rounded-xl border border-slate-200 w-full sm:w-auto shrink-0">
-                <button type="button" id="btnGateViewTable" onclick="setGateMobileView('table')" class="px-3 py-1.5 rounded-lg text-xs font-bold bg-slate-900 text-white shadow-2xs transition cursor-pointer text-center flex items-center justify-center gap-1.5">
-                  <span>▤ Table View</span>
-                </button>
-                <button type="button" id="btnGateViewCards" onclick="setGateMobileView('cards')" class="px-3 py-1.5 rounded-lg text-xs font-bold text-slate-600 hover:bg-slate-200 transition cursor-pointer text-center flex items-center justify-center gap-1.5">
-                  <span>🗂️ Cards View</span>
-                </button>
-              </div>
+          <!-- Card Header: Title on Left, View Switcher on Right (Desktop) / Underneath on Mobile -->
+          <div class="p-4 border-b border-slate-100 flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white">
+            <div>
+              <h2 class="text-sm sm:text-base font-bold text-slate-900 leading-snug">Incoming Deliveries & Inspection Queue</h2>
+              <span class="text-xs text-slate-500 block mt-0.5">Physical count verification, variance detection & gate receiving audit</span>
             </div>
-            <!-- Desktop Filter Toolbar -->
-            <div class="hidden md:flex flex-wrap items-center gap-1.5 text-xs">
-              <span class="text-[11px] font-bold text-slate-400 uppercase tracking-wider mr-1">Filter:</span>
-              <button type="button" onclick="setGateFilter('all')" class="px-3.5 py-1.5 rounded-xl font-bold text-xs transition bg-slate-900 text-white shadow-2xs flex items-center gap-1.5 flex-shrink-0 cursor-pointer" id="gateFilterAll">
-                <span>All Inward</span>
-                <span id="gateCountAll" class="bg-slate-800 text-slate-200 px-1.5 py-0.2 rounded-full text-[10px] font-mono">0</span>
+            <!-- View Switcher (Cards vs Table) for Desktop & Mobile -->
+            <div class="grid grid-cols-2 sm:flex sm:items-center gap-1 bg-slate-100 p-1 rounded-xl border border-slate-200 w-full sm:w-auto shrink-0">
+              <button type="button" id="btnGateViewTable" onclick="setGateMobileView('table')" class="px-3.5 py-1.5 rounded-lg text-xs font-bold bg-slate-900 text-white shadow-2xs transition cursor-pointer text-center flex items-center justify-center gap-1.5">
+                <span>▤ Table View</span>
               </button>
-              <button type="button" onclick="setGateFilter('transit')" class="px-3.5 py-1.5 rounded-xl font-semibold text-xs text-slate-600 hover:bg-slate-100 transition flex items-center gap-1.5 border border-slate-200 bg-white flex-shrink-0 cursor-pointer" id="gateFilterTransit">
-                <span>⏳ Awaiting Count</span>
-                <span id="gateCountTransit" class="bg-indigo-100 text-indigo-700 px-1.5 py-0.2 rounded-full text-[10px] font-mono font-bold">0</span>
+              <button type="button" id="btnGateViewCards" onclick="setGateMobileView('cards')" class="px-3.5 py-1.5 rounded-lg text-xs font-bold text-slate-600 hover:bg-slate-200 transition cursor-pointer text-center flex items-center justify-center gap-1.5">
+                <span>🗂️ Cards View</span>
               </button>
-              <button type="button" onclick="setGateFilter('ribbons')" class="px-3.5 py-1.5 rounded-xl font-semibold text-xs text-purple-700 hover:bg-purple-100 transition flex items-center gap-1.5 border border-purple-200 bg-purple-50/50 flex-shrink-0 cursor-pointer" id="gateFilterRibbons">
-                <span>🎗️ With Ribbons</span>
-                <span id="gateCountRibbons" class="bg-purple-200 text-purple-900 px-1.5 py-0.2 rounded-full text-[10px] font-mono font-bold">0</span>
-              </button>
-              <button type="button" onclick="setGateFilter('today')" class="px-3.5 py-1.5 rounded-xl font-semibold text-xs text-slate-600 hover:bg-slate-100 transition flex items-center gap-1.5 border border-slate-200 bg-white flex-shrink-0 cursor-pointer" id="gateFilterToday">
-                <span>📅 Today</span>
-                <span id="gateCountToday" class="bg-slate-200 text-slate-700 px-1.5 py-0.2 rounded-full text-[10px] font-mono font-bold">0</span>
-              </button>
-              <button type="button" onclick="setGateFilter('damaged')" class="px-3.5 py-1.5 rounded-xl font-semibold text-xs text-slate-600 hover:bg-slate-100 transition flex items-center gap-1.5 border border-slate-200 bg-white flex-shrink-0 cursor-pointer" id="gateFilterDamaged">
-                <span>⚠️ Damage / Rejections</span>
-                <span id="gateCountDamaged" class="bg-amber-100 text-amber-800 px-1.5 py-0.2 rounded-full text-[10px] font-mono font-bold">0</span>
-              </button>
+            </div>
+          </div>
+
+          <!-- Desktop Status Filter Toolbar (Dedicated Spacious Row) -->
+          <div class="hidden md:flex px-4 py-2.5 bg-slate-50/70 border-b border-slate-100 items-center justify-between text-xs overflow-x-auto no-scrollbar">
+            <div class="flex items-center gap-2">
+              <span class="text-[11px] font-bold text-slate-400 uppercase tracking-wider whitespace-nowrap">Filter:</span>
+              <div class="flex items-center gap-1.5 flex-wrap">
+                <button type="button" onclick="setGateFilter('all')" class="px-3.5 py-1.5 rounded-xl font-bold text-xs transition bg-slate-900 text-white shadow-2xs flex items-center gap-1.5 flex-shrink-0 cursor-pointer" id="gateFilterAll">
+                  <span>All Inward</span>
+                  <span id="gateCountAll" class="bg-slate-800 text-slate-200 px-1.5 py-0.2 rounded-full text-[10px] font-mono">0</span>
+                </button>
+                <button type="button" onclick="setGateFilter('transit')" class="px-3.5 py-1.5 rounded-xl font-semibold text-xs text-slate-600 hover:bg-slate-100 transition flex items-center gap-1.5 border border-slate-200 bg-white flex-shrink-0 cursor-pointer" id="gateFilterTransit">
+                  <span>⏳ Awaiting Count</span>
+                  <span id="gateCountTransit" class="bg-indigo-100 text-indigo-700 px-1.5 py-0.2 rounded-full text-[10px] font-mono font-bold">0</span>
+                </button>
+                <button type="button" onclick="setGateFilter('ribbons')" class="px-3.5 py-1.5 rounded-xl font-semibold text-xs text-purple-700 hover:bg-purple-100 transition flex items-center gap-1.5 border border-purple-200 bg-purple-50/50 flex-shrink-0 cursor-pointer" id="gateFilterRibbons">
+                  <span>🎗️ With Ribbons</span>
+                  <span id="gateCountRibbons" class="bg-purple-200 text-purple-900 px-1.5 py-0.2 rounded-full text-[10px] font-mono font-bold">0</span>
+                </button>
+                <button type="button" onclick="setGateFilter('today')" class="px-3.5 py-1.5 rounded-xl font-semibold text-xs text-slate-600 hover:bg-slate-100 transition flex items-center gap-1.5 border border-slate-200 bg-white flex-shrink-0 cursor-pointer" id="gateFilterToday">
+                  <span>📅 Today</span>
+                  <span id="gateCountToday" class="bg-slate-200 text-slate-700 px-1.5 py-0.2 rounded-full text-[10px] font-mono font-bold">0</span>
+                </button>
+                <button type="button" onclick="setGateFilter('damaged')" class="px-3.5 py-1.5 rounded-xl font-semibold text-xs text-slate-600 hover:bg-slate-100 transition flex items-center gap-1.5 border border-slate-200 bg-white flex-shrink-0 cursor-pointer" id="gateFilterDamaged">
+                  <span>⚠️ Damage / Rejections</span>
+                  <span id="gateCountDamaged" class="bg-amber-100 text-amber-800 px-1.5 py-0.2 rounded-full text-[10px] font-mono font-bold">0</span>
+                </button>
+              </div>
             </div>
           </div>
 
