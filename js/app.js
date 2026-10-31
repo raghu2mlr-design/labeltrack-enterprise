@@ -6407,9 +6407,6 @@ function render() {
             </div>
             <div class="flex items-center gap-3 text-xs">
               ${prodBadge}
-              <button onclick="openUpdateProductionStatusModal('${escapeHtml(po.poNumber)}', 'all')" title="Update Manufacturing / Stock Status" class="px-2.5 py-1 text-xs font-bold ${isPendingReadiness ? 'bg-amber-500 hover:bg-amber-600 text-white' : 'text-indigo-700 hover:bg-indigo-50 border border-indigo-200/90'} rounded-xl transition inline-flex items-center gap-1 shadow-2xs cursor-pointer">
-                <span>⚡ ${(po.items && po.items.length > 1) ? 'Update Order Status' : (isPendingReadiness ? 'Confirm Readiness' : 'Update Status')}</span>
-              </button>
             </div>
           </div>
 
