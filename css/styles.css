@@ -555,3 +555,13 @@ button, input, select, a, [role="button"] {
 
 
 
+
+/* 8. Strict View Mode Isolation for Gatekeeper & Admin (Zero overlap between Cards & Table) */
+#gateShipmentsCardsContainer.hidden,
+#gateShipmentsTableWrapper.hidden,
+#adminShipmentsCardsContainer.hidden,
+#adminShipmentsTableWrapper.hidden,
+#adminPoCardsContainer.hidden,
+#adminPoTableWrapper.hidden {
+  display: none !important;
+}
