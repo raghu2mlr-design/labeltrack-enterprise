@@ -16,7 +16,7 @@
 
   <!-- Modular Scripts: Encrypted Credential Vault, Auth & Core Business Logic -->
   <script src="js/vault.js"></script>
-  <script src="js/app.js?v=20261031_gate_contrast_fix"></script>
+  <script src="js/app.js?v=20261031_all_mobile_headers_fixed"></script>
   <script src="js/auth.js"></script>
   <!-- Anti-Flash Authentication State Evaluator -->
   <script>
@@ -627,17 +627,17 @@
           <!-- All Orders Overview Table with Manufacturing Stage & Sample Proofs -->
           <div class="bg-white rounded-2xl border border-slate-200 shadow-xs overflow-hidden">
             <div class="p-4 border-b border-slate-100 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-              <div class="flex items-center justify-between">
+              <div class="flex flex-col sm:flex-row sm:items-center justify-between sm:justify-start gap-2.5 sm:gap-4 w-full sm:w-auto">
                 <div>
-                  <h2 class="text-sm font-bold text-slate-900">Purchase Orders, Line Allocations & Manufacturing Stages</h2>
-                  <span class="text-xs text-slate-500">Live multi-vendor tracker with production readiness & approved sample proofs</span>
+                  <h2 class="text-sm sm:text-base font-bold text-slate-900 leading-snug">Purchase Orders, Line Allocations & Manufacturing Stages</h2>
+                  <span class="text-xs text-slate-500 block mt-0.5">Live multi-vendor tracker with production readiness & approved sample proofs</span>
                 </div>
                 <!-- Mobile View Switcher (Cards vs Table) -->
-                <div class="flex items-center gap-1 md:hidden bg-slate-100 p-0.5 rounded-xl border border-slate-200 shrink-0">
-                  <button type="button" id="btnPoViewCards" onclick="setPoMobileView('cards')" class="px-2.5 py-1 rounded-lg text-[10px] font-bold bg-slate-900 text-white shadow-2xs cursor-pointer">
+                <div class="grid grid-cols-2 sm:flex sm:items-center gap-1 md:hidden bg-slate-100 p-1 rounded-xl border border-slate-200 w-full sm:w-auto shrink-0">
+                  <button type="button" id="btnPoViewCards" onclick="setPoMobileView('cards')" class="px-3 py-1.5 rounded-lg text-xs font-bold bg-slate-900 text-white shadow-2xs cursor-pointer text-center flex items-center justify-center gap-1.5">
                     <span>🗂️ Cards</span>
                   </button>
-                  <button type="button" id="btnPoViewTable" onclick="setPoMobileView('table')" class="px-2.5 py-1 rounded-lg text-[10px] font-bold text-slate-600 hover:bg-slate-200 cursor-pointer">
+                  <button type="button" id="btnPoViewTable" onclick="setPoMobileView('table')" class="px-3 py-1.5 rounded-lg text-xs font-bold text-slate-600 hover:bg-slate-200 cursor-pointer text-center flex items-center justify-center gap-1.5">
                     <span>▤ Table</span>
                   </button>
                 </div>
@@ -769,17 +769,17 @@
           <!-- Gate Receiving & Invoice Verification Table -->
           <div class="bg-white rounded-2xl border border-slate-200 shadow-xs overflow-hidden">
             <div class="p-4 border-b border-slate-100 flex flex-col md:flex-row md:items-center justify-between gap-3">
-              <div class="flex items-center justify-between w-full md:w-auto">
-                <div class="flex items-center gap-2">
-                  <h2 class="text-sm font-bold text-slate-900">Warehouse Receiving, Invoices & Discrepancy Log</h2>
+              <div class="flex flex-col md:flex-row md:items-center justify-between md:justify-start gap-2.5 md:gap-4 w-full md:w-auto">
+                <div class="flex flex-wrap items-center gap-2">
+                  <h2 class="text-sm md:text-base font-bold text-slate-900 leading-snug">Warehouse Receiving, Invoices & Discrepancy Log</h2>
                   <span class="badge-pill badge-emerald text-[10px]">Audit Engine</span>
                 </div>
                 <!-- Mobile View Switcher (Cards vs Table) -->
-                <div class="flex items-center gap-1 md:hidden bg-slate-100 p-0.5 rounded-xl border border-slate-200 shrink-0">
-                  <button type="button" id="btnAdminDispatchesViewCards" onclick="setAdminDispatchesMobileView('cards')" class="px-2.5 py-1 rounded-lg text-[10px] font-bold bg-slate-900 text-white shadow-2xs cursor-pointer">
+                <div class="grid grid-cols-2 md:flex md:items-center gap-1 md:hidden bg-slate-100 p-1 rounded-xl border border-slate-200 w-full md:w-auto shrink-0">
+                  <button type="button" id="btnAdminDispatchesViewCards" onclick="setAdminDispatchesMobileView('cards')" class="px-3 py-1.5 rounded-lg text-xs font-bold bg-slate-900 text-white shadow-2xs cursor-pointer text-center flex items-center justify-center gap-1.5">
                     <span>🗂️ Cards</span>
                   </button>
-                  <button type="button" id="btnAdminDispatchesViewTable" onclick="setAdminDispatchesMobileView('table')" class="px-2.5 py-1 rounded-lg text-[10px] font-bold text-slate-600 hover:bg-slate-200 cursor-pointer">
+                  <button type="button" id="btnAdminDispatchesViewTable" onclick="setAdminDispatchesMobileView('table')" class="px-3 py-1.5 rounded-lg text-xs font-bold text-slate-600 hover:bg-slate-200 cursor-pointer text-center flex items-center justify-center gap-1.5">
                     <span>▤ Table</span>
                   </button>
                 </div>
@@ -973,18 +973,18 @@
 
           <div class="bg-white rounded-3xl border border-slate-200 shadow-xs p-6 space-y-6">
             <div class="flex flex-col sm:flex-row sm:items-center justify-between border-b border-slate-100 pb-4 gap-3">
-              <div class="flex items-center justify-between w-full sm:w-auto">
+              <div class="flex flex-col sm:flex-row sm:items-center justify-between sm:justify-start gap-2.5 sm:gap-4 w-full sm:w-auto">
                 <div>
                   <span class="text-xs text-blue-600 font-bold uppercase tracking-wider block">Supplier Management</span>
-                  <h3 class="text-base sm:text-lg font-black text-slate-900 mt-0.5">Authorized Suppliers & Login Credentials</h3>
+                  <h3 class="text-base sm:text-lg font-black text-slate-900 mt-0.5 leading-snug">Authorized Suppliers & Login Credentials</h3>
                   <p class="text-xs text-slate-500 mt-0.5">Provision secure portal accounts and manage supplier access.</p>
                 </div>
                 <!-- Mobile View Switcher (Cards vs Table) -->
-                <div class="flex items-center gap-1 md:hidden bg-slate-100 p-0.5 rounded-xl border border-slate-200 shrink-0 self-start">
-                  <button type="button" id="btnVendorListViewCards" onclick="setVendorListMobileView('cards')" class="px-2.5 py-1 rounded-lg text-[10px] font-bold bg-slate-900 text-white shadow-2xs cursor-pointer">
+                <div class="grid grid-cols-2 sm:flex sm:items-center gap-1 md:hidden bg-slate-100 p-1 rounded-xl border border-slate-200 w-full sm:w-auto shrink-0">
+                  <button type="button" id="btnVendorListViewCards" onclick="setVendorListMobileView('cards')" class="px-3 py-1.5 rounded-lg text-xs font-bold bg-slate-900 text-white shadow-2xs cursor-pointer text-center flex items-center justify-center gap-1.5">
                     <span>🗂️ Cards</span>
                   </button>
-                  <button type="button" id="btnVendorListViewTable" onclick="setVendorListMobileView('table')" class="px-2.5 py-1 rounded-lg text-[10px] font-bold text-slate-600 hover:bg-slate-200 cursor-pointer">
+                  <button type="button" id="btnVendorListViewTable" onclick="setVendorListMobileView('table')" class="px-3 py-1.5 rounded-lg text-xs font-bold text-slate-600 hover:bg-slate-200 cursor-pointer text-center flex items-center justify-center gap-1.5">
                     <span>▤ Table</span>
                   </button>
                 </div>
@@ -1119,14 +1119,16 @@
         <!-- Inward Inspection Log Table -->
         <div class="bg-white rounded-2xl border border-slate-200 shadow-xs overflow-hidden">
           <div class="p-4 border-b border-slate-100 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-            <div class="flex items-center justify-between w-full sm:w-auto">
-              <h2 class="text-sm font-bold text-slate-900">Incoming Deliveries & Inspection Queue</h2>
+            <div class="flex flex-col sm:flex-row sm:items-center justify-between sm:justify-start gap-2.5 sm:gap-4 w-full sm:w-auto">
+              <div>
+                <h2 class="text-sm sm:text-base font-bold text-slate-900 leading-snug">Incoming Deliveries & Inspection Queue</h2>
+              </div>
               <!-- View Switcher (Cards vs Table) for Desktop & Mobile -->
-              <div class="flex items-center gap-1 bg-slate-100 p-1 rounded-xl border border-slate-200 shrink-0">
-                <button type="button" id="btnGateViewTable" onclick="setGateMobileView('table')" class="px-3 py-1.5 rounded-lg text-xs font-bold bg-slate-900 text-white shadow-2xs transition cursor-pointer">
+              <div class="grid grid-cols-2 sm:flex sm:items-center gap-1 bg-slate-100 p-1 rounded-xl border border-slate-200 w-full sm:w-auto shrink-0">
+                <button type="button" id="btnGateViewTable" onclick="setGateMobileView('table')" class="px-3 py-1.5 rounded-lg text-xs font-bold bg-slate-900 text-white shadow-2xs transition cursor-pointer text-center flex items-center justify-center gap-1.5">
                   <span>▤ Table View</span>
                 </button>
-                <button type="button" id="btnGateViewCards" onclick="setGateMobileView('cards')" class="px-3 py-1.5 rounded-lg text-xs font-bold text-slate-600 hover:bg-slate-200 transition cursor-pointer">
+                <button type="button" id="btnGateViewCards" onclick="setGateMobileView('cards')" class="px-3 py-1.5 rounded-lg text-xs font-bold text-slate-600 hover:bg-slate-200 transition cursor-pointer text-center flex items-center justify-center gap-1.5">
                   <span>🗂️ Cards View</span>
                 </button>
               </div>
