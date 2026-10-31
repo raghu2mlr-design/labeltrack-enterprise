@@ -16,7 +16,7 @@
 
   <!-- Modular Scripts: Encrypted Credential Vault, Auth & Core Business Logic -->
   <script src="js/vault.js"></script>
-  <script src="js/app.js?v=20261031_desktop_spacing_perfected"></script>
+  <script src="js/app.js?v=20261031_filters_and_locks_v3"></script>
   <script src="js/auth.js"></script>
   <!-- Anti-Flash Authentication State Evaluator -->
   <script>
@@ -650,18 +650,23 @@
                 <div class="nav-tab-container p-0.5 bg-slate-100 rounded-xl flex items-center gap-1 border border-slate-200/80 overflow-x-auto no-scrollbar">
                   <button type="button" onclick="setAdminPoFilter('all')" id="adminPoFilterAll" class="nav-tab-btn nav-tab-btn-active-primary px-3 py-1 rounded-lg text-xs font-bold transition flex items-center gap-1.5 cursor-pointer flex-shrink-0">
                     <span>All</span>
+                    <span class="bg-slate-800 text-slate-200 px-1.5 py-0.5 rounded-full text-[10px] font-mono font-bold" id="adminPoCountAll">0</span>
                   </button>
                   <button type="button" onclick="setAdminPoFilter('pending')" id="adminPoFilterPending" class="nav-tab-btn px-3 py-1 rounded-lg text-xs font-semibold text-slate-600 hover:text-slate-900 transition flex items-center gap-1.5 cursor-pointer flex-shrink-0">
                     <span>⚡ Action Needed</span>
+                    <span class="bg-amber-100 text-amber-800 px-1.5 py-0.5 rounded-full text-[10px] font-mono font-bold" id="adminPoCountPending">0</span>
                   </button>
                   <button type="button" onclick="setAdminPoFilter('in_production')" id="adminPoFilterInProd" class="nav-tab-btn px-3 py-1 rounded-lg text-xs font-semibold text-slate-600 hover:text-slate-900 transition flex items-center gap-1.5 cursor-pointer flex-shrink-0">
                     <span>🏭 In Production</span>
+                    <span class="bg-indigo-100 text-indigo-700 px-1.5 py-0.5 rounded-full text-[10px] font-mono font-bold" id="adminPoCountProd">0</span>
                   </button>
                   <button type="button" onclick="setAdminPoFilter('in_stock')" id="adminPoFilterInStock" class="nav-tab-btn px-3 py-1 rounded-lg text-xs font-semibold text-slate-600 hover:text-slate-900 transition flex items-center gap-1.5 cursor-pointer flex-shrink-0">
                     <span>📦 In Stock</span>
+                    <span class="bg-emerald-100 text-emerald-700 px-1.5 py-0.5 rounded-full text-[10px] font-mono font-bold" id="adminPoCountStock">0</span>
                   </button>
                   <button type="button" onclick="setAdminPoFilter('completed')" id="adminPoFilterCompleted" class="nav-tab-btn px-3 py-1 rounded-lg text-xs font-semibold text-slate-600 hover:text-slate-900 transition flex items-center gap-1.5 cursor-pointer flex-shrink-0">
                     <span>✓ Completed</span>
+                    <span class="bg-slate-200 text-slate-600 px-1.5 py-0.5 rounded-full text-[10px] font-mono font-bold" id="adminPoCountComp">0</span>
                   </button>
                 </div>
               </div>
