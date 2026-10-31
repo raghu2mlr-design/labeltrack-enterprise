@@ -661,6 +661,13 @@ function normalizeYearColorObject(y) {
   // If H2 period is active but Admin has NOT given an H2 shade, fall back to H1 instead of inventing a color
   const activePantone = (isH2Period && hasValidH2) ? rawH2Pantone : h1Pantone;
   const activeHex = (isH2Period && hasValidH2) ? (rawH2Hex || '#553B30') : h1Hex;
+  const activeCode = (isH2Period && hasValidH2) ? h2Code : h1Code;
+
+  // Single present active color mandate text (e.g. In October / H2 -> Only H2 PANTONE 4625 C)
+  const currentCleanGuidelines = `FY ${yearNum} approved annual color standard: ${activePantone}${activeCode ? ` (${activeCode})` : ''} with 6-month security code imprint.`;
+  const sanitizedGuidelines = (y.guidelines && !y.guidelines.includes('&') && !(y.guidelines.includes('H1') && y.guidelines.includes('H2')))
+    ? y.guidelines
+    : currentCleanGuidelines;
 
   return {
     ...y,
@@ -669,7 +676,7 @@ function normalizeYearColorObject(y) {
     colorName: (y.colorName && !y.colorName.includes('&') && !y.colorName.toUpperCase().startsWith('PANTONE')) ? y.colorName : activePantone,
     pantoneCode: activePantone,
     hexColor: activeHex,
-    guidelines: y.guidelines || `FY ${yearNum} approved annual color standard ${activePantone} with 6-month security code imprint.`,
+    guidelines: sanitizedGuidelines,
     h1: {
       pantone: h1Pantone,
       hex: h1Hex,
@@ -1965,56 +1972,67 @@ function renderAnnualColorRegistry() {
               `}
             </div>
 
-            <!-- 6-Month Dual Pantone Shades Presentation -->
-            <div class="grid grid-cols-2 gap-2 p-2 rounded-xl border border-slate-200/90 bg-slate-50/80">
+            <!-- 6-Month Dual Pantone Shades Presentation (Responsive, No Overflow) -->
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5 p-2.5 rounded-xl border border-slate-200/90 bg-slate-50/80">
               <!-- H1 Shade -->
-              <div class="flex items-center gap-2 p-2 rounded-lg bg-white border ${(!isH2Period && isActive) ? 'border-emerald-400 ring-2 ring-emerald-500/20 shadow-xs' : 'border-slate-200'} shadow-2xs min-w-0">
-                <span class="w-6 h-6 rounded-md border border-slate-300 shadow-2xs shrink-0" style="background-color: ${y.h1 ? y.h1.hex : y.hexColor};"></span>
-                <div class="min-w-0 flex-1">
-                  <div class="flex items-center justify-between gap-1">
-                    <span class="text-[9px] font-extrabold uppercase tracking-wider text-slate-400 block flex items-center gap-1">
-                      <span>H1 (Jan–Jun)</span>
-                      ${(!isH2Period && isActive) ? '<span class="bg-emerald-600 text-white text-[8px] font-black px-1.5 py-0.2 rounded-full uppercase">Active</span>' : ''}
-                    </span>
-                    <span class="font-mono text-[9px] text-emerald-800 bg-emerald-100 border border-emerald-200 px-1 py-0.2 rounded font-black shrink-0">🔐 ${(y.h1 && y.h1.code) || getSecurityYearCode(y.year, 'H1')}</span>
+              <div class="p-2.5 rounded-xl bg-white border ${(!isH2Period && isActive) ? 'border-emerald-400 ring-2 ring-emerald-500/20 shadow-xs' : 'border-slate-200'} shadow-2xs min-w-0">
+                <div class="flex items-center justify-between gap-1.5 mb-1.5">
+                  <div class="flex items-center gap-1.5 flex-wrap">
+                    <span class="text-[10px] font-black uppercase tracking-wider text-slate-500">H1 (Jan–Jun)</span>
+                    ${(!isH2Period && isActive) ? '<span class="bg-emerald-600 text-white text-[8px] font-black px-1.5 py-0.2 rounded-full uppercase tracking-wider shadow-2xs">Active</span>' : ''}
                   </div>
-                  <span class="font-bold text-slate-900 text-[11px] block truncate">${escapeHtml((y.h1 && y.h1.pantone) || y.pantoneCode || 'PANTONE 2192 C')}</span>
-                  <span class="font-mono text-[9px] text-slate-500 block truncate">${(y.h1 && y.h1.hex) || y.hexColor}</span>
+                  <span class="font-mono text-[9px] text-emerald-800 bg-emerald-100 border border-emerald-200 px-1.5 py-0.5 rounded font-black shrink-0">🔐 ${(y.h1 && y.h1.code) || getSecurityYearCode(y.year, 'H1')}</span>
+                </div>
+                <div class="flex items-center gap-2.5 min-w-0">
+                  <span class="w-7 h-7 rounded-lg border border-slate-300 shadow-2xs shrink-0" style="background-color: ${y.h1 ? y.h1.hex : y.hexColor};"></span>
+                  <div class="min-w-0 flex-1">
+                    <span class="font-bold text-slate-900 text-xs block truncate" title="${escapeHtml((y.h1 && y.h1.pantone) || y.pantoneCode || 'PANTONE 2192 C')}">${escapeHtml((y.h1 && y.h1.pantone) || y.pantoneCode || 'PANTONE 2192 C')}</span>
+                    <span class="font-mono text-[10px] text-slate-500 block truncate">${(y.h1 && y.h1.hex) || y.hexColor}</span>
+                  </div>
                 </div>
               </div>
+
               <!-- H2 Shade -->
-              <div class="flex items-center gap-2 p-2 rounded-lg bg-white border ${(isH2Period && isActive && hasH2) ? 'border-amber-400 ring-2 ring-amber-500/20 shadow-xs' : 'border-slate-200'} shadow-2xs min-w-0">
+              <div class="p-2.5 rounded-xl bg-white border ${(isH2Period && isActive && hasH2) ? 'border-amber-400 ring-2 ring-amber-500/20 shadow-xs' : 'border-slate-200'} shadow-2xs min-w-0">
                 ${hasH2 ? `
-                  <span class="w-6 h-6 rounded-md border border-slate-300 shadow-2xs shrink-0" style="background-color: ${y.h2.hex};"></span>
-                  <div class="min-w-0 flex-1">
-                    <div class="flex items-center justify-between gap-1">
-                      <span class="text-[9px] font-extrabold uppercase tracking-wider ${isH2Period && isActive ? 'text-amber-800 font-black' : 'text-slate-400'} block flex items-center gap-1">
-                        <span>H2 (Jul–Dec)</span>
-                        ${(isH2Period && isActive) ? '<span class="bg-amber-600 text-white text-[8px] font-black px-1.5 py-0.2 rounded-full uppercase">Active Now</span>' : ''}
-                      </span>
-                      <span class="font-mono text-[9px] text-amber-800 bg-amber-100 border border-amber-200 px-1 py-0.2 rounded font-black shrink-0">🔐 ${(y.h2 && y.h2.code) || getSecurityYearCode(y.year, 'H2')}</span>
+                  <div class="flex items-center justify-between gap-1.5 mb-1.5">
+                    <div class="flex items-center gap-1.5 flex-wrap">
+                      <span class="text-[10px] font-black uppercase tracking-wider ${isH2Period && isActive ? 'text-amber-900' : 'text-slate-500'}">H2 (Jul–Dec)</span>
+                      ${(isH2Period && isActive) ? '<span class="bg-amber-600 text-white text-[8px] font-black px-1.5 py-0.2 rounded-full uppercase tracking-wider shadow-2xs">Active Now</span>' : ''}
                     </div>
-                    <span class="font-bold text-slate-900 text-[11px] block truncate">${escapeHtml(y.h2.pantone)}</span>
-                    <span class="font-mono text-[9px] text-slate-500 block truncate">${y.h2.hex}</span>
+                    <span class="font-mono text-[9px] text-amber-800 bg-amber-100 border border-amber-200 px-1.5 py-0.5 rounded font-black shrink-0">🔐 ${(y.h2 && y.h2.code) || getSecurityYearCode(y.year, 'H2')}</span>
+                  </div>
+                  <div class="flex items-center gap-2.5 min-w-0">
+                    <span class="w-7 h-7 rounded-lg border border-slate-300 shadow-2xs shrink-0" style="background-color: ${y.h2.hex};"></span>
+                    <div class="min-w-0 flex-1">
+                      <span class="font-bold text-slate-900 text-xs block truncate" title="${escapeHtml(y.h2.pantone)}">${escapeHtml(y.h2.pantone)}</span>
+                      <span class="font-mono text-[10px] text-slate-500 block truncate">${y.h2.hex}</span>
+                    </div>
                   </div>
                 ` : `
-                  <span class="w-6 h-6 rounded-md border border-dashed border-slate-300 bg-slate-50 shadow-2xs shrink-0 flex items-center justify-center text-[10px] text-slate-400 font-bold">—</span>
-                  <div class="min-w-0 flex-1">
-                    <div class="flex items-center justify-between gap-1">
-                      <span class="text-[9px] font-extrabold uppercase tracking-wider text-slate-400 block">H2 (Jul–Dec)</span>
-                      <span class="font-mono text-[9px] text-slate-600 bg-slate-100 border border-slate-200 px-1 py-0.2 rounded font-bold shrink-0">🔐 ${getSecurityYearCode(y.year, 'H2')}</span>
+                  <div class="flex items-center justify-between gap-1.5 mb-1.5">
+                    <span class="text-[10px] font-black uppercase tracking-wider text-slate-400">H2 (Jul–Dec)</span>
+                    <span class="font-mono text-[9px] text-slate-600 bg-slate-100 border border-slate-200 px-1.5 py-0.5 rounded font-bold shrink-0">🔐 ${getSecurityYearCode(y.year, 'H2')}</span>
+                  </div>
+                  <div class="flex items-center gap-2.5 min-w-0">
+                    <span class="w-7 h-7 rounded-lg border border-dashed border-slate-300 bg-slate-50 shadow-2xs shrink-0 flex items-center justify-center text-xs text-slate-400 font-bold">—</span>
+                    <div class="min-w-0 flex-1">
+                      <span class="font-semibold text-slate-500 text-xs block italic truncate">Pending Specification</span>
+                      <span class="font-mono text-[10px] text-slate-400 block">Not Assigned</span>
                     </div>
-                    <span class="font-semibold text-slate-500 text-[11px] block italic truncate">Pending Specification</span>
-                    <span class="font-mono text-[9px] text-slate-400 block">Not Assigned</span>
                   </div>
                 `}
               </div>
             </div>
 
-            ${y.guidelines ? `
+            <!-- Single Present Active Color Standard Text (October / H2 -> Only H2 shade) -->
             <p class="text-xs text-slate-600 font-medium leading-relaxed">
-              ${escapeHtml(y.guidelines)}
-            </p>` : ''}
+              ${escapeHtml(
+                (y.guidelines && !y.guidelines.includes('&') && !(y.guidelines.includes('H1') && y.guidelines.includes('H2')))
+                  ? y.guidelines
+                  : `FY ${y.year} approved annual color standard: ${(isH2Period && hasH2) ? y.h2.pantone : ((y.h1 && y.h1.pantone) || y.pantoneCode || 'PANTONE 2192 C')} (${(isH2Period && hasH2) ? (y.h2.code || '2HR') : ((y.h1 && y.h1.code) || 'HR')}) with 6-month security code imprint.`
+              )}
+            </p>
 
             <div class="pt-2 border-t border-slate-100 flex items-center justify-between text-xs text-slate-500">
               <span class="font-medium">Uploaded Proofs:</span>
@@ -2140,8 +2158,10 @@ function toggleNewYearForm(show, yearToEdit) {
     }
     if (statusSelect) statusSelect.value = yObj.status || 'upcoming';
     if (guidelinesInput) {
-      if (!yObj.guidelines || yObj.guidelines.includes('approved annual color standard') || yObj.guidelines.includes(h1Pantone)) {
-        guidelinesInput.value = `FY ${yObj.year} approved annual color standard ${activePantone} with 6-month security code imprint.`;
+      const activeCode = (isH2Period && hasValidH2) ? (yObj.h2?.code || '2HR') : (yObj.h1?.code || 'HR');
+      const cleanMandateText = `FY ${yObj.year} approved annual color standard: ${activePantone}${activeCode ? ` (${activeCode})` : ''} with 6-month security code imprint.`;
+      if (!yObj.guidelines || yObj.guidelines.includes('&') || (yObj.guidelines.includes('H1') && yObj.guidelines.includes('H2')) || yObj.guidelines.includes('approved annual color standard')) {
+        guidelinesInput.value = cleanMandateText;
       } else {
         guidelinesInput.value = yObj.guidelines.trim();
       }
