@@ -2424,9 +2424,9 @@ function renderAdminPoFilterUI() {
   const btns = {
     all: document.getElementById('adminPoFilterAll'),
     pending: document.getElementById('adminPoFilterPending'),
-    in_production: document.getElementById('adminPoFilterProd'),
-    in_stock: document.getElementById('adminPoFilterStock'),
-    completed: document.getElementById('adminPoFilterComp')
+    in_production: document.getElementById('adminPoFilterInProd') || document.getElementById('adminPoFilterProd'),
+    in_stock: document.getElementById('adminPoFilterInStock') || document.getElementById('adminPoFilterStock'),
+    completed: document.getElementById('adminPoFilterCompleted') || document.getElementById('adminPoFilterComp')
   };
   Object.entries(btns).forEach(([key, btn]) => {
     if (!btn) return;
@@ -5520,11 +5520,15 @@ function setFilter(filter) {
 
 function setShipmentFilter(filter) {
   state.shipmentFilter = filter || 'all';
+  const shipMobileSelect = document.getElementById('adminShipmentsMobileFilterSelect');
+  if (shipMobileSelect) shipMobileSelect.value = state.shipmentFilter;
   render();
 }
 
 function setGateFilter(filter) {
   state.gateFilter = filter || 'all';
+  const gateMobileSelect = document.getElementById('gateMobileFilterSelect');
+  if (gateMobileSelect) gateMobileSelect.value = state.gateFilter;
   render();
 }
 
@@ -5886,7 +5890,7 @@ function render() {
     const { totalOrdered, totalShipped, totalRemaining } = getPoMetrics(po.poNumber);
     vPendingUnits += totalRemaining;
     vShippedUnits += totalShipped;
-    const isCompleted = totalRemaining === 0 && totalShipped >= totalOrdered;
+    const isCompleted = totalRemaining === 0 && totalOrdered > 0;
     if (isCompleted) {
       vCompletedCount++;
     } else {
@@ -5958,47 +5962,48 @@ function render() {
 
   // Category Filter
   if (state.categoryFilter && state.categoryFilter !== 'all') {
-    vendorPOs = vendorPOs.filter(p => 
-      (p.items || []).some(i => {
+    vendorPOs = vendorPOs.filter(p => {
+      if (state.categoryFilter === 'ribbons') {
+        const hasRibbonItem = (p.items || []).some(i => getItemCategoryInfo(i).id === 'ribbons');
+        const { ribbonMetrics } = getPoMetrics(p.poNumber);
+        const hasRibbonConsignment = (ribbonMetrics && (ribbonMetrics.totalOrdered > 0 || ribbonMetrics.totalShipped > 0));
+        return hasRibbonItem || hasRibbonConsignment;
+      }
+      return (p.items || []).some(i => {
         const catInfo = getItemCategoryInfo(i);
         return catInfo.id === state.categoryFilter;
-      })
-    );
+      });
+    });
   }
 
   // Tab Filter
   if (state.currentFilter === 'all') {
-    // In Vendor Portal, hide 100% completed orders from 'All Orders' view so it stays clean and clutter-free
-    vendorPOs = vendorPOs.filter(p => {
-      const { totalOrdered, totalShipped, totalRemaining } = getPoMetrics(p.poNumber);
-      const isCompleted = totalRemaining === 0 && totalShipped >= totalOrdered;
-      return !isCompleted;
-    });
+    // Show all allocated orders without hiding completed ones
   } else if (state.currentFilter === 'pending') {
     vendorPOs = vendorPOs.filter(p => {
-      const { totalOrdered, totalShipped, totalRemaining } = getPoMetrics(p.poNumber);
-      const isCompleted = totalRemaining === 0 && totalShipped >= totalOrdered;
+      const { totalOrdered, totalRemaining } = getPoMetrics(p.poNumber);
+      const isCompleted = totalRemaining === 0 && totalOrdered > 0;
       const pStatus = p.productionStatus || 'pending';
       return !isCompleted && pStatus === 'pending';
     });
   } else if (state.currentFilter === 'in_production') {
     vendorPOs = vendorPOs.filter(p => {
-      const { totalOrdered, totalShipped, totalRemaining } = getPoMetrics(p.poNumber);
-      const isCompleted = totalRemaining === 0 && totalShipped >= totalOrdered;
+      const { totalOrdered, totalRemaining } = getPoMetrics(p.poNumber);
+      const isCompleted = totalRemaining === 0 && totalOrdered > 0;
       const pStatus = p.productionStatus || '';
       return !isCompleted && (pStatus === 'in_production' || pStatus === 'packing');
     });
   } else if (state.currentFilter === 'in_stock') {
     vendorPOs = vendorPOs.filter(p => {
-      const { totalOrdered, totalShipped, totalRemaining } = getPoMetrics(p.poNumber);
-      const isCompleted = totalRemaining === 0 && totalShipped >= totalOrdered;
+      const { totalOrdered, totalRemaining } = getPoMetrics(p.poNumber);
+      const isCompleted = totalRemaining === 0 && totalOrdered > 0;
       const pStatus = p.productionStatus || '';
       return !isCompleted && (pStatus === 'in_stock' || pStatus === 'ready_to_ship');
     });
   } else if (state.currentFilter === 'completed') {
     vendorPOs = vendorPOs.filter(p => {
-      const { totalOrdered, totalShipped, totalRemaining } = getPoMetrics(p.poNumber);
-      return totalRemaining === 0 && totalShipped >= totalOrdered;
+      const { totalOrdered, totalRemaining } = getPoMetrics(p.poNumber);
+      return totalRemaining === 0 && totalOrdered > 0;
     });
   }
 
@@ -6089,6 +6094,7 @@ function render() {
               const sCat = getItemCategoryInfo(s);
               const damaged = Number(s.damagedQty || 0);
               const sParsed = formatProductDisplay(s.description);
+              const isVerified = (s.receivedQty !== null && s.receivedQty !== undefined);
               return `
               <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-2.5 text-xs bg-slate-50/80 px-3.5 py-2.5 rounded-xl border border-slate-200/70 hover:bg-slate-50 transition">
                 <div class="flex items-center gap-2 flex-wrap">
@@ -6169,7 +6175,7 @@ function render() {
                       }
                     })()}
                   </div>
-                  ${!hasCount ? `
+                  ${!isVerified ? `
                     <button type="button" onclick="openEditDispatchModal('${s.id}')" title="Edit dispatch quantities & details" class="px-2 py-0.5 rounded text-[11px] font-bold bg-amber-50 text-amber-700 hover:bg-amber-100 border border-amber-300 transition inline-flex items-center gap-1 shadow-2xs cursor-pointer shrink-0">
                       <span>✏️ Edit</span>
                     </button>
@@ -6339,29 +6345,29 @@ function render() {
   let adminFilteredPos = state.pos;
   if (state.adminPoFilter === 'pending') {
     adminFilteredPos = state.pos.filter(p => {
-      const { totalOrdered, totalShipped, totalRemaining } = getPoMetrics(p.poNumber);
-      const isCompleted = totalRemaining === 0 && totalShipped >= totalOrdered;
+      const { totalOrdered, totalRemaining } = getPoMetrics(p.poNumber);
+      const isCompleted = totalRemaining === 0 && totalOrdered > 0;
       const pStatus = p.productionStatus || 'pending';
       return !isCompleted && pStatus === 'pending';
     });
   } else if (state.adminPoFilter === 'in_production') {
     adminFilteredPos = state.pos.filter(p => {
-      const { totalOrdered, totalShipped, totalRemaining } = getPoMetrics(p.poNumber);
-      const isCompleted = totalRemaining === 0 && totalShipped >= totalOrdered;
+      const { totalOrdered, totalRemaining } = getPoMetrics(p.poNumber);
+      const isCompleted = totalRemaining === 0 && totalOrdered > 0;
       const pStatus = p.productionStatus || '';
       return !isCompleted && (pStatus === 'in_production' || pStatus === 'packing');
     });
   } else if (state.adminPoFilter === 'in_stock') {
     adminFilteredPos = state.pos.filter(p => {
-      const { totalOrdered, totalShipped, totalRemaining } = getPoMetrics(p.poNumber);
-      const isCompleted = totalRemaining === 0 && totalShipped >= totalOrdered;
+      const { totalOrdered, totalRemaining } = getPoMetrics(p.poNumber);
+      const isCompleted = totalRemaining === 0 && totalOrdered > 0;
       const pStatus = p.productionStatus || '';
       return !isCompleted && (pStatus === 'in_stock' || pStatus === 'ready_to_ship');
     });
   } else if (state.adminPoFilter === 'completed') {
     adminFilteredPos = state.pos.filter(p => {
-      const { totalOrdered, totalShipped, totalRemaining } = getPoMetrics(p.poNumber);
-      return totalRemaining === 0 && totalShipped >= totalOrdered;
+      const { totalOrdered, totalRemaining } = getPoMetrics(p.poNumber);
+      return totalRemaining === 0 && totalOrdered > 0;
     });
   }
 
@@ -6372,8 +6378,8 @@ function render() {
   let adminCountCompleted = 0;
 
   state.pos.forEach(p => {
-    const { totalOrdered, totalShipped, totalRemaining } = getPoMetrics(p.poNumber);
-    const isCompleted = totalRemaining === 0 && totalShipped >= totalOrdered;
+    const { totalOrdered, totalRemaining } = getPoMetrics(p.poNumber);
+    const isCompleted = totalRemaining === 0 && totalOrdered > 0;
     if (isCompleted) {
       adminCountCompleted++;
     } else {
@@ -6416,12 +6422,18 @@ function render() {
 
   // Category Filter for Admin Orders
   if (state.categoryFilter && state.categoryFilter !== 'all') {
-    adminFilteredPos = adminFilteredPos.filter(p => 
-      (p.items || []).some(i => {
+    adminFilteredPos = adminFilteredPos.filter(p => {
+      if (state.categoryFilter === 'ribbons') {
+        const hasRibbonItem = (p.items || []).some(i => getItemCategoryInfo(i).id === 'ribbons');
+        const { ribbonMetrics } = getPoMetrics(p.poNumber);
+        const hasRibbonConsignment = (ribbonMetrics && (ribbonMetrics.totalOrdered > 0 || ribbonMetrics.totalShipped > 0));
+        return hasRibbonItem || hasRibbonConsignment;
+      }
+      return (p.items || []).some(i => {
         const catInfo = getItemCategoryInfo(i);
         return catInfo.id === state.categoryFilter;
-      })
-    );
+      });
+    });
   }
 
   state.pos.forEach(po => {
@@ -6811,6 +6823,10 @@ function render() {
   // Category Filter for Dispatches
   if (state.categoryFilter && state.categoryFilter !== 'all') {
     adminFilteredShipments = adminFilteredShipments.filter(s => {
+      if (state.categoryFilter === 'ribbons') {
+        const cInfo = getItemCategoryInfo(s);
+        return cInfo.id === 'ribbons' || Number(s.ribbonQty || 0) > 0 || Number(s.receivedRibbons || 0) > 0;
+      }
       const cInfo = getItemCategoryInfo(s);
       return cInfo.id === state.categoryFilter;
     });
