@@ -2466,10 +2466,10 @@ function setPoMobileView(mode) {
       tableWrapperEl.classList.add('hidden', 'md:block');
       if (hintEl) hintEl.classList.add('hidden');
       if (btnCards) {
-        btnCards.className = 'px-2.5 py-1 rounded-lg text-[10px] font-bold bg-slate-900 text-white shadow-2xs cursor-pointer';
+        btnCards.className = 'px-3 py-1.5 rounded-lg text-xs font-bold bg-slate-900 text-white shadow-2xs cursor-pointer text-center flex items-center justify-center gap-1.5';
       }
       if (btnTable) {
-        btnTable.className = 'px-2.5 py-1 rounded-lg text-[10px] font-bold text-slate-600 hover:bg-slate-200 cursor-pointer';
+        btnTable.className = 'px-3 py-1.5 rounded-lg text-xs font-bold text-slate-600 hover:bg-slate-200 cursor-pointer text-center flex items-center justify-center gap-1.5';
       }
     } else {
       cardsEl.classList.add('hidden');
@@ -2478,10 +2478,10 @@ function setPoMobileView(mode) {
       tableWrapperEl.classList.add('block');
       if (hintEl) hintEl.classList.remove('hidden');
       if (btnCards) {
-        btnCards.className = 'px-2.5 py-1 rounded-lg text-[10px] font-bold text-slate-600 hover:bg-slate-200 cursor-pointer';
+        btnCards.className = 'px-3 py-1.5 rounded-lg text-xs font-bold text-slate-600 hover:bg-slate-200 cursor-pointer text-center flex items-center justify-center gap-1.5';
       }
       if (btnTable) {
-        btnTable.className = 'px-2.5 py-1 rounded-lg text-[10px] font-bold bg-slate-900 text-white shadow-2xs cursor-pointer';
+        btnTable.className = 'px-3 py-1.5 rounded-lg text-xs font-bold bg-slate-900 text-white shadow-2xs cursor-pointer text-center flex items-center justify-center gap-1.5';
       }
     }
   }
@@ -2503,16 +2503,16 @@ function setAdminDispatchesMobileView(mode) {
       tableWrapperEl.classList.remove('block');
       tableWrapperEl.classList.add('hidden', 'md:block');
       if (hintEl) hintEl.classList.add('hidden');
-      if (btnCards) btnCards.className = 'px-2.5 py-1 rounded-lg text-[10px] font-bold bg-slate-900 text-white shadow-2xs cursor-pointer';
-      if (btnTable) btnTable.className = 'px-2.5 py-1 rounded-lg text-[10px] font-bold text-slate-600 hover:bg-slate-200 cursor-pointer';
+      if (btnCards) btnCards.className = 'px-3 py-1.5 rounded-lg text-xs font-bold bg-slate-900 text-white shadow-2xs cursor-pointer text-center flex items-center justify-center gap-1.5';
+      if (btnTable) btnTable.className = 'px-3 py-1.5 rounded-lg text-xs font-bold text-slate-600 hover:bg-slate-200 cursor-pointer text-center flex items-center justify-center gap-1.5';
     } else {
       cardsEl.classList.add('hidden');
       cardsEl.classList.remove('block');
       tableWrapperEl.classList.remove('hidden');
       tableWrapperEl.classList.add('block');
       if (hintEl) hintEl.classList.remove('hidden');
-      if (btnCards) btnCards.className = 'px-2.5 py-1 rounded-lg text-[10px] font-bold text-slate-600 hover:bg-slate-200 cursor-pointer';
-      if (btnTable) btnTable.className = 'px-2.5 py-1 rounded-lg text-[10px] font-bold bg-slate-900 text-white shadow-2xs cursor-pointer';
+      if (btnCards) btnCards.className = 'px-3 py-1.5 rounded-lg text-xs font-bold text-slate-600 hover:bg-slate-200 cursor-pointer text-center flex items-center justify-center gap-1.5';
+      if (btnTable) btnTable.className = 'px-3 py-1.5 rounded-lg text-xs font-bold bg-slate-900 text-white shadow-2xs cursor-pointer text-center flex items-center justify-center gap-1.5';
     }
   }
 }
@@ -2614,10 +2614,10 @@ function applyGateViewMode() {
         hintEl.style.display = 'none';
       }
       if (btnCards) {
-        btnCards.className = 'px-3 py-1.5 rounded-lg text-xs font-bold bg-slate-900 text-white shadow-2xs transition cursor-pointer';
+        btnCards.className = 'px-3 py-1.5 rounded-lg text-xs font-bold bg-slate-900 text-white shadow-2xs transition cursor-pointer text-center flex items-center justify-center gap-1.5';
       }
       if (btnTable) {
-        btnTable.className = 'px-3 py-1.5 rounded-lg text-xs font-bold text-slate-600 hover:bg-slate-200 transition cursor-pointer';
+        btnTable.className = 'px-3 py-1.5 rounded-lg text-xs font-bold text-slate-600 hover:bg-slate-200 transition cursor-pointer text-center flex items-center justify-center gap-1.5';
       }
     } else {
       cardsEl.classList.add('hidden');
@@ -2629,10 +2629,10 @@ function applyGateViewMode() {
         hintEl.style.display = '';
       }
       if (btnCards) {
-        btnCards.className = 'px-3 py-1.5 rounded-lg text-xs font-bold text-slate-600 hover:bg-slate-200 transition cursor-pointer';
+        btnCards.className = 'px-3 py-1.5 rounded-lg text-xs font-bold text-slate-600 hover:bg-slate-200 transition cursor-pointer text-center flex items-center justify-center gap-1.5';
       }
       if (btnTable) {
-        btnTable.className = 'px-3 py-1.5 rounded-lg text-xs font-bold bg-slate-900 text-white shadow-2xs transition cursor-pointer';
+        btnTable.className = 'px-3 py-1.5 rounded-lg text-xs font-bold bg-slate-900 text-white shadow-2xs transition cursor-pointer text-center flex items-center justify-center gap-1.5';
       }
     }
   }
@@ -2654,16 +2654,16 @@ function setVendorListMobileView(mode) {
       tableWrapperEl.classList.remove('block');
       tableWrapperEl.classList.add('hidden', 'md:block');
       if (hintEl) hintEl.classList.add('hidden');
-      if (btnCards) btnCards.className = 'px-2.5 py-1 rounded-lg text-[10px] font-bold bg-slate-900 text-white shadow-2xs cursor-pointer';
-      if (btnTable) btnTable.className = 'px-2.5 py-1 rounded-lg text-[10px] font-bold text-slate-600 hover:bg-slate-200 cursor-pointer';
+      if (btnCards) btnCards.className = 'px-3 py-1.5 rounded-lg text-xs font-bold bg-slate-900 text-white shadow-2xs cursor-pointer text-center flex items-center justify-center gap-1.5';
+      if (btnTable) btnTable.className = 'px-3 py-1.5 rounded-lg text-xs font-bold text-slate-600 hover:bg-slate-200 cursor-pointer text-center flex items-center justify-center gap-1.5';
     } else {
       cardsEl.classList.add('hidden');
       cardsEl.classList.remove('block');
       tableWrapperEl.classList.remove('hidden');
       tableWrapperEl.classList.add('block');
       if (hintEl) hintEl.classList.remove('hidden');
-      if (btnCards) btnCards.className = 'px-2.5 py-1 rounded-lg text-[10px] font-bold text-slate-600 hover:bg-slate-200 cursor-pointer';
-      if (btnTable) btnTable.className = 'px-2.5 py-1 rounded-lg text-[10px] font-bold bg-slate-900 text-white shadow-2xs cursor-pointer';
+      if (btnCards) btnCards.className = 'px-3 py-1.5 rounded-lg text-xs font-bold text-slate-600 hover:bg-slate-200 cursor-pointer text-center flex items-center justify-center gap-1.5';
+      if (btnTable) btnTable.className = 'px-3 py-1.5 rounded-lg text-xs font-bold bg-slate-900 text-white shadow-2xs cursor-pointer text-center flex items-center justify-center gap-1.5';
     }
   }
 }
