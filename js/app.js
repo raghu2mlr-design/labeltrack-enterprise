@@ -2586,8 +2586,17 @@ function toggleCardAccordion(cardId) {
 }
 
 let gateMobileViewMode = (typeof window !== 'undefined' && window.innerWidth < 768) ? 'cards' : 'table';
+
 function setGateMobileView(mode) {
   gateMobileViewMode = mode || 'table';
+  if (typeof state !== 'undefined') {
+    state.gateViewMode = gateMobileViewMode;
+  }
+  applyGateViewMode();
+}
+
+function applyGateViewMode() {
+  const activeMode = (typeof state !== 'undefined' && state.gateViewMode) ? state.gateViewMode : gateMobileViewMode;
   const cardsEl = document.getElementById('gateShipmentsCardsContainer');
   const tableWrapperEl = document.getElementById('gateShipmentsTableWrapper');
   const hintEl = document.getElementById('gateShipmentsScrollHint');
@@ -2595,18 +2604,36 @@ function setGateMobileView(mode) {
   const btnTable = document.getElementById('btnGateViewTable');
 
   if (cardsEl && tableWrapperEl) {
-    if (gateMobileViewMode === 'cards') {
+    if (activeMode === 'cards') {
       cardsEl.classList.remove('hidden');
+      cardsEl.style.display = '';
       tableWrapperEl.classList.add('hidden');
-      if (hintEl) hintEl.classList.add('hidden');
-      if (btnCards) btnCards.className = 'px-3 py-1.5 rounded-lg text-xs font-bold bg-slate-900 text-white shadow-2xs transition cursor-pointer';
-      if (btnTable) btnTable.className = 'px-3 py-1.5 rounded-lg text-xs font-bold text-slate-600 hover:bg-slate-200 transition cursor-pointer';
+      tableWrapperEl.style.display = 'none';
+      if (hintEl) {
+        hintEl.classList.add('hidden');
+        hintEl.style.display = 'none';
+      }
+      if (btnCards) {
+        btnCards.className = 'px-3 py-1.5 rounded-lg text-xs font-bold bg-slate-900 text-white shadow-2xs transition cursor-pointer';
+      }
+      if (btnTable) {
+        btnTable.className = 'px-3 py-1.5 rounded-lg text-xs font-bold text-slate-600 hover:bg-slate-200 transition cursor-pointer';
+      }
     } else {
       cardsEl.classList.add('hidden');
+      cardsEl.style.display = 'none';
       tableWrapperEl.classList.remove('hidden');
-      if (hintEl) hintEl.classList.add('hidden');
-      if (btnCards) btnCards.className = 'px-3 py-1.5 rounded-lg text-xs font-bold text-slate-600 hover:bg-slate-200 transition cursor-pointer';
-      if (btnTable) btnTable.className = 'px-3 py-1.5 rounded-lg text-xs font-bold bg-slate-900 text-white shadow-2xs transition cursor-pointer';
+      tableWrapperEl.style.display = '';
+      if (hintEl) {
+        hintEl.classList.remove('hidden');
+        hintEl.style.display = '';
+      }
+      if (btnCards) {
+        btnCards.className = 'px-3 py-1.5 rounded-lg text-xs font-bold text-slate-600 hover:bg-slate-200 transition cursor-pointer';
+      }
+      if (btnTable) {
+        btnTable.className = 'px-3 py-1.5 rounded-lg text-xs font-bold bg-slate-900 text-white shadow-2xs transition cursor-pointer';
+      }
     }
   }
 }
@@ -2965,6 +2992,7 @@ window.state = {
   currentFilter: 'all', // 'all', 'in_production', 'in_stock', 'completed'
   adminPoFilter: 'all', // 'all', 'in_production', 'in_stock', 'completed'
   adminActiveTab: 'dashboard', // 'dashboard', 'orders', 'dispatches', 'scorecards', 'vendors'
+  gateViewMode: (typeof window !== 'undefined' && window.innerWidth < 768) ? 'cards' : 'table',
   categoryFilter: 'all', // 'all', 'labels', 'tags', 'ribbons', 'cards'
   shipmentFilter: 'all', // 'all', 'shortages', 'damaged', 'today', 'transit'
   gateFilter: 'all', // 'all', 'transit', 'today', 'damaged'
@@ -6141,9 +6169,15 @@ function render() {
                       }
                     })()}
                   </div>
-                  <button type="button" onclick="openEditDispatchModal('${s.id}')" title="Edit dispatch quantities & details" class="px-2 py-0.5 rounded text-[11px] font-bold bg-amber-50 text-amber-700 hover:bg-amber-100 border border-amber-300 transition inline-flex items-center gap-1 shadow-2xs cursor-pointer shrink-0">
-                    <span>✏️ Edit</span>
-                  </button>
+                  ${!hasCount ? `
+                    <button type="button" onclick="openEditDispatchModal('${s.id}')" title="Edit dispatch quantities & details" class="px-2 py-0.5 rounded text-[11px] font-bold bg-amber-50 text-amber-700 hover:bg-amber-100 border border-amber-300 transition inline-flex items-center gap-1 shadow-2xs cursor-pointer shrink-0">
+                      <span>✏️ Edit</span>
+                    </button>
+                  ` : `
+                    <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-slate-100 text-slate-500 border border-slate-200 inline-flex items-center gap-1 shrink-0 cursor-default shadow-2xs" title="Locked: Gatekeeper has verified this shipment at the gate. Stock quantities cannot be modified.">
+                      <span>🔒 Locked</span>
+                    </span>
+                  `}
                 </div>
               </div>
             `;
@@ -7469,6 +7503,11 @@ function render() {
     }
   }
 
+  // Strictly enforce Gatekeeper view mode (Cards vs Table) so they never render together
+  if (typeof applyGateViewMode === 'function') {
+    applyGateViewMode();
+  }
+
   // 5. Update Executive Metrics
   const adminStatOrd = document.getElementById('adminStatOrdered');
   const adminStatShp = document.getElementById('adminStatShipped');
@@ -7636,10 +7675,12 @@ document.addEventListener('click', (e) => {
 if (typeof window !== 'undefined') {
   const bootDatabaseEngine = async () => {
     alignActivePeriodConfig();
+    applyGateViewMode();
     await loadDatabaseState();
     alignActivePeriodConfig();
     initSupabase();
     updateAnnualColorUI();
+    applyGateViewMode();
   };
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', bootDatabaseEngine);
@@ -7656,6 +7697,8 @@ if (typeof window !== 'undefined') {
   window.handleDispatchSubmit = handleDispatchSubmit;
   window.openReceiveModal = openReceiveModal;
   window.handleReceiveSubmit = handleReceiveSubmit;
+  window.setGateMobileView = setGateMobileView;
+  window.applyGateViewMode = applyGateViewMode;
   window.viewInvoice = viewInvoice;
   window.viewDamagePhoto = viewDamagePhoto;
   window.handleDamagePhotoSelected = handleDamagePhotoSelected;
@@ -7756,6 +7799,12 @@ function openEditDispatchModal(shipmentId) {
     showToast('Dispatch record not found.', true);
     return;
   }
+  const isVerified = (s.receivedQty !== null && s.receivedQty !== undefined);
+  const isVendor = state.currentUser?.role === 'vendor';
+  if (isVendor && isVerified) {
+    showToast('Locked: This shipment has already been verified by the gatekeeper and cannot be modified.', true);
+    return;
+  }
   document.getElementById('editDispatchShipmentId').value = s.id;
   document.getElementById('editDispatchPoNumber').textContent = s.poNumber || '';
   document.getElementById('editDispatchItemTitle').textContent = s.model || s.description || s.sku || '';
@@ -7773,6 +7822,14 @@ function handleEditDispatchSubmit(event) {
   const id = document.getElementById('editDispatchShipmentId').value;
   const s = (state.shipments || []).find(item => item.id === id);
   if (!s) return;
+
+  const isVerified = (s.receivedQty !== null && s.receivedQty !== undefined);
+  const isVendor = state.currentUser?.role === 'vendor';
+  if (isVendor && isVerified) {
+    showToast('Permission denied: Verified shipments cannot be modified by supplier.', true);
+    closeModal('editDispatchModal');
+    return;
+  }
 
   const newQty = Number(document.getElementById('editQtySent').value);
   const newBoxes = Number(document.getElementById('editBoxCount').value);
