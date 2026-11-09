@@ -1,6 +1,4 @@
 /* LabelTrack Enterprise CSS - Modern Executive Theme */
-@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;600;700&display=swap');
-
 :root {
   --font-sans: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
   --font-mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
@@ -556,12 +554,4 @@ button, input, select, a, [role="button"] {
 
 
 
-/* 8. Strict View Mode Isolation for Gatekeeper & Admin (Zero overlap between Cards & Table) */
-#gateShipmentsCardsContainer.hidden,
-#gateShipmentsTableWrapper.hidden,
-#adminShipmentsCardsContainer.hidden,
-#adminShipmentsTableWrapper.hidden,
-#adminPoCardsContainer.hidden,
-#adminPoTableWrapper.hidden {
-  display: none !important;
-}
+
