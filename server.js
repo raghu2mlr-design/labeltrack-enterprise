@@ -2,6 +2,8 @@ const http = require('http');
 const https = require('https');
 const fs = require('fs');
 const path = require('path');
+const zlib = require('zlib');
+const crypto = require('crypto');
 
 const PORT = 3000;
 const SUPABASE_HOST = 'svrjdipjfplwquljhmrx.supabase.co';
@@ -28,6 +30,58 @@ const MIME = {
   '.pdf': 'application/pdf',
   '.svg': 'image/svg+xml'
 };
+
+// In-memory cache for Pantone color library (eliminates repetitive 344KB disk reads)
+let pantoneLibraryCache = null;
+function getPantoneLibrary() {
+  if (!pantoneLibraryCache) {
+    const libPath = path.join(__dirname, 'data', 'pantone-library.json');
+    if (fs.existsSync(libPath)) {
+      try {
+        pantoneLibraryCache = JSON.parse(fs.readFileSync(libPath, 'utf8'));
+      } catch (e) {
+        logConsole('ERROR', 'PANTONE', 'Error reading pantone-library.json: ' + e.message);
+      }
+    }
+  }
+  return pantoneLibraryCache;
+}
+
+// In-memory cache & Gzip compressor for static assets
+const staticCache = new Map();
+const COMPRESSIBLE_EXTS = new Set(['.html', '.css', '.js', '.json', '.svg', '.txt', '.xml']);
+
+function getCachedStaticFile(filePath) {
+  try {
+    const stat = fs.statSync(filePath);
+    if (!stat.isFile()) return null;
+    
+    const cached = staticCache.get(filePath);
+    if (cached && cached.mtimeMs === stat.mtimeMs) {
+      return cached;
+    }
+    
+    const rawBuffer = fs.readFileSync(filePath);
+    const ext = path.extname(filePath).toLowerCase();
+    const isCompressible = COMPRESSIBLE_EXTS.has(ext);
+    const gzipBuffer = isCompressible ? zlib.gzipSync(rawBuffer, { level: 6 }) : null;
+    const hash = crypto.createHash('md5').update(rawBuffer).digest('hex').slice(0, 16);
+    const etag = `"${hash}-${stat.size}"`;
+    
+    const entry = {
+      mtimeMs: stat.mtimeMs,
+      rawBuffer,
+      gzipBuffer,
+      etag,
+      contentType: MIME[ext] || 'application/octet-stream',
+      isHtml: ext === '.html'
+    };
+    staticCache.set(filePath, entry);
+    return entry;
+  } catch (e) {
+    return null;
+  }
+}
 
 const server = http.createServer((req, res) => {
   const startTime = Date.now();
@@ -137,19 +191,14 @@ const server = http.createServer((req, res) => {
       return;
     }
 
-    const libPath = path.join(__dirname, 'data', 'pantone-library.json');
-    if (fs.existsSync(libPath)) {
-      try {
-        const lib = JSON.parse(fs.readFileSync(libPath, 'utf8'));
-        const cleanQ = q.replace(/^PANTONE\s*/i, '').replace(/^PMS\s*/i, '').replace(/[^\w\d]/g, '').toUpperCase();
-        const hex = lib[cleanQ] || lib[cleanQ + 'C'] || lib[q.toUpperCase()] || lib[cleanQ + 'TCX'];
-        if (hex) {
-          res.writeHead(200, { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' });
-          res.end(JSON.stringify({ found: true, code: q, hex: hex, source: 'pantone-library' }));
-          return;
-        }
-      } catch (e) {
-        logConsole('ERROR', 'PANTONE', 'Error reading pantone-library.json: ' + e.message);
+    const lib = getPantoneLibrary();
+    if (lib) {
+      const cleanQ = q.replace(/^PANTONE\s*/i, '').replace(/^PMS\s*/i, '').replace(/[^\w\d]/g, '').toUpperCase();
+      const hex = lib[cleanQ] || lib[cleanQ + 'C'] || lib[q.toUpperCase()] || lib[cleanQ + 'TCX'];
+      if (hex) {
+        res.writeHead(200, { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' });
+        res.end(JSON.stringify({ found: true, code: q, hex: hex, source: 'pantone-library' }));
+        return;
       }
     }
 
@@ -205,27 +254,55 @@ const server = http.createServer((req, res) => {
     return;
   }
 
-  // 4. Static File Server (HTML, CSS, JS frontend assets)
+  // 4. High-Performance Static File Server (In-memory cached, Gzip compressed, ETag enabled)
   let reqPath = req.url.split('?')[0];
-  if (reqPath === '/') reqPath = '/index.html';
-  const filePath = path.join(__dirname, reqPath);
+  if (reqPath === '/' || reqPath === '') reqPath = '/index.html';
+  const filePath = path.normalize(path.join(__dirname, reqPath));
 
-  fs.readFile(filePath, (err, data) => {
-    if (err) {
-      res.writeHead(404, { 'Content-Type': 'text/plain' });
-      res.end('404 Not Found');
-      return;
-    }
-    const ext = path.extname(filePath).toLowerCase();
-    res.writeHead(200, {
-      'Content-Type': MIME[ext] || 'application/octet-stream',
-      'Access-Control-Allow-Origin': '*',
-      'Cache-Control': 'no-store, no-cache, must-revalidate, max-age=0',
-      'Pragma': 'no-cache',
-      'Expires': '0'
+  if (!filePath.startsWith(__dirname)) {
+    res.writeHead(403, { 'Content-Type': 'text/plain' });
+    res.end('403 Forbidden');
+    return;
+  }
+
+  const asset = getCachedStaticFile(filePath);
+  if (!asset) {
+    res.writeHead(404, { 'Content-Type': 'text/plain' });
+    res.end('404 Not Found');
+    return;
+  }
+
+  // Conditional request (ETag validation)
+  const clientEtag = req.headers['if-none-match'];
+  if (clientEtag && clientEtag === asset.etag) {
+    res.writeHead(304, {
+      'ETag': asset.etag,
+      'Cache-Control': asset.isHtml ? 'no-cache' : 'public, max-age=3600, stale-while-revalidate=86400',
+      'Access-Control-Allow-Origin': '*'
     });
-    res.end(data);
-  });
+    res.end();
+    return;
+  }
+
+  const acceptEncoding = req.headers['accept-encoding'] || '';
+  const canGzip = asset.gzipBuffer && acceptEncoding.includes('gzip');
+  const bufferToSend = canGzip ? asset.gzipBuffer : asset.rawBuffer;
+
+  const headers = {
+    'Content-Type': asset.contentType,
+    'Content-Length': bufferToSend.length,
+    'ETag': asset.etag,
+    'Access-Control-Allow-Origin': '*',
+    'Cache-Control': asset.isHtml ? 'no-cache' : 'public, max-age=3600, stale-while-revalidate=86400'
+  };
+
+  if (canGzip) {
+    headers['Content-Encoding'] = 'gzip';
+    headers['Vary'] = 'Accept-Encoding';
+  }
+
+  res.writeHead(200, headers);
+  res.end(bufferToSend);
 });
 
 server.listen(PORT, () => {

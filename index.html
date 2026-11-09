@@ -5,18 +5,23 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>LabelTrack Enterprise - Two-Sided Inventory & Multi-Item Order Tracking System</title>
   
+  <!-- High-Performance Typography: Preconnected Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;600;700&display=swap">
+
   <!-- Tailwind CSS Framework CDN -->
   <script src="https://www.gstatic.com/antigravity/web/dev/tailwindcss.min.js"></script>
   
   <!-- Modular Custom Stylesheet -->
-  <link rel="stylesheet" href="css/styles.css">
+  <link rel="stylesheet" href="css/styles.css?v=20261109_fast">
 
   <!-- Supabase JS Client SDK -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
   <!-- Modular Scripts: Encrypted Credential Vault, Auth & Core Business Logic -->
   <script src="js/vault.js"></script>
-  <script src="js/app.js?v=20261031_remove_redundant_top_status"></script>
+  <script src="js/app.js?v=20261109_speed_optimized"></script>
   <script src="js/auth.js"></script>
   <!-- Anti-Flash Authentication State Evaluator -->
   <script>
@@ -743,18 +748,18 @@
               <table class="w-full text-left text-xs table-sticky-actions">
                 <thead class="bg-slate-50/90 text-slate-500 font-bold uppercase tracking-wider text-[11px] border-b border-slate-200/80">
                   <tr>
-                    <th class="p-3">Order Number</th>
-                    <th class="p-3">Assigned Supplier</th>
-                    <th class="p-3">SKUs & Approved Samples</th>
-                    <th class="p-3 text-center">Manufacturing Readiness</th>
-                    <th class="p-3 text-right">Total Ordered</th>
-                    <th class="p-3 text-right">Shipped Units</th>
-                    <th class="p-3 text-right">Remaining Quota</th>
-                    <th class="p-3 text-center">Fulfillment</th>
-                    <th class="p-3 text-center">Action</th>
+                    <th class="p-3 whitespace-nowrap">Order Number</th>
+                    <th class="p-3 whitespace-nowrap">Assigned Supplier</th>
+                    <th class="p-3 whitespace-nowrap">SKUs & Approved Samples</th>
+                    <th class="p-3 text-center whitespace-nowrap">Manufacturing Readiness</th>
+                    <th class="p-3 text-right whitespace-nowrap">Total Ordered</th>
+                    <th class="p-3 text-right whitespace-nowrap">Shipped Units</th>
+                    <th class="p-3 text-right whitespace-nowrap">Remaining Quota</th>
+                    <th class="p-3 text-center whitespace-nowrap">Fulfillment</th>
+                    <th class="p-3 text-center whitespace-nowrap">Action</th>
                   </tr>
                 </thead>
-                <tbody id="adminPoTableBody" class="divide-y divide-slate-100">
+                <tbody id="adminPoTableBody">
                   <!-- Dynamically populated via JS -->
                 </tbody>
               </table>
@@ -896,18 +901,15 @@
               <table class="w-full text-left text-xs table-sticky-actions">
                 <thead class="bg-slate-50/90 text-slate-500 font-bold uppercase tracking-wider text-[11px] border-b border-slate-200/80">
                   <tr>
-                    <th class="p-3">Shipment Ref</th>
-                    <th class="p-3">Order #</th>
-                    <th class="p-3">Vendor</th>
-                    <th class="p-3">Invoice #</th>
-                    <th class="p-3">Dispatch Date</th>
-                    <th class="p-3 min-w-[260px]">Item / SKU Shipped</th>
-                    <th class="p-3 text-right">Claimed Shipped</th>
-                    <th class="p-3 text-right">Warehouse Count</th>
-                    <th class="p-3 text-right">Variance</th>
-                    <th class="p-3 text-center">Invoice / Challan</th>
-                    <th class="p-3 text-center">Audit Status</th>
-                    <th class="p-3 text-center">Action</th>
+                    <th class="p-3 whitespace-nowrap">Shipment & Order</th>
+                    <th class="p-3 whitespace-nowrap">Supplier & Invoice</th>
+                    <th class="p-3 min-w-[240px] whitespace-nowrap">Item / SKU Shipped</th>
+                    <th class="p-3 text-right whitespace-nowrap">Claimed Shipped</th>
+                    <th class="p-3 text-right whitespace-nowrap">Warehouse Count</th>
+                    <th class="p-3 text-right whitespace-nowrap">Variance</th>
+                    <th class="p-3 text-center whitespace-nowrap">Challan / Photo</th>
+                    <th class="p-3 text-center whitespace-nowrap">Audit Status</th>
+                    <th class="p-3 text-center whitespace-nowrap">Action</th>
                   </tr>
                 </thead>
                 <tbody id="adminShipmentsTableBody" class="divide-y divide-slate-100">
