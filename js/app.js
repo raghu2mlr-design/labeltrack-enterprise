@@ -2535,9 +2535,9 @@ function renderAdminTabsUI() {
     const isActive = (t === activeTab);
     if (btn) {
       if (isActive) {
-        btn.className = "nav-tab-btn nav-tab-btn-active px-4 py-2.5 rounded-xl text-xs font-bold transition flex items-center gap-2 cursor-pointer flex-shrink-0 whitespace-nowrap";
+        btn.className = "nav-tab-btn nav-tab-btn-active px-3.5 py-2 rounded-xl text-xs font-bold transition flex items-center gap-1.5 cursor-pointer flex-shrink-0 whitespace-nowrap";
       } else {
-        btn.className = "nav-tab-btn px-4 py-2.5 rounded-xl text-xs font-semibold text-slate-600 hover:text-slate-900 transition flex items-center gap-2 cursor-pointer flex-shrink-0 whitespace-nowrap";
+        btn.className = "nav-tab-btn px-3.5 py-2 rounded-xl text-xs font-semibold text-slate-600 hover:text-slate-900 transition flex items-center gap-1.5 cursor-pointer flex-shrink-0 whitespace-nowrap";
       }
     }
     if (badge) {
@@ -2596,9 +2596,9 @@ function renderAdminPoFilterUI() {
   Object.entries(btns).forEach(([key, btn]) => {
     if (!btn) return;
     if (key === currentPoFilter) {
-      btn.className = "nav-tab-btn nav-tab-btn-active-primary px-3 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1.5 cursor-pointer flex-shrink-0 whitespace-nowrap";
+      btn.className = "nav-tab-btn nav-tab-btn-active-primary px-2.5 py-1 rounded-lg text-xs font-bold transition flex items-center gap-1 cursor-pointer flex-shrink-0 whitespace-nowrap";
     } else {
-      btn.className = "nav-tab-btn px-3 py-1.5 rounded-lg text-xs font-semibold text-slate-600 hover:text-slate-900 transition flex items-center gap-1.5 cursor-pointer flex-shrink-0 whitespace-nowrap";
+      btn.className = "nav-tab-btn px-2.5 py-1 rounded-lg text-xs font-semibold text-slate-600 hover:text-slate-900 transition flex items-center gap-1 cursor-pointer flex-shrink-0 whitespace-nowrap";
     }
   });
 
@@ -3091,7 +3091,17 @@ const DEFAULT_POS = [];
 
 const DEFAULT_SHIPMENTS = [];
 
-const initialVault = (typeof window.__AUTH_VAULT__ !== 'undefined') ? window.__AUTH_VAULT__ : {
+const initialVault = (() => {
+  try {
+    if (typeof sessionStorage !== 'undefined') {
+      const stored = sessionStorage.getItem('labeltrack_auth_vault');
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        if (parsed && Array.isArray(parsed.users) && parsed.users.length > 0) return parsed;
+      }
+    }
+  } catch(e) {}
+  return (typeof window.__AUTH_VAULT__ !== 'undefined') ? window.__AUTH_VAULT__ : {
   vault_version: "1.0-encrypted",
   encryption_standard: "SHA-256-SALTED-VAULT",
   updated_at: new Date().toISOString(),
@@ -3136,6 +3146,7 @@ const initialVault = (typeof window.__AUTH_VAULT__ !== 'undefined') ? window.__A
     }
   ]
 };
+})();
 
 // ==========================================
 // STRICT ZERO-BROWSER-STORAGE DATA ENGINE
@@ -5490,6 +5501,23 @@ function deleteVendor(vendorId) {
 // ==========================================
 // Change User & Vendor Password Controller
 // ==========================================
+function getGatekeeperAccount() {
+  if (state.authVault && Array.isArray(state.authVault.users)) {
+    const gateUser = state.authVault.users.find(u => u.role === 'gatekeeper' || (u.email && u.email.toLowerCase() === 'gate@labeltrack.com'));
+    if (gateUser) return gateUser;
+  }
+  return {
+    email: 'gate@labeltrack.com',
+    name: 'Gate Security Controller',
+    role: 'gatekeeper'
+  };
+}
+
+function openChangeGatekeeperPassword() {
+  const gateUser = getGatekeeperAccount();
+  openChangePasswordModal(gateUser.email, gateUser.name, 'gatekeeper');
+}
+
 function openChangePasswordModal(email, name, role) {
   if (!email) {
     if (state.currentUser) {
@@ -5637,17 +5665,37 @@ async function handleChangePasswordSubmit(e) {
     state.authVault.updated_at = new Date().toISOString();
     saveState();
 
+    // Cache updated auth vault in browser session for seamless logout/login switching
+    try {
+      if (typeof sessionStorage !== 'undefined') {
+        sessionStorage.setItem('labeltrack_auth_vault', JSON.stringify(state.authVault));
+      }
+    } catch(e) {}
+
     // Cloud sync to Supabase for vendors
     if (supabaseClient) {
-      const { error } = await supabaseClient
-        .from('vendors')
-        .update({ salt: randomSalt, password_hash: passHash })
-        .eq('email', email);
-      if (error) {
-        console.warn('Supabase vendor password update notice:', error.message);
-      } else {
-        console.log('✓ Password synced to Supabase Cloud DB for', email);
+      if (role === 'vendor') {
+        const { error } = await supabaseClient
+          .from('vendors')
+          .update({ salt: randomSalt, password_hash: passHash })
+          .eq('email', email);
+        if (error) {
+          console.warn('Supabase vendor password update notice:', error.message);
+        } else {
+          console.log('✓ Password synced to Supabase Cloud DB for', email);
+        }
       }
+
+      // Log credential update event in Supabase audit_logs
+      try {
+        supabaseClient.from('audit_logs').insert([{
+          event_type: 'CREDENTIAL_UPDATE',
+          reference_no: (role || 'USER').toUpperCase(),
+          vendor_or_user: (state.currentUser?.email || state.currentUser?.name || 'Admin'),
+          details: `Updated password for ${role} account (${email})`,
+          metadata: { target_email: email, target_role: role }
+        }]).then(() => {}).catch(() => {});
+      } catch (e) {}
     }
 
     showToast(`Password for ${email} updated and encrypted successfully!`);
@@ -5728,14 +5776,14 @@ function renderCategoryFilterUI() {
         else if (c === 'tags') activeClass = "cat-pill-tags-active";
         else if (c === 'ribbons') activeClass = "cat-pill-ribbons-active";
         else if (c === 'cards') activeClass = "cat-pill-cards-active";
-        btn.className = `cat-filter-btn-${c} px-3.5 py-1 rounded-xl text-xs font-bold transition-all duration-150 flex items-center gap-1.5 cursor-pointer flex-shrink-0 whitespace-nowrap ${activeClass}`;
+        btn.className = `cat-filter-btn-${c} px-2.5 py-1 rounded-lg text-xs font-bold transition-all duration-150 flex items-center gap-1 cursor-pointer flex-shrink-0 whitespace-nowrap ${activeClass}`;
       } else {
         let inactiveClass = "border border-slate-200/90 text-slate-600 bg-white hover:bg-slate-100 hover:text-slate-900";
         if (c === 'labels') inactiveClass = "border border-blue-200/80 text-blue-700 bg-white hover:bg-blue-50/70";
         else if (c === 'tags') inactiveClass = "border border-emerald-200/80 text-emerald-700 bg-white hover:bg-emerald-50/70";
         else if (c === 'ribbons') inactiveClass = "border border-purple-200/80 text-purple-700 bg-white hover:bg-purple-50/70";
         else if (c === 'cards') inactiveClass = "border border-amber-200/80 text-amber-700 bg-white hover:bg-amber-50/70";
-        btn.className = `cat-filter-btn-${c} px-3.5 py-1 rounded-xl text-xs font-semibold transition-all duration-150 flex items-center gap-1.5 cursor-pointer flex-shrink-0 whitespace-nowrap ${inactiveClass}`;
+        btn.className = `cat-filter-btn-${c} px-2.5 py-1 rounded-lg text-xs font-semibold transition-all duration-150 flex items-center gap-1 cursor-pointer flex-shrink-0 whitespace-nowrap ${inactiveClass}`;
       }
     });
   });
@@ -6776,56 +6824,56 @@ function render() {
           rowsHtml += `
             <tr class="hover:bg-slate-50/70 transition">
               ${idx === 0 ? `
-                <td rowspan="${totalRows}" class="p-3.5 font-mono font-bold text-blue-600 text-xs align-top border-b-2 border-slate-300 border-r border-slate-100 bg-white">
+                <td rowspan="${totalRows}" class="py-2 px-3 font-mono font-bold text-blue-600 text-xs align-top border-b-2 border-slate-300 border-r border-slate-100 bg-white">
                   <span class="block font-extrabold text-sm tracking-tight text-blue-600">${escapeHtml(po.poNumber)}</span>
-                  ${po.requiredByDate ? `<span class="text-[10px] text-slate-400 font-sans font-normal block mt-1 whitespace-nowrap">Due: ${escapeHtml(po.requiredByDate)}</span>` : ''}
-                  <button type="button" onclick="deletePo('${escapeHtml(po.poNumber)}')" title="Delete Entire Purchase Order" class="text-slate-400 hover:text-rose-600 transition text-[10px] mt-2.5 inline-flex items-center gap-1 cursor-pointer font-sans whitespace-nowrap">
+                  ${po.requiredByDate ? `<span class="text-[10px] text-slate-400 font-sans font-normal block mt-0.5 whitespace-nowrap">Due: ${escapeHtml(po.requiredByDate)}</span>` : ''}
+                  <button type="button" onclick="deletePo('${escapeHtml(po.poNumber)}')" title="Delete Entire Purchase Order" class="text-slate-400 hover:text-rose-600 transition text-[10px] mt-1.5 inline-flex items-center gap-1 cursor-pointer font-sans whitespace-nowrap">
                     <span>🗑️ Delete PO</span>
                   </button>
                 </td>
-                <td rowspan="${totalRows}" class="p-3.5 font-semibold text-slate-800 align-top border-b-2 border-slate-300 border-r border-slate-100 bg-white min-w-[140px]">
+                <td rowspan="${totalRows}" class="py-2 px-3 font-semibold text-slate-800 align-top border-b-2 border-slate-300 border-r border-slate-100 bg-white min-w-[140px]">
                   <span class="block text-slate-900 font-bold">${escapeHtml(po.vendor)}</span>
-                  ${po.buyerNotes ? `<span class="text-[10px] text-slate-400 block font-normal mt-1 leading-snug" title="${escapeHtml(po.buyerNotes)}">📝 ${escapeHtml(po.buyerNotes)}</span>` : ''}
+                  ${po.buyerNotes ? `<span class="text-[10px] text-slate-400 block font-normal mt-0.5 leading-tight" title="${escapeHtml(po.buyerNotes)}">📝 ${escapeHtml(po.buyerNotes)}</span>` : ''}
                 </td>
               ` : ''}
-              <td class="p-3 text-slate-600 text-xs leading-relaxed min-w-[240px] align-middle ${borderClass}">
-                <div class="space-y-1">
-                  <div class="flex items-center justify-between gap-2">
-                    <div class="inline-flex items-center gap-1.5 shrink-0 whitespace-nowrap">
-                      <span class="inline-flex items-center gap-1 font-bold text-[10px] px-2 py-0.5 rounded border ${catInfo.badgeClass} shrink-0">
+              <td class="py-2 px-3 text-slate-600 text-xs leading-relaxed min-w-[220px] align-middle ${borderClass}">
+                <div class="space-y-0.5">
+                  <div class="flex items-center justify-between gap-1.5">
+                    <div class="inline-flex items-center gap-1 shrink-0 whitespace-nowrap">
+                      <span class="inline-flex items-center gap-1 font-bold text-[10px] px-1.5 py-0.2 rounded border ${catInfo.badgeClass} shrink-0">
                         <span>${catInfo.icon}</span><span>${catInfo.name}</span>
                       </span>
-                      ${item.sku ? `<span class="font-mono text-[10px] font-bold text-slate-700 bg-slate-100 px-1.5 py-0.5 rounded border border-slate-200 shrink-0">${escapeHtml(item.sku)}</span>` : ''}
+                      ${item.sku ? `<span class="font-mono text-[10px] font-bold text-slate-700 bg-slate-100 px-1 py-0.2 rounded border border-slate-200 shrink-0">${escapeHtml(item.sku)}</span>` : ''}
                     </div>
-                    <button type="button" onclick="openSampleArtworkModal('${escapeHtml(item.model || item.description)}')" title="View Approved Technical Specimen" class="px-2 py-0.5 rounded text-[10px] font-bold bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 transition inline-flex items-center gap-1 shadow-2xs shrink-0 cursor-pointer">
+                    <button type="button" onclick="openSampleArtworkModal('${escapeHtml(item.model || item.description)}')" title="View Approved Technical Specimen" class="px-1.5 py-0.2 rounded text-[10px] font-bold bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 transition inline-flex items-center gap-0.5 shadow-2xs shrink-0 cursor-pointer">
                       <span>🖼️ Sample</span>
                     </button>
                   </div>
-                  <span class="font-bold text-slate-900 text-xs block leading-snug">${escapeHtml(parsed.title)}</span>
+                  <span class="font-bold text-slate-900 text-xs block leading-tight">${escapeHtml(parsed.title)}</span>
                 </div>
               </td>
-              <td class="p-3 text-center align-middle whitespace-nowrap min-w-[140px] ${borderClass}">
+              <td class="py-2 px-3 text-center align-middle whitespace-nowrap min-w-[130px] ${borderClass}">
                 ${itemProdBadge}
-                ${item.productionNotes ? `<span class="text-[10px] text-slate-500 font-sans block mt-1 truncate max-w-[140px] mx-auto" title="${escapeHtml(item.productionNotes)}">📝 ${escapeHtml(item.productionNotes)}</span>` : ''}
+                ${item.productionNotes ? `<span class="text-[10px] text-slate-500 font-sans block mt-0.5 truncate max-w-[130px] mx-auto" title="${escapeHtml(item.productionNotes)}">📝 ${escapeHtml(item.productionNotes)}</span>` : ''}
               </td>
-              <td class="p-3 text-right align-middle font-mono font-bold text-slate-900 whitespace-nowrap min-w-[95px] ${borderClass}">
+              <td class="py-2 px-3 text-right align-middle font-mono font-bold text-slate-900 whitespace-nowrap min-w-[95px] ${borderClass}">
                 ${formatNumber(item.orderedQty)}
                 ${isRibbon ? `<span class="text-[10px] text-purple-700 block font-normal">rolls</span>` : ''}
               </td>
-              <td class="p-3 text-right align-middle font-mono font-bold text-blue-600 whitespace-nowrap min-w-[105px] ${borderClass}">
+              <td class="py-2 px-3 text-right align-middle font-mono font-bold text-blue-600 whitespace-nowrap min-w-[105px] ${borderClass}">
                 ${formatNumber(item.shipped)}
                 ${!isRibbon && item.ribbonShipped > 0 ? `<span class="text-[10px] text-purple-700 block font-normal whitespace-nowrap" title="${formatNumber(item.ribbonShipped)} ribbon rolls dispatched with this item">🎗️ ${formatNumber(item.ribbonShipped)} rolls</span>` : ''}
                 ${isRibbon ? `<span class="text-[10px] text-purple-700 block font-normal">rolls</span>` : ''}
               </td>
-              <td class="p-3 text-right align-middle font-mono font-bold ${item.remaining === 0 ? 'text-slate-400' : 'text-amber-600'} whitespace-nowrap min-w-[105px] ${borderClass}">
+              <td class="py-2 px-3 text-right align-middle font-mono font-bold ${item.remaining === 0 ? 'text-slate-400' : 'text-amber-600'} whitespace-nowrap min-w-[105px] ${borderClass}">
                 ${formatNumber(item.remaining)}
                 ${isRibbon && item.remaining > 0 ? `<span class="text-[10px] text-amber-700 block font-normal">rolls</span>` : ''}
               </td>
-              <td class="p-3 text-center align-middle whitespace-nowrap min-w-[100px] ${borderClass}">
+              <td class="py-2 px-3 text-center align-middle whitespace-nowrap min-w-[100px] ${borderClass}">
                 ${itemStatusTag}
               </td>
-              <td class="p-3 text-center align-middle whitespace-nowrap min-w-[80px] ${borderClass}">
-                <button type="button" onclick="openUpdateProductionStatusModal('${escapeHtml(po.poNumber)}', '${escapeHtml(item.sku || item.model)}')" title="Update Stage for ${escapeHtml(item.sku || item.description)}" class="px-2.5 py-1 text-xs font-semibold text-indigo-700 hover:bg-indigo-50 border border-indigo-200/90 rounded-lg transition inline-flex items-center gap-1 shadow-2xs cursor-pointer">
+              <td class="py-2 px-3 text-center align-middle whitespace-nowrap min-w-[80px] ${borderClass}">
+                <button type="button" onclick="openUpdateProductionStatusModal('${escapeHtml(po.poNumber)}', '${escapeHtml(item.sku || item.model)}')" title="Update Stage for ${escapeHtml(item.sku || item.description)}" class="px-2 py-0.5 text-xs font-semibold text-indigo-700 hover:bg-indigo-50 border border-indigo-200/90 rounded-lg transition inline-flex items-center gap-1 shadow-2xs cursor-pointer">
                   <span>⚡ Stage</span>
                 </button>
               </td>
@@ -7131,14 +7179,14 @@ function render() {
       else if (key === 'damaged') activeCls = 'ship-filter-damaged-active';
       else if (key === 'today') activeCls = 'ship-filter-today-active';
       else if (key === 'transit') activeCls = 'ship-filter-transit-active';
-      btn.className = `px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all duration-150 flex items-center gap-1.5 cursor-pointer ${activeCls}`;
+      btn.className = `px-2.5 py-1 rounded-lg text-xs font-bold transition-all duration-150 flex items-center gap-1 cursor-pointer ${activeCls}`;
     } else {
       let inactiveCls = 'border border-slate-200/90 text-slate-600 bg-white hover:bg-slate-100 hover:text-slate-900';
       if (key === 'shortages') inactiveCls = 'border border-rose-200/80 text-rose-700 bg-rose-50/50 hover:bg-rose-100/70';
       else if (key === 'damaged') inactiveCls = 'border border-amber-200/80 text-amber-800 bg-amber-50/50 hover:bg-amber-100/70';
       else if (key === 'today') inactiveCls = 'border border-teal-200/80 text-teal-800 bg-teal-50/50 hover:bg-teal-100/70';
       else if (key === 'transit') inactiveCls = 'border border-indigo-200/80 text-indigo-800 bg-indigo-50/50 hover:bg-indigo-100/70';
-      btn.className = `px-3.5 py-1.5 rounded-xl text-xs font-semibold transition-all duration-150 flex items-center gap-1.5 cursor-pointer ${inactiveCls}`;
+      btn.className = `px-2.5 py-1 rounded-lg text-xs font-semibold transition-all duration-150 flex items-center gap-1 cursor-pointer ${inactiveCls}`;
     }
   });
 
@@ -7240,13 +7288,13 @@ function render() {
         return `
           <tr class="hover:bg-slate-50/90 transition group">
             <!-- 1. Ref ID & Order # (Stacked) -->
-            <td class="p-3 whitespace-nowrap">
+            <td class="py-2 px-3 whitespace-nowrap">
               <span class="font-mono font-black text-slate-900 text-xs block">${escapeHtml(s.id)}</span>
               <span class="font-mono text-indigo-600 font-bold text-[11px] block mt-0.5">${escapeHtml(s.poNumber)}</span>
             </td>
 
             <!-- 2. Vendor, Invoice # & Date (Stacked) -->
-            <td class="p-3 whitespace-nowrap">
+            <td class="py-2 px-3 whitespace-nowrap">
               <span class="font-bold text-slate-900 text-xs block truncate max-w-[175px]" title="${escapeHtml(po ? po.vendor : '-')}">${escapeHtml(po ? po.vendor : '-')}</span>
               <div class="flex items-center gap-1.5 text-[10px] text-slate-500 font-mono mt-0.5">
                 <span class="text-slate-700 font-semibold">Inv: ${escapeHtml(s.truckLR)}</span>
@@ -7256,39 +7304,36 @@ function render() {
             </td>
 
             <!-- 3. Item / SKU Description -->
-            <td class="p-3 min-w-[220px]">
-              <div class="flex items-center justify-between gap-1.5 mb-1.5">
-                <div class="flex items-center gap-1.5 flex-wrap">
-                  <span class="inline-flex items-center gap-1 font-bold text-[10px] px-2 py-0.5 rounded border ${catInfo.badgeClass} whitespace-nowrap shrink-0">
-                    <span>${catInfo.icon}</span>
-                    <span>${catInfo.name}</span>
-                  </span>
-                  ${s.sku ? `<span class="font-mono text-[10px] font-bold text-slate-600 bg-slate-100 px-1.5 py-0.5 rounded border border-slate-200 whitespace-nowrap shrink-0">${escapeHtml(s.sku)}</span>` : ''}
-                </div>
-                <button type="button" onclick="openSampleArtworkModal('${escapeHtml(s.model || s.description)}')" title="View Approved Technical Specimen" class="px-2 py-0.5 rounded text-[10px] font-bold bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 transition inline-flex items-center gap-1 shadow-2xs whitespace-nowrap shrink-0 cursor-pointer">
+            <td class="py-2 px-3 min-w-[200px]">
+              <div class="flex items-center gap-1.5 flex-wrap">
+                <span class="inline-flex items-center gap-1 font-bold text-[10px] px-1.5 py-0.2 rounded border ${catInfo.badgeClass} whitespace-nowrap shrink-0">
+                  <span>${catInfo.icon}</span>
+                  <span>${catInfo.name}</span>
+                </span>
+                ${s.sku ? `<span class="font-mono text-[10px] font-bold text-slate-600 bg-slate-100 px-1 py-0.2 rounded border border-slate-200 whitespace-nowrap shrink-0">${escapeHtml(s.sku)}</span>` : ''}
+                <button type="button" onclick="openSampleArtworkModal('${escapeHtml(s.model || s.description)}')" title="View Approved Technical Specimen" class="px-1.5 py-0.2 rounded text-[10px] font-bold bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 transition inline-flex items-center gap-0.5 shadow-2xs whitespace-nowrap shrink-0 cursor-pointer">
                   <span>🖼️ Sample</span>
                 </button>
               </div>
-              <span class="font-bold text-slate-900 block leading-snug">${escapeHtml(sParsed.title)}</span>
-              ${sParsed.specs ? `<span class="text-[10px] text-slate-500 font-mono block mt-0.5 leading-tight">${escapeHtml(sParsed.specs)}</span>` : ''}
+              <div class="font-bold text-slate-900 text-xs mt-0.5 leading-tight">${escapeHtml(sParsed.title)}${sParsed.specs ? ` <span class="text-[10px] text-slate-500 font-mono font-normal">(${escapeHtml(sParsed.specs)})</span>` : ''}</div>
             </td>
-            <td class="p-3 text-right whitespace-nowrap">
+            <td class="py-2 px-3 text-right whitespace-nowrap">
               <span class="font-mono font-bold text-blue-600 block text-xs">${formatNumber(s.qtySent)}</span>
-              <span class="text-[10px] text-slate-500 font-semibold inline-block px-1.5 py-0.5 bg-slate-100 rounded border border-slate-200 mt-0.5 whitespace-nowrap">${s.boxCount || 1} box(es)</span>
+              <span class="text-[10px] text-slate-500 font-semibold inline-block px-1 py-0.2 bg-slate-100 rounded border border-slate-200 mt-0.5 whitespace-nowrap">${s.boxCount || 1} box(es)</span>
               ${ribbonClaimed > 0 ? `
-                <div class="mt-1 pt-1 border-t border-slate-100 text-[10px] text-purple-700 font-mono font-semibold">
+                <div class="text-[10px] text-purple-700 font-mono font-semibold mt-0.5">
                   <span>🎗️ ${formatNumber(ribbonClaimed)} rolls</span>
                   <span class="text-slate-400 font-normal font-sans">(${s.ribbonBoxes || 0} bxs)</span>
                 </div>
               ` : ''}
             </td>
-            <td class="p-3 text-right whitespace-nowrap">
+            <td class="py-2 px-3 text-right whitespace-nowrap">
               ${hasCount ? `
                 <span class="font-mono font-bold text-slate-900 block text-xs">${formatNumber(s.receivedQty)} good</span>
-                <span class="text-[10px] text-emerald-700 font-semibold inline-block px-1.5 py-0.5 bg-emerald-50 rounded border border-emerald-200 mt-0.5 whitespace-nowrap">${s.receivedBoxes || s.boxCount || 1} box(es)</span>
-                ${damaged > 0 ? `<span class="text-[10px] text-rose-700 bg-rose-50 border border-rose-200 px-1.5 py-0.5 rounded font-semibold block mt-0.5 whitespace-nowrap">⚠️ ${formatNumber(damaged)} damaged</span>` : ''}
+                <span class="text-[10px] text-emerald-700 font-semibold inline-block px-1 py-0.2 bg-emerald-50 rounded border border-emerald-200 mt-0.5 whitespace-nowrap">${s.receivedBoxes || s.boxCount || 1} box(es)</span>
+                ${damaged > 0 ? `<span class="text-[10px] text-rose-700 bg-rose-50 border border-rose-200 px-1 py-0.2 rounded font-semibold block mt-0.5 whitespace-nowrap">⚠️ ${formatNumber(damaged)} damaged</span>` : ''}
                 ${(ribbonClaimed > 0 || ribbonAccepted > 0 || ribbonDamaged > 0) ? `
-                  <div class="mt-1 pt-1 border-t border-slate-100 text-[10px] text-purple-800 font-mono font-semibold text-right">
+                  <div class="text-[10px] text-purple-800 font-mono font-semibold text-right mt-0.5">
                     <span>🎗️ ${formatNumber(ribbonAccepted)} rolls good</span>
                     ${ribbonDamaged > 0 ? `<span class="text-[10px] text-rose-700 block">⚠️ ${formatNumber(ribbonDamaged)} rejected</span>` : ''}
                     ${ribbonShortfall < 0 ? `<span class="text-[10px] text-rose-600 block">⚠️ ${ribbonShortfall} rolls short</span>` : ''}
@@ -7296,7 +7341,7 @@ function render() {
                 ` : ''}
               ` : '<span class="text-slate-300 font-mono text-xs">-</span>'}
             </td>
-            <td class="p-3 text-right font-mono font-bold whitespace-nowrap ${variance < 0 ? 'text-rose-600' : (variance > 0 ? 'text-purple-600' : 'text-emerald-600')}">
+            <td class="py-2 px-3 text-right font-mono font-bold whitespace-nowrap ${variance < 0 ? 'text-rose-600' : (variance > 0 ? 'text-purple-600' : 'text-emerald-600')}">
               ${hasCount ? (variance > 0 ? '+' : '') + formatNumber(variance) : '-'}
               ${hasCount && damaged > 0 ? `<span class="text-[10px] text-slate-400 font-normal block font-sans whitespace-nowrap">(${formatNumber(Number(s.receivedQty) + damaged)} total)</span>` : ''}
               ${hasCount && ribbonClaimed > 0 ? `
@@ -7305,22 +7350,22 @@ function render() {
                 </div>
               ` : ''}
             </td>
-            <td class="p-3 text-center">
-              <div class="inline-flex flex-col gap-1 items-center">
+            <td class="py-2 px-3 text-center">
+              <div class="inline-flex items-center gap-1 justify-center">
                 ${s.invoice ? `
-                  <button onclick="viewInvoice('${s.id}')" class="px-2 py-0.5 text-[11px] font-bold bg-blue-50 text-blue-700 hover:bg-blue-100 border border-blue-200 rounded-lg transition inline-flex items-center gap-1 shadow-2xs">
+                  <button onclick="viewInvoice('${s.id}')" class="px-1.5 py-0.5 text-[10px] font-bold bg-blue-50 text-blue-700 hover:bg-blue-100 border border-blue-200 rounded-lg transition inline-flex items-center gap-0.5 shadow-2xs">
                     <span>📄 Challan</span>
                   </button>
                 ` : '<span class="text-slate-300 text-xs font-mono">-</span>'}
                 ${s.damagePhoto ? `
-                  <button onclick="viewDamagePhoto('${s.id}')" class="px-2 py-0.5 rounded text-[11px] font-bold bg-rose-50 text-rose-700 hover:bg-rose-100 border border-rose-200 transition inline-flex items-center gap-1 shadow-2xs">
+                  <button onclick="viewDamagePhoto('${s.id}')" class="px-1.5 py-0.5 rounded text-[10px] font-bold bg-rose-50 text-rose-700 hover:bg-rose-100 border border-rose-200 transition inline-flex items-center gap-0.5 shadow-2xs">
                     <span>📸 Photo</span>
                   </button>
                 ` : ''}
               </div>
             </td>
-            <td class="p-3 text-center">${auditBadge}</td>
-            <td class="p-3 text-center">
+            <td class="py-2 px-3 text-center">${auditBadge}</td>
+            <td class="py-2 px-3 text-center">
               <div class="inline-flex items-center gap-1.5">
                 <button onclick="openReceiveModal('${s.id}')" class="px-2.5 py-1 text-xs font-bold bg-emerald-50 text-emerald-700 hover:bg-emerald-100 border border-emerald-200 rounded-xl transition shadow-2xs inline-flex items-center gap-1">
                   <span>${hasCount ? '✏️ Edit Count' : '📥 Receive'}</span>
@@ -7554,14 +7599,14 @@ function render() {
       else if (key === 'ribbons') activeCls = 'ship-filter-ribbons-active';
       else if (key === 'today') activeCls = 'ship-filter-today-active';
       else if (key === 'damaged') activeCls = 'ship-filter-damaged-active';
-      btn.className = `px-3.5 py-1.5 rounded-xl font-bold text-xs transition-all duration-150 flex items-center gap-1.5 cursor-pointer flex-shrink-0 whitespace-nowrap ${activeCls}`;
+      btn.className = `px-2.5 py-1 rounded-lg font-bold text-xs transition-all duration-150 flex items-center gap-1 cursor-pointer flex-shrink-0 whitespace-nowrap ${activeCls}`;
     } else {
       let inactiveCls = 'border border-slate-200/90 text-slate-600 bg-white hover:bg-slate-100 hover:text-slate-900';
       if (key === 'transit') inactiveCls = 'border border-indigo-200/80 text-indigo-800 bg-indigo-50/50 hover:bg-indigo-100/70';
       else if (key === 'ribbons') inactiveCls = 'border border-purple-200/80 text-purple-800 bg-purple-50/50 hover:bg-purple-100/70';
       else if (key === 'today') inactiveCls = 'border border-teal-200/80 text-teal-800 bg-teal-50/50 hover:bg-teal-100/70';
       else if (key === 'damaged') inactiveCls = 'border border-amber-200/80 text-amber-800 bg-amber-50/50 hover:bg-amber-100/70';
-      btn.className = `px-3.5 py-1.5 rounded-xl font-semibold text-xs transition-all duration-150 flex items-center gap-1.5 cursor-pointer flex-shrink-0 whitespace-nowrap ${inactiveCls}`;
+      btn.className = `px-2.5 py-1 rounded-lg font-semibold text-xs transition-all duration-150 flex items-center gap-1 cursor-pointer flex-shrink-0 whitespace-nowrap ${inactiveCls}`;
     }
   });
 
@@ -7656,95 +7701,93 @@ function render() {
 
         return `
           <tr class="hover:bg-slate-50/80 transition">
-            <td class="p-3 font-mono font-bold text-slate-800 text-xs whitespace-nowrap">${escapeHtml(s.id)}</td>
-            <td class="p-3 font-mono font-semibold text-blue-600 text-xs whitespace-nowrap">${escapeHtml(s.poNumber)}</td>
-            <td class="p-3 text-slate-800 font-semibold whitespace-nowrap">${escapeHtml(po ? po.vendor : '-')}</td>
-            <td class="p-3 text-slate-700 font-mono text-[11px] font-medium whitespace-nowrap">${escapeHtml(s.truckLR)}</td>
-            <td class="p-3 text-slate-500 font-mono text-[11px] whitespace-nowrap">${escapeHtml(s.date)}</td>
-            <td class="p-3 min-w-[260px]">
-              <div class="flex items-center justify-between gap-1.5 mb-1.5">
-                <div class="flex items-center gap-1.5 flex-wrap">
-                  <span class="inline-flex items-center gap-1 font-bold text-[10px] px-2 py-0.5 rounded border ${catInfo.badgeClass} whitespace-nowrap shrink-0">
-                    <span>${catInfo.icon}</span>
-                    <span>${catInfo.name}</span>
-                  </span>
-                  ${s.sku ? `<span class="font-mono text-[10px] font-bold text-slate-600 bg-slate-100 px-1.5 py-0.5 rounded border border-slate-200 whitespace-nowrap shrink-0">${escapeHtml(s.sku)}</span>` : ''}
-                </div>
-                <button type="button" onclick="openSampleArtworkModal('${escapeHtml(s.model || s.description)}')" title="View Approved Technical Specimen" class="px-2 py-0.5 rounded text-[10px] font-bold bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 transition inline-flex items-center gap-1 shadow-2xs whitespace-nowrap shrink-0 cursor-pointer">
+            <td class="py-2 px-3 font-mono font-bold text-slate-800 text-xs whitespace-nowrap">
+              <span class="block">${escapeHtml(s.id)}</span>
+              <span class="font-mono font-semibold text-blue-600 text-xs block">${escapeHtml(s.poNumber)}</span>
+            </td>
+            <td class="py-2 px-3 text-slate-800 font-semibold whitespace-nowrap">
+              <span class="block text-slate-800 font-semibold text-xs">${escapeHtml(po ? po.vendor : '-')}</span>
+              <span class="text-[10px] text-slate-500 font-mono block">${escapeHtml(s.truckLR || '')}${s.truckLR && s.date ? ' • ' : ''}${escapeHtml(s.date || '')}</span>
+            </td>
+            <td class="py-2 px-3 min-w-[220px]">
+              <div class="flex items-center gap-1.5 flex-wrap">
+                <span class="inline-flex items-center gap-1 font-bold text-[10px] px-1.5 py-0.2 rounded border ${catInfo.badgeClass} whitespace-nowrap shrink-0">
+                  <span>${catInfo.icon}</span>
+                  <span>${catInfo.name}</span>
+                </span>
+                ${s.sku ? `<span class="font-mono text-[10px] font-bold text-slate-600 bg-slate-100 px-1 py-0.2 rounded border border-slate-200 whitespace-nowrap shrink-0">${escapeHtml(s.sku)}</span>` : ''}
+                <button type="button" onclick="openSampleArtworkModal('${escapeHtml(s.model || s.description)}')" title="View Approved Technical Specimen" class="px-1.5 py-0.2 rounded text-[10px] font-bold bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 transition inline-flex items-center gap-0.5 shadow-2xs whitespace-nowrap shrink-0 cursor-pointer">
                   <span>🖼️ Sample</span>
                 </button>
               </div>
-              <span class="font-bold text-slate-900 block leading-snug">${escapeHtml(sParsed.title)}</span>
-              ${sParsed.specs ? `<span class="text-[10px] text-slate-500 font-mono block mt-0.5 leading-tight">${escapeHtml(sParsed.specs)}</span>` : ''}
+              <div class="mt-0.5">
+                <span class="font-bold text-slate-900 text-xs inline">${escapeHtml(sParsed.title)}</span>
+                ${sParsed.specs ? `<span class="text-[10px] text-slate-500 font-mono inline ml-1.5">${escapeHtml(sParsed.specs)}</span>` : ''}
+              </div>
               ${ribbonClaimed > 0 ? `
-                <div class="mt-2 inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[11px] font-bold bg-purple-50 text-purple-900 border border-purple-200 shadow-2xs">
-                  <span class="text-sm">🎗️</span>
-                  <span>Vendor Sent: <strong>${formatNumber(ribbonClaimed)} Ribbon Rolls</strong> (${s.ribbonBoxes || 1} bxs)</span>
+                <div class="mt-1 inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-bold bg-purple-50 text-purple-900 border border-purple-200 shadow-2xs">
+                  <span>🎗️ Sent: <strong>${formatNumber(ribbonClaimed)} Ribbon Rolls</strong> (${s.ribbonBoxes || 1} bxs)</span>
                 </div>
               ` : ''}
             </td>
-            <td class="p-3 text-right whitespace-nowrap">
-              <div class="space-y-1">
-                <div>
-                  <span class="font-mono font-bold text-blue-600 block text-xs">${formatNumber(s.qtySent)} labels</span>
-                  <span class="text-[10px] text-slate-500 font-semibold inline-block px-1.5 py-0.5 bg-slate-100 rounded border border-slate-200 mt-0.5 whitespace-nowrap">${s.boxCount || 1} box(es)</span>
-                </div>
-                ${ribbonClaimed > 0 ? `
-                  <div class="pt-1 border-t border-slate-100">
-                    <span class="font-mono font-bold text-purple-700 block text-xs">🎗️ ${formatNumber(ribbonClaimed)} ribbons</span>
-                    <span class="text-[10px] text-purple-600 font-semibold inline-block px-1.5 py-0.5 bg-purple-50 rounded border border-purple-200 mt-0.5 whitespace-nowrap">${s.ribbonBoxes || 1} box(es)</span>
-                  </div>
-                ` : ''}
+            <td class="py-2 px-3 text-right whitespace-nowrap">
+              <div>
+                <span class="font-mono font-bold text-blue-600 block text-xs">${formatNumber(s.qtySent)}</span>
+                <span class="text-[10px] text-slate-500 font-semibold inline-block px-1.5 py-0.2 bg-slate-100 rounded border border-slate-200 mt-0.5 whitespace-nowrap">${s.boxCount || 1} box(es)</span>
               </div>
+              ${ribbonClaimed > 0 ? `
+                <div class="pt-0.5 mt-0.5 border-t border-slate-100">
+                  <span class="font-mono font-bold text-purple-700 block text-xs">🎗️ ${formatNumber(ribbonClaimed)}</span>
+                  <span class="text-[10px] text-purple-600 font-semibold inline-block px-1.5 py-0.2 bg-purple-50 rounded border border-purple-200 mt-0.5 whitespace-nowrap">${s.ribbonBoxes || 1} box(es)</span>
+                </div>
+              ` : ''}
             </td>
-            <td class="p-3 text-right whitespace-nowrap">
+            <td class="py-2 px-3 text-right whitespace-nowrap">
               ${hasCount ? `
-                <div class="space-y-1">
+                <div>
                   <div>
-                    <span class="font-mono font-bold text-emerald-700 block text-xs">${formatNumber(s.receivedQty)} good labels</span>
-                    <span class="text-[10px] text-slate-500 font-semibold inline-block px-1.5 py-0.5 bg-slate-100 rounded border border-slate-200 mt-0.5 whitespace-nowrap">${s.receivedBoxes || s.boxCount || 1} box(es)</span>
-                    ${damaged > 0 ? `<span class="text-[10px] text-rose-700 bg-rose-50 border border-rose-200 px-1.5 py-0.5 rounded font-semibold block mt-0.5 whitespace-nowrap">⚠️ ${formatNumber(damaged)} damaged</span>` : ''}
+                    <span class="font-mono font-bold text-emerald-700 block text-xs">${formatNumber(s.receivedQty)} good</span>
+                    <span class="text-[10px] text-slate-500 font-semibold inline-block px-1.5 py-0.2 bg-slate-100 rounded border border-slate-200 mt-0.5 whitespace-nowrap">${s.receivedBoxes || s.boxCount || 1} box(es)</span>
+                    ${damaged > 0 ? `<span class="text-[10px] text-rose-700 bg-rose-50 border border-rose-200 px-1.5 py-0.2 rounded font-semibold block mt-0.5 whitespace-nowrap">⚠️ ${formatNumber(damaged)} dmg</span>` : ''}
                   </div>
                   ${(ribbonClaimed > 0 || ribbonAccepted > 0 || ribbonDamaged > 0) ? `
-                    <div class="pt-1 border-t border-slate-100">
-                      <span class="font-mono font-bold ${ribbonAccepted > 0 ? 'text-purple-800' : 'text-slate-400'} block text-xs">🎗️ ${formatNumber(ribbonAccepted)} good ribbons</span>
-                      ${ribbonDamaged > 0 ? `<span class="text-[10px] text-rose-700 font-semibold block mt-0.5 whitespace-nowrap">⚠️ ${formatNumber(ribbonDamaged)} rejected</span>` : ''}
-                      ${ribbonShortfall < 0 ? `<span class="text-[10px] text-rose-600 font-bold block mt-0.5 whitespace-nowrap">⚠️ ${ribbonShortfall} rolls short</span>` : ''}
-                      ${ribbonClaimed > 0 && ribbonAccepted === 0 && ribbonDamaged === 0 ? `<span class="text-[10px] text-rose-600 font-bold block mt-0.5 whitespace-nowrap">⚠️ 0 rolls verified</span>` : ''}
+                    <div class="pt-0.5 mt-0.5 border-t border-slate-100">
+                      <span class="font-mono font-bold ${ribbonAccepted > 0 ? 'text-purple-800' : 'text-slate-400'} block text-xs">🎗️ ${formatNumber(ribbonAccepted)} good</span>
+                      ${ribbonDamaged > 0 ? `<span class="text-[10px] text-rose-700 font-semibold block mt-0.5 whitespace-nowrap">⚠️ ${formatNumber(ribbonDamaged)} rej</span>` : ''}
+                      ${ribbonShortfall < 0 ? `<span class="text-[10px] text-rose-600 font-bold block mt-0.5 whitespace-nowrap">⚠️ ${ribbonShortfall} short</span>` : ''}
                     </div>
                   ` : ''}
                 </div>
               ` : `
-                <div class="space-y-1">
+                <div>
                   <span class="text-amber-600 font-semibold text-xs whitespace-nowrap block">⏳ Uninspected</span>
                   ${ribbonClaimed > 0 ? `
-                    <span class="inline-flex items-center gap-1 text-[10px] font-bold text-purple-700 bg-purple-50 border border-purple-200 px-2 py-0.5 rounded">
-                      <span>🎗️</span>
-                      <span>Count ${formatNumber(ribbonClaimed)} Rolls</span>
+                    <span class="inline-flex items-center gap-1 text-[10px] font-bold text-purple-700 bg-purple-50 border border-purple-200 px-1.5 py-0.2 rounded mt-0.5">
+                      <span>🎗️ ${formatNumber(ribbonClaimed)} Rolls</span>
                     </span>
                   ` : ''}
                 </div>
               `}
             </td>
-            <td class="p-3 text-center">
-              <div class="inline-flex flex-col gap-1 items-center">
+            <td class="py-2 px-3 text-center">
+              <div class="inline-flex items-center gap-1 justify-center">
                 ${s.invoice ? `
-                  <button onclick="viewInvoice('${s.id}')" class="px-2 py-0.5 text-[11px] font-bold bg-blue-50 text-blue-700 hover:bg-blue-100 border border-blue-200 rounded-lg transition inline-flex items-center gap-1 shadow-2xs">
+                  <button onclick="viewInvoice('${s.id}')" class="px-1.5 py-0.5 text-[10px] font-bold bg-blue-50 text-blue-700 hover:bg-blue-100 border border-blue-200 rounded-lg transition inline-flex items-center gap-0.5 shadow-2xs">
                     <span>📄 Challan</span>
                   </button>
                 ` : '<span class="text-slate-300 text-xs font-mono">-</span>'}
                 ${s.damagePhoto ? `
-                  <button onclick="viewDamagePhoto('${s.id}')" class="px-2 py-0.5 rounded text-[11px] font-bold bg-rose-50 text-rose-700 hover:bg-rose-100 border border-rose-200 transition inline-flex items-center gap-1 shadow-2xs">
+                  <button onclick="viewDamagePhoto('${s.id}')" class="px-1.5 py-0.5 rounded text-[10px] font-bold bg-rose-50 text-rose-700 hover:bg-rose-100 border border-rose-200 transition inline-flex items-center gap-0.5 shadow-2xs">
                     <span>📸 Photo</span>
                   </button>
                 ` : ''}
               </div>
             </td>
-            <td class="p-3 text-center whitespace-nowrap">${auditBadge}</td>
+            <td class="py-2 px-3 text-center whitespace-nowrap">${auditBadge}</td>
             <!-- Sticky Action Column (Always Visible on Right Edge) -->
-            <td class="p-3 text-center whitespace-nowrap sticky right-0 bg-white/95 group-hover:bg-slate-50/95 backdrop-blur-xs shadow-[-4px_0_8px_-2px_rgba(0,0,0,0.06)] z-10">
-              <button onclick="openReceiveModal('${s.id}')" class="px-3.5 py-1.5 ${hasCount ? 'bg-slate-100 text-slate-700 hover:bg-slate-200 border border-slate-300' : 'btn-gradient-emerald text-white shadow-2xs'} font-bold rounded-xl text-xs transition inline-flex items-center gap-1.5 cursor-pointer">
-                <span>${hasCount ? '✏️ Edit Count' : '📥 Verify Inward'}</span>
+            <td class="py-2 px-3 text-center whitespace-nowrap sticky right-0 bg-white/95 group-hover:bg-slate-50/95 backdrop-blur-xs shadow-[-4px_0_8px_-2px_rgba(0,0,0,0.06)] z-10">
+              <button onclick="openReceiveModal('${s.id}')" class="px-2.5 py-1 ${hasCount ? 'bg-slate-100 text-slate-700 hover:bg-slate-200 border border-slate-300' : 'btn-gradient-emerald text-white shadow-2xs'} font-bold rounded-xl text-xs transition inline-flex items-center gap-1 cursor-pointer">
+                <span>${hasCount ? '✏️ Edit' : '📥 Verify'}</span>
               </button>
             </td>
           </tr>
@@ -8110,6 +8153,8 @@ if (typeof window !== 'undefined') {
   window.updateReceiveComparison = updateReceiveComparison;
   window.updateModalItemBalance = updateModalItemBalance;
   window.openChangePasswordModal = openChangePasswordModal;
+  window.openChangeGatekeeperPassword = openChangeGatekeeperPassword;
+  window.getGatekeeperAccount = getGatekeeperAccount;
   window.closeChangePasswordModal = closeChangePasswordModal;
   window.generateRandomNewPassword = generateRandomNewPassword;
   window.toggleChangePassVisibility = toggleChangePassVisibility;

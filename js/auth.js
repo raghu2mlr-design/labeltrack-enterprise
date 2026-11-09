@@ -102,6 +102,18 @@ async function handleLoginSubmit(e) {
       window.__AUTH_VAULT__.users.forEach(u => userMap.set(u.email.toLowerCase(), { ...u }));
     }
 
+    try {
+      if (typeof sessionStorage !== 'undefined') {
+        const storedVault = sessionStorage.getItem('labeltrack_auth_vault');
+        if (storedVault) {
+          const parsed = JSON.parse(storedVault);
+          if (parsed && Array.isArray(parsed.users)) {
+            parsed.users.forEach(u => userMap.set(u.email.toLowerCase(), { ...u }));
+          }
+        }
+      }
+    } catch(e) {}
+
     if (typeof state !== 'undefined' && state.authVault && Array.isArray(state.authVault.users)) {
       state.authVault.users.forEach(u => userMap.set(u.email.toLowerCase(), { ...u }));
     }
