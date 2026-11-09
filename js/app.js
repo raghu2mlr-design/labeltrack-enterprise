@@ -25,14 +25,21 @@ function initPantoneLibrary() {
     } catch (e) {}
   }
   if (typeof window !== 'undefined' && typeof window.fetch === 'function') {
-    fetch('/data/pantone-library.json')
-      .then(res => res.json())
-      .then(data => {
-        PANTONE_MASTER_MAP = data || {};
-      })
-      .catch(err => {
-        console.warn('Could not load /data/pantone-library.json:', err);
-      });
+    const fetchPantone = () => {
+      fetch('/data/pantone-library.json')
+        .then(res => res.json())
+        .then(data => {
+          PANTONE_MASTER_MAP = data || {};
+        })
+        .catch(err => {
+          console.warn('Could not load /data/pantone-library.json:', err);
+        });
+    };
+    if (typeof window.requestIdleCallback === 'function') {
+      window.requestIdleCallback(fetchPantone, { timeout: 2000 });
+    } else {
+      setTimeout(fetchPantone, 500);
+    }
   }
 }
 initPantoneLibrary();
@@ -2514,8 +2521,6 @@ async function handleMatrixQuickUpload(modelName, year, fileInput) {
 // ==========================================
 // PROFESSIONAL TAB MANAGEMENT & EXECUTIVE THEME
 // ==========================================
-// PROFESSIONAL TAB MANAGEMENT & EXECUTIVE THEME
-// ==========================================
 function renderAdminTabsUI() {
   const activeTab = state.adminActiveTab || 'dashboard';
   const mobileSelect = document.getElementById('adminMobileTabSelect');
@@ -2554,6 +2559,10 @@ function renderAdminTabsUI() {
 
 function switchAdminTab(tabName) {
   state.adminActiveTab = tabName || 'dashboard';
+  if (state.adminActiveTab === 'orders' && state.adminPoFilter !== 'all') {
+    state.adminPoFilter = 'all';
+    renderAdminPoFilterUI();
+  }
   renderAdminTabsUI();
   render();
 }
@@ -2580,9 +2589,9 @@ function renderAdminPoFilterUI() {
   const btns = {
     all: document.getElementById('adminPoFilterAll'),
     pending: document.getElementById('adminPoFilterPending'),
-    in_production: document.getElementById('adminPoFilterInProd') || document.getElementById('adminPoFilterProd'),
-    in_stock: document.getElementById('adminPoFilterInStock') || document.getElementById('adminPoFilterStock'),
-    completed: document.getElementById('adminPoFilterCompleted') || document.getElementById('adminPoFilterComp')
+    in_production: document.getElementById('adminPoFilterInProd'),
+    in_stock: document.getElementById('adminPoFilterInStock'),
+    completed: document.getElementById('adminPoFilterCompleted')
   };
   Object.entries(btns).forEach(([key, btn]) => {
     if (!btn) return;
@@ -2839,20 +2848,27 @@ function formatProductionStatusText(status) {
 }
 
 function getItemProductionBadgeHtml(status, estDate) {
-  const dateStr = estDate ? ` <span class="font-mono text-[9px] opacity-80">(${estDate})</span>` : '';
+  let badgeHtml = '';
   switch (status) {
     case 'in_stock':
-      return `<span class="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-800 border border-emerald-300 shadow-2xs">📦 Ready in Stock${dateStr}</span>`;
+      badgeHtml = `<span class="prod-badge prod-in-stock shadow-2xs">📦 Ready in Stock</span>`;
+      break;
     case 'in_production':
-      return `<span class="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full bg-indigo-50 text-indigo-800 border border-indigo-300 shadow-2xs"><span class="w-1.5 h-1.5 rounded-full bg-indigo-600 animate-pulse"></span>🏭 In Production${dateStr}</span>`;
+      badgeHtml = `<span class="prod-badge prod-in-production shadow-2xs"><span class="w-1.5 h-1.5 rounded-full bg-indigo-600 animate-pulse"></span>🏭 In Production</span>`;
+      break;
     case 'packing':
-      return `<span class="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-50 text-amber-900 border border-amber-300 shadow-2xs">🔍 Packing / QA${dateStr}</span>`;
+      badgeHtml = `<span class="prod-badge prod-packing shadow-2xs">🔍 Packing / QA</span>`;
+      break;
     case 'ready_to_ship':
-      return `<span class="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full bg-purple-50 text-purple-900 border border-purple-300 shadow-2xs">🚚 Ready to Dispatch${dateStr}</span>`;
+      badgeHtml = `<span class="prod-badge prod-ready-dispatch shadow-2xs">🚚 Ready to Dispatch</span>`;
+      break;
     case 'pending':
     default:
-      return `<span class="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full bg-slate-100 text-slate-600 border border-slate-300 shadow-2xs">⏳ Pending Confirmation${dateStr}</span>`;
+      badgeHtml = `<span class="prod-badge prod-pending shadow-2xs">⏳ Pending Confirmation</span>`;
+      break;
   }
+  const dateStr = estDate ? `<span class="font-mono text-[9px] text-slate-400 whitespace-nowrap mt-0.5 block">(${estDate})</span>` : '';
+  return `<div class="inline-flex flex-col items-center justify-center">${badgeHtml}${dateStr}</div>`;
 }
 
 function getProductionBadgeHtml(status, estDate, poItems) {
@@ -3280,8 +3296,6 @@ function saveState() {
 // ==========================================
 // Supabase Cloud Configuration & Sync
 // ==========================================
-// Supabase Cloud Configuration & Sync
-// ==========================================
 const SUPABASE_CONFIG = {
   url: (typeof window !== 'undefined' && window.location.origin) 
     ? (window.location.origin + '/supabase-proxy') 
@@ -3570,8 +3584,10 @@ function updateCloudSyncIndicator(synced) {
 
 
 function formatNumber(num) {
-  if (num === null || num === undefined) return '0';
-  return Number(num).toLocaleString('en-IN');
+  if (num === null || num === undefined || num === '') return '0';
+  const n = Number(num);
+  if (isNaN(n)) return '0';
+  return n.toLocaleString('en-IN');
 }
 
 function formatFileSize(bytes) {
@@ -3728,6 +3744,11 @@ function getPoMetrics(poNumber) {
     let shipped = itemShipments.reduce((sum, s) => sum + Number(s.qtySent), 0);
     let received = itemShipments.reduce((sum, s) => sum + (s.receivedQty !== null ? Number(s.receivedQty) : 0), 0);
     
+    // Ribbon counts dispatched with this specific item
+    let ribbonShipped = itemShipments.reduce((sum, s) => sum + Number(s.ribbonQty || 0), 0);
+    let ribbonReceived = itemShipments.reduce((sum, s) => sum + (s.receivedRibbons !== null && s.receivedRibbons !== undefined ? Number(s.receivedRibbons) : 0), 0);
+    let ribbonDamaged = itemShipments.reduce((sum, s) => sum + Number(s.damagedRibbons || 0), 0);
+    
     // Effective accepted towards order fulfillment:
     // When verified at gate, use accepted receivedQty. When in transit, use claimed qtySent.
     let effectiveFulfilled = itemShipments.reduce((sum, s) => {
@@ -3764,6 +3785,9 @@ function getPoMetrics(poNumber) {
       received,
       remaining,
       effectiveFulfilled,
+      ribbonShipped,
+      ribbonReceived,
+      ribbonDamaged,
       productionStatus: item.productionStatus || po.productionStatus || 'pending',
       productionEstimatedDate: item.productionEstimatedDate || po.productionEstimatedDate || '',
       productionNotes: item.productionNotes || ''
@@ -5961,7 +5985,9 @@ function render() {
     `<option value="${escapeHtml(v.name)}">${escapeHtml(v.name)} (${escapeHtml(v.code)})</option>`
   ).join('');
 
-  newPoVendor.innerHTML = vendorOptionsHtml;
+  if (newPoVendor) {
+    newPoVendor.innerHTML = vendorOptionsHtml;
+  }
 
   // Render Vendors in Supplier Directory Tab Table
   const vendorRowsHtml = state.vendors.map(v => {
@@ -6683,83 +6709,177 @@ function render() {
   const adminPoBody = document.getElementById('adminPoTableBody');
   if (adminPoBody) {
     if (adminFilteredPos.length === 0) {
-      adminPoBody.innerHTML = `<tr><td colspan="9" class="p-8 text-center text-slate-400 text-xs">No orders match the selected stage filter. Click <button type="button" onclick="openNewPoModal()" class="text-blue-600 font-bold hover:underline cursor-pointer">+ Create New Order</button> above to deploy an order ticket.</td></tr>`;
-    } else {
-      adminPoBody.innerHTML = adminFilteredPos.map(po => {
-        const { totalOrdered, totalShipped, totalRemaining, ribbonMetrics } = getPoMetrics(po.poNumber);
-
-        let statusTag = `<span class="badge-pill badge-amber">⏳ Pending</span>`;
-        if (totalRemaining === 0 && totalShipped >= totalOrdered) {
-          statusTag = `<span class="badge-pill badge-emerald">✓ Completed</span>`;
-        } else if (totalShipped > 0) {
-          statusTag = `<span class="badge-pill badge-blue">⚡ In Progress</span>`;
-        }
-
-        const hasMultipleItems = (po.items || []).length > 1;
-        const itemsSummary = (po.items || []).map(i => {
-          const parsed = formatProductDisplay(i.description);
-          const catInfo = getItemCategoryInfo(i);
-          return `
-            <div class="py-1.5 border-b border-slate-100 last:border-b-0 space-y-1">
-              <div class="flex items-center justify-between gap-1.5">
-                <div class="flex items-center gap-1.5">
-                  <span class="inline-flex items-center gap-1 font-bold text-[10px] px-2 py-0.5 rounded border ${catInfo.badgeClass}">
-                    <span>${catInfo.icon}</span><span>${catInfo.name}</span>
-                  </span>
-                  ${i.sku ? `<span class="font-mono text-[10px] font-bold text-slate-500 bg-slate-100 px-1.5 py-0.5 rounded border border-slate-200">${escapeHtml(i.sku)}</span>` : ''}
-                </div>
-                <button type="button" onclick="openSampleArtworkModal('${escapeHtml(i.model || i.description)}')" title="View Approved Technical Specimen" class="px-2 py-0.5 rounded text-[10px] font-bold bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 transition inline-flex items-center gap-1 shadow-2xs shrink-0 cursor-pointer">
-                  <span>🖼️ Sample</span>
+      const curFilterName = state.adminPoFilter === 'pending' ? 'Action Needed' : (state.adminPoFilter === 'in_production' ? 'In Production' : (state.adminPoFilter === 'in_stock' ? 'In Stock' : (state.adminPoFilter === 'completed' ? 'Completed' : 'All Stages')));
+      const totalPoCount = (state.pos || []).length;
+      adminPoBody.innerHTML = `
+        <tr>
+          <td colspan="9" class="p-12 text-center text-slate-500 text-xs bg-slate-50/40">
+            <div class="max-w-md mx-auto space-y-3">
+              <span class="text-3xl block">📋</span>
+              <p class="font-bold text-slate-800 text-sm">No orders currently under "${escapeHtml(curFilterName)}"</p>
+              <p class="text-slate-400 text-xs leading-relaxed">There are currently 0 orders matching this stage filter. There are <strong class="text-slate-700 font-bold">${totalPoCount} total orders</strong> in your database.</p>
+              <div class="flex items-center justify-center gap-2 pt-2">
+                <button type="button" onclick="setAdminPoFilter('all'); if (typeof setCategoryFilter === 'function') setCategoryFilter('all');" class="px-4 py-2 rounded-xl text-xs font-bold bg-slate-900 text-white shadow-2xs hover:bg-slate-800 transition cursor-pointer flex items-center gap-1.5">
+                  <span>📋 Show All ${totalPoCount} Orders</span>
                 </button>
-              </div>
-              <div class="flex items-center justify-between gap-2">
-                <span class="font-bold text-slate-900 text-xs block leading-snug">${escapeHtml(parsed.title)}</span>
-                ${hasMultipleItems ? `<span class="font-mono text-slate-500 font-semibold text-[10px] shrink-0">(${formatNumber(i.orderedQty)} units)</span>` : ''}
+                <button type="button" onclick="openNewPoModal()" class="px-4 py-2 rounded-xl text-xs font-bold btn-gradient-primary text-white shadow-2xs transition cursor-pointer flex items-center gap-1.5">
+                  <span>+ Create New Order</span>
+                </button>
               </div>
             </div>
-          `;
-        }).join('');
+          </td>
+        </tr>
+      `;
+    } else {
+      adminPoBody.innerHTML = adminFilteredPos.map(po => {
+        const { totalOrdered, totalShipped, totalRemaining, itemsMetrics, ribbonMetrics } = getPoMetrics(po.poNumber);
 
-        const pStatus = po.productionStatus || 'pending';
-        const prodBadge = getProductionBadgeHtml(pStatus, po.productionEstimatedDate);
+        // Filter items if category filter is active
+        const visibleItems = (state.categoryFilter && state.categoryFilter !== 'all')
+          ? itemsMetrics.filter(i => {
+              if (state.categoryFilter === 'ribbons') {
+                const catInfo = getItemCategoryInfo(i);
+                return catInfo.id === 'ribbons' || Number(i.ribbonShipped || 0) > 0;
+              }
+              return getItemCategoryInfo(i).id === state.categoryFilter;
+            })
+          : itemsMetrics;
 
-        return `
-          <tr class="hover:bg-slate-50/80 transition">
-            <td class="p-3 font-mono font-bold text-blue-600 text-xs">
-              <span class="block">${escapeHtml(po.poNumber)}</span>
-              ${po.requiredByDate ? `<span class="text-[10px] text-slate-400 font-sans font-normal block mt-0.5">Due: ${po.requiredByDate}</span>` : ''}
-            </td>
-            <td class="p-3 font-semibold text-slate-800">${escapeHtml(po.vendor)}</td>
-            <td class="p-3 text-slate-600 text-xs leading-relaxed min-w-[220px]">${itemsSummary}</td>
-            <td class="p-3 text-center">
-              ${prodBadge}
-              ${po.productionNotes ? `<span class="text-[10px] text-slate-500 font-sans block mt-1 truncate max-w-[150px] mx-auto" title="${escapeHtml(po.productionNotes)}">📝 ${escapeHtml(po.productionNotes)}</span>` : ''}
-            </td>
-            <td class="p-3 text-right font-mono font-bold text-slate-900">
-              ${formatNumber(totalOrdered)}
-              ${ribbonMetrics && ribbonMetrics.totalOrdered > 0 ? `<span class="text-[10px] text-purple-700 block font-normal whitespace-nowrap">🎗️ ${formatNumber(ribbonMetrics.totalOrdered)} rolls</span>` : ''}
-            </td>
-            <td class="p-3 text-right font-mono font-bold text-blue-600">
-              ${formatNumber(totalShipped)}
-              ${ribbonMetrics && ribbonMetrics.totalShipped > 0 ? `<span class="text-[10px] text-purple-700 block font-normal whitespace-nowrap">🎗️ ${formatNumber(ribbonMetrics.totalShipped)} rolls</span>` : ''}
-            </td>
-            <td class="p-3 text-right font-mono font-bold ${totalRemaining === 0 ? 'text-slate-400' : 'text-amber-600'}">
-              ${formatNumber(totalRemaining)}
-              ${ribbonMetrics && ribbonMetrics.hasRibbons ? `<span class="text-[10px] ${ribbonMetrics.totalRemaining === 0 ? 'text-slate-400' : 'text-amber-700'} block font-normal whitespace-nowrap">🎗️ ${formatNumber(ribbonMetrics.totalRemaining)} rolls</span>` : ''}
-            </td>
-            <td class="p-3 text-center">${statusTag}</td>
-            <td class="p-3 text-center">
-              <div class="flex items-center justify-center gap-1.5">
-                <button onclick="openUpdateProductionStatusModal('${escapeHtml(po.poNumber)}')" title="Update Production / Stock Status" class="px-2.5 py-1 text-xs font-semibold text-indigo-700 hover:bg-indigo-50 border border-indigo-200/90 rounded-lg transition inline-flex items-center gap-1 shadow-2xs cursor-pointer">
+        if (visibleItems.length === 0) return '';
+
+        const isMulti = visibleItems.length > 1;
+        const totalRows = isMulti ? visibleItems.length + 1 : 1;
+        const prodBadge = getProductionBadgeHtml(po.productionStatus || 'pending', po.productionEstimatedDate);
+
+        let rowsHtml = '';
+        visibleItems.forEach((item, idx) => {
+          const parsed = formatProductDisplay(item.description);
+          const catInfo = getItemCategoryInfo(item);
+          const isRibbon = item.category === 'ribbons';
+          
+          const acceptedQty = Math.max(0, item.orderedQty - item.remaining);
+          const itemPct = item.orderedQty > 0
+            ? (item.remaining === 0 ? 100 : Math.min(99, Math.round((acceptedQty / item.orderedQty) * 100)))
+            : 0;
+
+          let itemStatusTag = `<span class="badge-pill badge-amber">⏳ Pending</span>`;
+          if (item.remaining === 0 && item.shipped >= item.orderedQty) {
+            itemStatusTag = `<span class="badge-pill badge-emerald">✓ Completed</span>`;
+          } else if (item.shipped > 0) {
+            itemStatusTag = `<span class="badge-pill badge-blue">⚡ ${itemPct}%</span>`;
+          }
+
+          const itemProdStatus = item.productionStatus || po.productionStatus || 'pending';
+          const itemProdBadge = getItemProductionBadgeHtml(itemProdStatus, item.productionEstimatedDate || po.productionEstimatedDate);
+          const borderClass = (idx === visibleItems.length - 1 && !isMulti) ? 'border-b-2 border-slate-300' : 'border-b border-slate-100';
+
+          rowsHtml += `
+            <tr class="hover:bg-slate-50/70 transition">
+              ${idx === 0 ? `
+                <td rowspan="${totalRows}" class="p-3.5 font-mono font-bold text-blue-600 text-xs align-top border-b-2 border-slate-300 border-r border-slate-100 bg-white">
+                  <span class="block font-extrabold text-sm tracking-tight text-blue-600">${escapeHtml(po.poNumber)}</span>
+                  ${po.requiredByDate ? `<span class="text-[10px] text-slate-400 font-sans font-normal block mt-1 whitespace-nowrap">Due: ${escapeHtml(po.requiredByDate)}</span>` : ''}
+                  <button type="button" onclick="deletePo('${escapeHtml(po.poNumber)}')" title="Delete Entire Purchase Order" class="text-slate-400 hover:text-rose-600 transition text-[10px] mt-2.5 inline-flex items-center gap-1 cursor-pointer font-sans whitespace-nowrap">
+                    <span>🗑️ Delete PO</span>
+                  </button>
+                </td>
+                <td rowspan="${totalRows}" class="p-3.5 font-semibold text-slate-800 align-top border-b-2 border-slate-300 border-r border-slate-100 bg-white min-w-[140px]">
+                  <span class="block text-slate-900 font-bold">${escapeHtml(po.vendor)}</span>
+                  ${po.buyerNotes ? `<span class="text-[10px] text-slate-400 block font-normal mt-1 leading-snug" title="${escapeHtml(po.buyerNotes)}">📝 ${escapeHtml(po.buyerNotes)}</span>` : ''}
+                </td>
+              ` : ''}
+              <td class="p-3 text-slate-600 text-xs leading-relaxed min-w-[240px] align-middle ${borderClass}">
+                <div class="space-y-1">
+                  <div class="flex items-center justify-between gap-2">
+                    <div class="inline-flex items-center gap-1.5 shrink-0 whitespace-nowrap">
+                      <span class="inline-flex items-center gap-1 font-bold text-[10px] px-2 py-0.5 rounded border ${catInfo.badgeClass} shrink-0">
+                        <span>${catInfo.icon}</span><span>${catInfo.name}</span>
+                      </span>
+                      ${item.sku ? `<span class="font-mono text-[10px] font-bold text-slate-700 bg-slate-100 px-1.5 py-0.5 rounded border border-slate-200 shrink-0">${escapeHtml(item.sku)}</span>` : ''}
+                    </div>
+                    <button type="button" onclick="openSampleArtworkModal('${escapeHtml(item.model || item.description)}')" title="View Approved Technical Specimen" class="px-2 py-0.5 rounded text-[10px] font-bold bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 transition inline-flex items-center gap-1 shadow-2xs shrink-0 cursor-pointer">
+                      <span>🖼️ Sample</span>
+                    </button>
+                  </div>
+                  <span class="font-bold text-slate-900 text-xs block leading-snug">${escapeHtml(parsed.title)}</span>
+                </div>
+              </td>
+              <td class="p-3 text-center align-middle whitespace-nowrap min-w-[140px] ${borderClass}">
+                ${itemProdBadge}
+                ${item.productionNotes ? `<span class="text-[10px] text-slate-500 font-sans block mt-1 truncate max-w-[140px] mx-auto" title="${escapeHtml(item.productionNotes)}">📝 ${escapeHtml(item.productionNotes)}</span>` : ''}
+              </td>
+              <td class="p-3 text-right align-middle font-mono font-bold text-slate-900 whitespace-nowrap min-w-[95px] ${borderClass}">
+                ${formatNumber(item.orderedQty)}
+                ${isRibbon ? `<span class="text-[10px] text-purple-700 block font-normal">rolls</span>` : ''}
+              </td>
+              <td class="p-3 text-right align-middle font-mono font-bold text-blue-600 whitespace-nowrap min-w-[105px] ${borderClass}">
+                ${formatNumber(item.shipped)}
+                ${!isRibbon && item.ribbonShipped > 0 ? `<span class="text-[10px] text-purple-700 block font-normal whitespace-nowrap" title="${formatNumber(item.ribbonShipped)} ribbon rolls dispatched with this item">🎗️ ${formatNumber(item.ribbonShipped)} rolls</span>` : ''}
+                ${isRibbon ? `<span class="text-[10px] text-purple-700 block font-normal">rolls</span>` : ''}
+              </td>
+              <td class="p-3 text-right align-middle font-mono font-bold ${item.remaining === 0 ? 'text-slate-400' : 'text-amber-600'} whitespace-nowrap min-w-[105px] ${borderClass}">
+                ${formatNumber(item.remaining)}
+                ${isRibbon && item.remaining > 0 ? `<span class="text-[10px] text-amber-700 block font-normal">rolls</span>` : ''}
+              </td>
+              <td class="p-3 text-center align-middle whitespace-nowrap min-w-[100px] ${borderClass}">
+                ${itemStatusTag}
+              </td>
+              <td class="p-3 text-center align-middle whitespace-nowrap min-w-[80px] ${borderClass}">
+                <button type="button" onclick="openUpdateProductionStatusModal('${escapeHtml(po.poNumber)}', '${escapeHtml(item.sku || item.model)}')" title="Update Stage for ${escapeHtml(item.sku || item.description)}" class="px-2.5 py-1 text-xs font-semibold text-indigo-700 hover:bg-indigo-50 border border-indigo-200/90 rounded-lg transition inline-flex items-center gap-1 shadow-2xs cursor-pointer">
                   <span>⚡ Stage</span>
                 </button>
-                <button onclick="deletePo('${escapeHtml(po.poNumber)}')" class="px-2 py-1 text-xs font-semibold text-rose-600 hover:bg-rose-50 border border-rose-200/70 rounded-lg transition inline-flex items-center gap-1 shadow-2xs cursor-pointer">
-                  <span>🗑️</span>
+              </td>
+            </tr>
+          `;
+        });
+
+        if (isMulti) {
+          const overallAccepted = Math.max(0, totalOrdered - totalRemaining);
+          const overallPct = totalOrdered > 0
+            ? (totalRemaining === 0 ? 100 : Math.min(99, Math.round((overallAccepted / totalOrdered) * 100)))
+            : 0;
+
+          let orderStatusTag = `<span class="badge-pill badge-amber">⏳ Pending</span>`;
+          if (totalRemaining === 0 && totalShipped >= totalOrdered) {
+            orderStatusTag = `<span class="badge-pill badge-emerald">✓ Completed</span>`;
+          } else if (totalShipped > 0) {
+            orderStatusTag = `<span class="badge-pill badge-blue">⚡ In Progress (${overallPct}%)</span>`;
+          }
+
+          rowsHtml += `
+            <tr class="bg-slate-50/90 font-bold text-xs text-slate-700">
+              <td class="p-2.5 px-3 text-slate-600 font-sans uppercase tracking-wider text-[10px] align-middle border-b-2 border-slate-300">
+                <span class="font-extrabold text-slate-800">Σ Order Total</span>
+                <span class="text-slate-400 font-mono ml-1">(${visibleItems.length} SKUs)</span>
+              </td>
+              <td class="p-2.5 text-center align-middle whitespace-nowrap border-b-2 border-slate-300">
+                ${prodBadge}
+              </td>
+              <td class="p-2.5 text-right font-mono font-bold text-slate-900 align-middle whitespace-nowrap border-b-2 border-slate-300">
+                ${formatNumber(totalOrdered)}
+                ${ribbonMetrics && ribbonMetrics.totalOrdered > 0 ? `<span class="text-[10px] text-purple-700 block font-normal whitespace-nowrap">🎗️ ${formatNumber(ribbonMetrics.totalOrdered)} rolls</span>` : ''}
+              </td>
+              <td class="p-2.5 text-right font-mono font-bold text-blue-700 align-middle whitespace-nowrap border-b-2 border-slate-300">
+                ${formatNumber(totalShipped)}
+                ${ribbonMetrics && ribbonMetrics.totalShipped > 0 ? `<span class="text-[10px] text-purple-700 block font-normal whitespace-nowrap">🎗️ ${formatNumber(ribbonMetrics.totalShipped)} rolls</span>` : ''}
+              </td>
+              <td class="p-2.5 text-right font-mono font-bold ${totalRemaining === 0 ? 'text-slate-400' : 'text-amber-700'} align-middle whitespace-nowrap border-b-2 border-slate-300">
+                ${formatNumber(totalRemaining)}
+                ${ribbonMetrics && ribbonMetrics.totalRemaining > 0 ? `<span class="text-[10px] text-amber-700 block font-normal whitespace-nowrap">🎗️ ${formatNumber(ribbonMetrics.totalRemaining)} rolls</span>` : ''}
+              </td>
+              <td class="p-2.5 text-center align-middle whitespace-nowrap border-b-2 border-slate-300">
+                ${orderStatusTag}
+              </td>
+              <td class="p-2.5 text-center align-middle whitespace-nowrap border-b-2 border-slate-300">
+                <button type="button" onclick="openUpdateProductionStatusModal('${escapeHtml(po.poNumber)}', 'all')" title="Update All SKUs in Order" class="px-2.5 py-1 text-[11px] font-bold text-indigo-700 bg-white hover:bg-indigo-50 border border-indigo-200 rounded-lg shadow-2xs cursor-pointer inline-flex items-center gap-1">
+                  <span>⚡ All</span>
                 </button>
-              </div>
-            </td>
-          </tr>
-        `;
+              </td>
+            </tr>
+          `;
+        }
+
+        return rowsHtml;
       }).join('');
     }
   }
@@ -6768,14 +6888,26 @@ function render() {
   const adminPoCards = document.getElementById('adminPoCardsContainer');
   if (adminPoCards) {
     if (adminFilteredPos.length === 0) {
+      const curFilterName = state.adminPoFilter === 'pending' ? 'Action Needed' : (state.adminPoFilter === 'in_production' ? 'In Production' : (state.adminPoFilter === 'in_stock' ? 'In Stock' : (state.adminPoFilter === 'completed' ? 'Completed' : 'All Stages')));
+      const totalPoCount = (state.pos || []).length;
       adminPoCards.innerHTML = `
-        <div class="p-8 text-center bg-white rounded-2xl border border-slate-200 text-slate-400 text-xs">
-          No orders match the selected stage filter. Click <button type="button" onclick="openNewPoModal()" class="text-blue-600 font-bold hover:underline cursor-pointer">+ Create New Order</button> to create an order.
+        <div class="p-8 text-center bg-white rounded-2xl border border-slate-200 text-slate-500 text-xs space-y-3 shadow-2xs">
+          <span class="text-3xl block">📋</span>
+          <p class="font-bold text-slate-800 text-sm">No orders currently under "${escapeHtml(curFilterName)}"</p>
+          <p class="text-slate-400 text-xs leading-relaxed">There are 0 orders matching this filter. You have <strong class="text-slate-700 font-bold">${totalPoCount} total orders</strong> available.</p>
+          <div class="flex items-center justify-center gap-2 pt-1 flex-wrap">
+            <button type="button" onclick="setAdminPoFilter('all'); if (typeof setCategoryFilter === 'function') setCategoryFilter('all');" class="px-3.5 py-1.5 rounded-xl text-xs font-bold bg-slate-900 text-white shadow-2xs hover:bg-slate-800 transition cursor-pointer flex items-center gap-1.5">
+              <span>📋 Show All ${totalPoCount} Orders</span>
+            </button>
+            <button type="button" onclick="openNewPoModal()" class="px-3.5 py-1.5 rounded-xl text-xs font-bold btn-gradient-primary text-white shadow-2xs transition cursor-pointer flex items-center gap-1.5">
+              <span>+ Create New Order</span>
+            </button>
+          </div>
         </div>
       `;
     } else {
       adminPoCards.innerHTML = adminFilteredPos.map(po => {
-        const { totalOrdered, totalShipped, totalRemaining, ribbonMetrics } = getPoMetrics(po.poNumber);
+        const { totalOrdered, totalShipped, totalRemaining, itemsMetrics, ribbonMetrics } = getPoMetrics(po.poNumber);
         const pStatus = po.productionStatus || 'pending';
         const prodBadge = getProductionBadgeHtml(pStatus, po.productionEstimatedDate);
         const pct = totalOrdered > 0 ? Math.min(100, Math.round((totalShipped / totalOrdered) * 100)) : 0;
@@ -6783,26 +6915,70 @@ function render() {
         const itemsCards = (po.items || []).map(i => {
           const parsed = formatProductDisplay(i.description);
           const catInfo = getItemCategoryInfo(i);
+          const itemMetric = itemsMetrics.find(m => (m.sku && m.sku === i.sku) || m.description === i.description) || {};
+          const itemShipped = itemMetric.shipped || 0;
+          const itemRemaining = itemMetric.remaining !== undefined ? itemMetric.remaining : Math.max(0, i.orderedQty - itemShipped);
+          const itemRibbonsShipped = itemMetric.ribbonShipped || 0;
+          const isRibbon = i.category === 'ribbons';
+          const itemPct = i.orderedQty > 0 ? Math.min(100, Math.round((itemShipped / i.orderedQty) * 100)) : 0;
+          const isFulfilled = itemRemaining === 0;
+
           return `
-            <div class="flex items-center justify-between gap-2 py-1.5 border-b border-slate-200/50 last:border-b-0">
-              <div class="min-w-0 flex-1">
-                <div class="flex items-center gap-1.5">
-                  <span class="inline-flex items-center gap-1 font-bold text-[10px] px-1.5 py-0.2 rounded border ${catInfo.badgeClass}">
+            <div class="p-3 bg-white rounded-xl border border-slate-200/80 shadow-2xs space-y-2">
+              <!-- Tier 1: Category & SKU Badge (Left) | Action Buttons (Right) -->
+              <div class="flex items-center justify-between gap-2">
+                <div class="flex items-center gap-1.5 flex-wrap min-w-0">
+                  <span class="inline-flex items-center gap-1 font-bold text-[10px] px-2 py-0.5 rounded-md border ${catInfo.badgeClass} shrink-0">
                     <span>${catInfo.icon}</span><span>${catInfo.name}</span>
                   </span>
-                  ${i.sku ? `<span class="font-mono text-[10px] font-bold text-slate-500 bg-white px-1 rounded border border-slate-200">${escapeHtml(i.sku)}</span>` : ''}
+                  ${i.sku ? `<span class="font-mono text-[10px] font-bold text-slate-700 bg-slate-100 px-1.5 py-0.5 rounded border border-slate-200 shrink-0">${escapeHtml(i.sku)}</span>` : ''}
                 </div>
-                <span class="text-xs font-bold text-slate-900 block truncate mt-0.5">${escapeHtml(parsed.title)}</span>
-                ${(po.items || []).length > 1 ? `<span class="text-[10px] text-slate-500 font-mono">Qty: ${formatNumber(i.orderedQty)} units</span>` : ''}
+                <div class="flex items-center gap-1.5 shrink-0">
+                  <button type="button" onclick="openSampleArtworkModal('${escapeHtml(i.model || i.description)}')" class="px-2 py-1 rounded-lg text-[10px] font-bold bg-slate-50 hover:bg-slate-100 text-slate-700 border border-slate-200 transition shadow-2xs cursor-pointer flex items-center gap-1" title="View Approved Specimen Proof">
+                    <span>🖼️ Proof</span>
+                  </button>
+                  <button type="button" onclick="openUpdateProductionStatusModal('${escapeHtml(po.poNumber)}', '${escapeHtml(i.sku || i.model)}')" class="px-2 py-1 rounded-lg text-[10px] font-bold bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 transition shadow-2xs cursor-pointer flex items-center gap-1" title="Update Item Status">
+                    <span>⚡ Stage</span>
+                  </button>
+                </div>
               </div>
-              <div class="flex items-center gap-1.5 shrink-0">
-                ${getItemProductionBadgeHtml(i.productionStatus || po.productionStatus || 'pending', i.productionEstimatedDate)}
-                <button type="button" onclick="openUpdateProductionStatusModal('${escapeHtml(po.poNumber)}', '${escapeHtml(i.sku || i.model)}')" class="px-2 py-1 rounded-lg text-[10px] font-bold bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 transition shrink-0 shadow-2xs cursor-pointer flex items-center gap-1" title="Update Item Status">
-                  <span>⚡</span>
-                </button>
-                <button type="button" onclick="openSampleArtworkModal('${escapeHtml(i.model || i.description)}')" class="px-2 py-1 rounded-lg text-[10px] font-bold bg-slate-50 hover:bg-slate-100 text-slate-700 border border-slate-200 transition shrink-0 shadow-2xs cursor-pointer flex items-center gap-1">
-                  <span>🖼️ Proof</span>
-                </button>
+
+              <!-- Tier 2: Product Title & Specs (Clean full display, no premature truncation) -->
+              <div>
+                <h5 class="text-xs font-bold text-slate-900 leading-snug">${escapeHtml(parsed.title)}</h5>
+                ${parsed.specs ? `<p class="text-[10px] text-slate-500 font-mono mt-0.5 leading-snug">${escapeHtml(parsed.specs)}</p>` : ''}
+              </div>
+
+              <!-- Tier 3: Manufacturing Stage & SKU Fulfillment -->
+              <div class="flex items-center justify-between gap-2 pt-1 border-t border-slate-100">
+                <div class="flex items-center gap-1.5 flex-wrap min-w-0">
+                  <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider shrink-0">Stage:</span>
+                  ${getItemProductionBadgeHtml(i.productionStatus || po.productionStatus || 'pending', i.productionEstimatedDate)}
+                </div>
+                <span class="text-[10px] font-mono font-bold ${isFulfilled ? 'text-emerald-700' : 'text-slate-600'} shrink-0">${itemPct}% fulfilled</span>
+              </div>
+
+              <!-- Tier 4: Independent Quantities Grid (Ordered, Sent with Ribbon rolls, Balance) -->
+              <div class="grid grid-cols-3 gap-1.5 text-center bg-slate-50/90 p-2 rounded-lg border border-slate-200/60 font-mono text-xs">
+                <div>
+                  <span class="text-[9px] text-slate-400 font-bold uppercase block tracking-wider">Ordered</span>
+                  <span class="text-xs font-black text-slate-900 block">${formatNumber(i.orderedQty)}</span>
+                  ${isRibbon ? '<span class="text-[9px] text-slate-500 block">rolls</span>' : ''}
+                </div>
+                <div>
+                  <span class="text-[9px] text-blue-500 font-bold uppercase block tracking-wider">Sent</span>
+                  <span class="text-xs font-black text-blue-600 block">${formatNumber(itemShipped)}</span>
+                  ${!isRibbon && itemRibbonsShipped > 0 ? `<span class="text-[9px] text-purple-700 font-bold block" title="Matching Ribbon Consignment rolls">🎗️ ${formatNumber(itemRibbonsShipped)} r</span>` : ''}
+                </div>
+                <div>
+                  <span class="text-[9px] ${itemRemaining === 0 ? 'text-slate-400' : 'text-amber-600'} font-bold uppercase block tracking-wider">Balance</span>
+                  <span class="text-xs font-black ${itemRemaining === 0 ? 'text-slate-400' : 'text-amber-600'} block">${formatNumber(itemRemaining)}</span>
+                </div>
+              </div>
+
+              <!-- Mini Progress Bar for Item -->
+              <div class="w-full bg-slate-100 h-1.5 rounded-full overflow-hidden">
+                <div class="h-1.5 rounded-full ${isFulfilled ? 'bg-emerald-500' : 'bg-blue-600'} transition-all duration-300" style="width: ${itemPct}%"></div>
               </div>
             </div>
           `;
@@ -6812,45 +6988,57 @@ function render() {
         const isOpen = openAccordionCards.has(cardId);
         return `
           <div class="bg-white rounded-2xl border border-slate-200 shadow-2xs overflow-hidden transition hover:border-blue-300">
-            <button type="button" onclick="toggleCardAccordion('${cardId}')" class="w-full p-3.5 flex items-start justify-between gap-2 text-left bg-white hover:bg-slate-50 transition cursor-pointer">
-              <div class="min-w-0 pr-1">
+            <button type="button" onclick="toggleCardAccordion('${cardId}')" class="w-full p-3.5 text-left bg-white hover:bg-slate-50/80 transition cursor-pointer space-y-2.5">
+              <!-- Header Row 1: PO Number + Vendor + % Progress & Chevron -->
+              <div class="flex items-start justify-between gap-2">
+                <div class="min-w-0 flex-1">
+                  <div class="flex items-center gap-1.5 flex-wrap">
+                    <span class="font-mono font-extrabold text-blue-600 text-sm tracking-tight">${escapeHtml(po.poNumber)}</span>
+                    <span class="text-[10px] font-mono font-bold text-slate-500 bg-slate-100 px-1.5 py-0.2 rounded border border-slate-200">${(po.items || []).length} SKU${(po.items || []).length === 1 ? '' : 's'}</span>
+                  </div>
+                  <h4 class="text-xs font-bold text-slate-800 mt-1 truncate">${escapeHtml(po.vendor)}</h4>
+                </div>
+                <div class="flex items-center gap-2 shrink-0 pt-0.5">
+                  <div class="text-right">
+                    <span class="text-xs font-mono font-black ${pct === 100 ? 'text-emerald-600' : 'text-blue-700'} block">${pct}%</span>
+                    <span class="text-[10px] text-slate-500 font-mono block">${formatNumber(totalOrdered)} u</span>
+                  </div>
+                  <span id="chevron-${cardId}" class="text-xs font-bold text-slate-400 transition-transform duration-200 ml-0.5" style="${isOpen ? 'transform: rotate(180deg)' : ''}">▼</span>
+                </div>
+              </div>
+
+              <!-- Header Row 2: Production Readiness Badge (No squishing) & Est Due Date -->
+              <div class="flex items-center justify-between gap-2 pt-1 border-t border-slate-100 text-xs">
                 <div class="flex items-center gap-1.5 flex-wrap">
-                  <span class="font-mono font-extrabold text-blue-600 text-sm">${escapeHtml(po.poNumber)}</span>
                   ${prodBadge}
                 </div>
-                <p class="text-xs font-bold text-slate-800 mt-1 truncate">${escapeHtml(po.vendor)}</p>
-              </div>
-              <div class="flex items-center gap-2 shrink-0 pt-0.5">
-                <div class="text-right">
-                  <span class="text-[11px] font-mono font-extrabold text-blue-700 block">${pct}%</span>
-                  <span class="text-[10px] text-slate-500 font-mono block">${formatNumber(totalOrdered)} u</span>
-                </div>
-                <span id="chevron-${cardId}" class="text-xs font-bold text-slate-400 transition-transform duration-200" style="${isOpen ? 'transform: rotate(180deg)' : ''}">▼</span>
+                ${po.targetDeliveryDate ? `<span class="text-[10px] font-mono text-slate-500 shrink-0">Est: ${escapeHtml(po.targetDeliveryDate)}</span>` : ''}
               </div>
             </button>
 
             <div id="${cardId}" class="${isOpen ? '' : 'hidden '}p-3.5 pt-0 space-y-3 border-t border-slate-100">
-              <div class="bg-slate-50/80 p-2.5 rounded-xl border border-slate-100 space-y-1 mt-2">
+              <div class="space-y-2 mt-2">
                 ${itemsCards}
               </div>
 
-              ${po.productionNotes ? `<div class="text-[11px] text-slate-600 bg-amber-50/60 p-2 rounded-xl border border-amber-200/60 flex items-start gap-1.5"><span class="shrink-0">📝</span><span class="leading-tight">${escapeHtml(po.productionNotes)}</span></div>` : ''}
+              ${po.productionNotes ? `<div class="text-[11px] text-slate-600 bg-amber-50/60 p-2.5 rounded-xl border border-amber-200/60 flex items-start gap-1.5"><span class="shrink-0">📝</span><span class="leading-tight">${escapeHtml(po.productionNotes)}</span></div>` : ''}
 
-              <div class="grid grid-cols-3 gap-2 text-center bg-slate-50 p-2 rounded-xl border border-slate-100 text-xs">
+              <!-- Overall Order Summary Totals -->
+              <div class="grid grid-cols-3 gap-2 text-center bg-slate-50 p-2.5 rounded-xl border border-slate-100 text-xs">
                 <div>
-                  <span class="text-[10px] text-slate-400 font-bold uppercase tracking-wider block">Ordered</span>
+                  <span class="text-[10px] text-slate-400 font-bold uppercase tracking-wider block">Total Ordered</span>
                   <span class="text-sm font-black text-slate-900 font-mono block">${formatNumber(totalOrdered)}</span>
-                  ${ribbonMetrics && ribbonMetrics.totalOrdered > 0 ? `<span class="text-[10px] text-purple-700 font-mono block">🎗️ ${formatNumber(ribbonMetrics.totalOrdered)}</span>` : ''}
+                  ${ribbonMetrics && ribbonMetrics.totalOrdered > 0 ? `<span class="text-[10px] text-purple-700 font-mono block font-bold">🎗️ ${formatNumber(ribbonMetrics.totalOrdered)}</span>` : ''}
                 </div>
                 <div>
-                  <span class="text-[10px] text-blue-500 font-bold uppercase tracking-wider block">Shipped</span>
+                  <span class="text-[10px] text-blue-500 font-bold uppercase tracking-wider block">Total Shipped</span>
                   <span class="text-sm font-black text-blue-600 font-mono block">${formatNumber(totalShipped)}</span>
-                  ${ribbonMetrics && ribbonMetrics.totalShipped > 0 ? `<span class="text-[10px] text-purple-700 font-mono block">🎗️ ${formatNumber(ribbonMetrics.totalShipped)}</span>` : ''}
+                  ${ribbonMetrics && ribbonMetrics.totalShipped > 0 ? `<span class="text-[10px] text-purple-700 font-mono block font-bold">🎗️ ${formatNumber(ribbonMetrics.totalShipped)}</span>` : ''}
                 </div>
                 <div>
-                  <span class="text-[10px] ${totalRemaining === 0 ? 'text-slate-400' : 'text-amber-600'} font-bold uppercase tracking-wider block">Balance</span>
+                  <span class="text-[10px] ${totalRemaining === 0 ? 'text-slate-400' : 'text-amber-600'} font-bold uppercase tracking-wider block">Total Balance</span>
                   <span class="text-sm font-black ${totalRemaining === 0 ? 'text-slate-400' : 'text-amber-600'} font-mono block">${formatNumber(totalRemaining)}</span>
-                  ${ribbonMetrics && ribbonMetrics.hasRibbons ? `<span class="text-[10px] ${ribbonMetrics.totalRemaining === 0 ? 'text-slate-400' : 'text-amber-700'} font-mono block">🎗️ ${formatNumber(ribbonMetrics.totalRemaining)}</span>` : ''}
+                  ${ribbonMetrics && ribbonMetrics.hasRibbons ? `<span class="text-[10px] ${ribbonMetrics.totalRemaining === 0 ? 'text-slate-400' : 'text-amber-700'} font-mono block font-bold">🎗️ ${formatNumber(ribbonMetrics.totalRemaining)}</span>` : ''}
                 </div>
               </div>
 
@@ -6860,7 +7048,7 @@ function render() {
 
               <div class="flex items-center justify-between pt-1 gap-2">
                 <button type="button" onclick="openUpdateProductionStatusModal('${escapeHtml(po.poNumber)}')" class="flex-1 py-2 px-3 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200/90 rounded-xl text-xs font-bold transition flex items-center justify-center gap-1.5 shadow-2xs cursor-pointer">
-                  <span>⚡ Stage</span>
+                  <span>⚡ Update Order Status</span>
                 </button>
                 <button type="button" onclick="deletePo('${escapeHtml(po.poNumber)}')" class="p-2 text-slate-400 hover:text-rose-600 hover:bg-rose-50 border border-slate-200 rounded-xl transition cursor-pointer" title="Delete Order">
                   <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
@@ -6992,7 +7180,23 @@ function render() {
   const adminShipmentsBody = document.getElementById('adminShipmentsTableBody');
   if (adminShipmentsBody) {
     if (adminFilteredShipments.length === 0) {
-      adminShipmentsBody.innerHTML = `<tr><td colspan="12" class="p-8 text-center text-slate-400 text-xs">No dispatches match the selected audit and category filters.</td></tr>`;
+      const totalShipCount = (shipments || []).length;
+      adminShipmentsBody.innerHTML = `
+        <tr>
+          <td colspan="9" class="p-12 text-center text-slate-500 text-xs bg-slate-50/40">
+            <div class="max-w-md mx-auto space-y-3">
+              <span class="text-3xl block">🚚</span>
+              <p class="font-bold text-slate-800 text-sm">No dispatches match the selected audit filter</p>
+              <p class="text-slate-400 text-xs leading-relaxed">There are currently 0 shipments under this view. There are <strong class="text-slate-700 font-bold">${totalShipCount} total dispatches</strong> in the system log.</p>
+              <div class="flex items-center justify-center gap-2 pt-2">
+                <button type="button" onclick="setShipmentFilter('all'); if (typeof setCategoryFilter === 'function') setCategoryFilter('all');" class="px-4 py-2 rounded-xl text-xs font-bold bg-slate-900 text-white shadow-2xs hover:bg-slate-800 transition cursor-pointer flex items-center gap-1.5">
+                  <span>🚚 Show All ${totalShipCount} Dispatches</span>
+                </button>
+              </div>
+            </div>
+          </td>
+        </tr>
+      `;
     } else {
       adminShipmentsBody.innerHTML = adminFilteredShipments.map(s => {
         const po = state.pos.find(p => p.poNumber === s.poNumber);
@@ -7136,9 +7340,17 @@ function render() {
   const adminShipmentsCards = document.getElementById('adminShipmentsCardsContainer');
   if (adminShipmentsCards) {
     if (adminFilteredShipments.length === 0) {
+      const totalShipCount = (shipments || []).length;
       adminShipmentsCards.innerHTML = `
-        <div class="p-8 text-center bg-white rounded-2xl border border-slate-200 text-slate-400 text-xs">
-          No dispatches match the selected audit and category filters.
+        <div class="p-8 text-center bg-white rounded-2xl border border-slate-200 text-slate-500 text-xs space-y-3 shadow-2xs">
+          <span class="text-3xl block">🚚</span>
+          <p class="font-bold text-slate-800 text-sm">No dispatches match the selected audit filter</p>
+          <p class="text-slate-400 text-xs leading-relaxed">There are currently 0 shipments under this view. There are <strong class="text-slate-700 font-bold">${totalShipCount} total dispatches</strong> in the log.</p>
+          <div class="flex items-center justify-center gap-2 pt-1 flex-wrap">
+            <button type="button" onclick="setShipmentFilter('all'); if (typeof setCategoryFilter === 'function') setCategoryFilter('all');" class="px-3.5 py-1.5 rounded-xl text-xs font-bold bg-slate-900 text-white shadow-2xs hover:bg-slate-800 transition cursor-pointer flex items-center gap-1.5">
+              <span>🚚 Show All ${totalShipCount} Dispatches</span>
+            </button>
+          </div>
         </div>
       `;
     } else {
@@ -7947,6 +8159,15 @@ if (typeof window !== 'undefined') {
   window.handleProdItemScopeChange = handleProdItemScopeChange;
   window.getItemProductionBadgeHtml = getItemProductionBadgeHtml;
   window.handleProductionStatusSubmit = handleProductionStatusSubmit;
+  window.toggleVendorKpiMobile = toggleVendorKpiMobile;
+  window.toggleAdminKpiMobile = toggleAdminKpiMobile;
+  window.toggleGateKpiMobile = toggleGateKpiMobile;
+  window.setPoMobileView = setPoMobileView;
+  window.setAdminDispatchesMobileView = setAdminDispatchesMobileView;
+  window.setVendorListMobileView = setVendorListMobileView;
+  window.previewSelectedInvoice = previewSelectedInvoice;
+  window.removeSelectedFile = removeSelectedFile;
+  window.toggleCardAccordion = toggleCardAccordion;
   window.render = render;
   Object.defineProperty(window, 'currentDispatchInvoice', {
     get: () => currentDispatchInvoice,
