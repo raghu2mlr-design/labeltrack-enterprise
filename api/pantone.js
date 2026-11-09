@@ -1,6 +1,19 @@
 const fs = require('fs');
 const path = require('path');
 
+let pantoneLibraryCache = null;
+function getPantoneLibrary() {
+  if (!pantoneLibraryCache) {
+    try {
+      const libPath = path.join(process.cwd(), 'data', 'pantone-library.json');
+      if (fs.existsSync(libPath)) {
+        pantoneLibraryCache = JSON.parse(fs.readFileSync(libPath, 'utf8'));
+      }
+    } catch (e) {}
+  }
+  return pantoneLibraryCache;
+}
+
 module.exports = (req, res) => {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
@@ -11,9 +24,8 @@ module.exports = (req, res) => {
   if (!q) return res.status(400).json({ error: 'Missing query parameter q' });
 
   try {
-    const libPath = path.join(process.cwd(), 'data', 'pantone-library.json');
-    if (fs.existsSync(libPath)) {
-      const lib = JSON.parse(fs.readFileSync(libPath, 'utf8'));
+    const lib = getPantoneLibrary();
+    if (lib) {
       const cleanQ = q.replace(/^PANTONE\s*/i, '').replace(/^PMS\s*/i, '').replace(/[^\w\d]/g, '').toUpperCase();
       const hex = lib[cleanQ] || lib[cleanQ + 'C'] || lib[q.toUpperCase()] || lib[cleanQ + 'TCX'];
       if (hex) {
